@@ -1,0 +1,3 @@
+services:
+  entity_sync.sync_from.manager:
+    class: Drupal\entity_sync\SyncFrom\Manager
