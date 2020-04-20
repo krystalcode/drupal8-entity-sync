@@ -20,12 +20,20 @@ function entity_sync_cronapi() {
   $items = [];
 
   // Define the entities that need to be synced.
+  // @I Use a config file to add the entity definitions.
+  //    type     : improvement
+  //    priority : medium
+  //    labels   : refactoring
   $entities_to_sync = [];
   // Allow other modules to add/alter the entities to be synced.
   $event = new SyncEntityTypesEvent($entities_to_sync);
   $event_dispatcher = \Drupal::service('event_dispatcher');
   $event_dispatcher->dispatch(SyncEntityTypesEvent::EVENT_NAME, $event);
   $entities_to_sync = $event->getEntitiesToSync();
+
+  if (!$entities_to_sync) {
+    return $items;
+  }
 
   // Go through the entities to sync array create a cron item for each entity.
   foreach ($entities_to_sync as $sync_id => $entity_info) {
