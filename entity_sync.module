@@ -1,0 +1,96 @@
+<?php
+
+/**
+ * @file
+ * Contains hooks and functionality for the `entity_sync` module.
+ */
+
+use Drupal\entity_sync\Event\SyncEntityTypesEvent;
+
+/**
+ * Hook implementations.
+ */
+
+/**
+ * Implements hook_cronapi().
+ *
+ * Sync entities from the remote service on cron runs.
+ */
+function entity_sync_cronapi() {
+  $items = [];
+
+  // Define the entities that need to be synced.
+  $entities_to_sync = [];
+  // Allow other modules to add/alter the entities to be synced.
+  $event = new SyncEntityTypesEvent($entities_to_sync);
+  $event_dispatcher = \Drupal::service('event_dispatcher');
+  $event_dispatcher->dispatch(SyncEntityTypesEvent::EVENT_NAME, $event);
+  $entities_to_sync = $event->getEntitiesToSync();
+
+  // Go through the entities to sync array create a cron item for each entity.
+  foreach ($entities_to_sync as $sync_id => $entity_info) {
+    $item_name = $entity_info['provider']
+      . '_' . $entity_info['entity_type_id']
+      . '_' . $entity_info['entity_bundle'];
+    $items[$item_name] = _entity_sync_create_cron_job($sync_id, $entity_info);
+  }
+
+  return $items;
+}
+
+/**
+ * Callbacks.
+ */
+
+/**
+ * Cron job callback.
+ *
+ * Calls the appropriate sync functions depending on the type of entity that is
+ * being synced.
+ *
+ * @param string $sync_id
+ *   The entity sync id.
+ * @param string $entity_type_id
+ *   The entity type.
+ * @param string $bundle
+ *   The name of the entity bundle.
+ */
+function entity_sync_cron_job_callback($sync_id, $entity_type_id, $bundle) {
+  // Call the sync manager to sync the entity from the remote service.
+  $sync_from_manager = \Drupal::service('entity_sync.sync_from.manager');
+  $sync_from_manager->sync($sync_id, $entity_type_id, $bundle);
+}
+
+/**
+ * Custom callbacks.
+ */
+
+/**
+ * Creates a cron job for a given entity.
+ *
+ * @param string $sync_id
+ *   The entity sync id.
+ * @param array $entity_info
+ *   An array of information about the entity.
+ *
+ * @return array
+ *   An cron job item array.
+ */
+function _entity_sync_create_cron_job($sync_id, array $entity_info) {
+  return [
+    'title' => $entity_info['title'],
+    'callback' => 'entity_sync_cron_job_callback',
+    'callback arguments' => [
+      $sync_id,
+      $entity_info['entity_type_id'],
+      $entity_info['entity_bundle']
+    ],
+    'enabled' => $entity_info['cron']['enabled'],
+    'scheduler' => [
+      'name' => 'simple',
+      'simple' => [
+        'rules' => ['0+@ * * * *'],
+      ],
+    ],
+  ];
+}
