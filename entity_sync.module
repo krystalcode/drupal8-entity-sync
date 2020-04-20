@@ -20,7 +20,7 @@ function entity_sync_cronapi() {
   $items = [];
 
   // Define the entities that need to be synced.
-  // @I Use a config file to add the entity definitions.
+  // @I Use a config file to add the entity definitions
   //    type     : improvement
   //    priority : medium
   //    labels   : refactoring

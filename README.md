@@ -5,6 +5,8 @@ This module provides a framework to sync entities to and from remote systems.
 
 - Defines an EntitySyncFrom service that syncs entities from remote services to Drupal.
   - Syncs entities via hook_cronapi.
+  - Entities to sync are defined by allowing modules to subscribe to the
+SyncEntityTypes event.
 - Defines an EntitySyncTo service that syncs entities from Drupal to remote services.
 
 REQUIREMENTS
