@@ -5,6 +5,8 @@ namespace Drupal\entity_sync\Event;
 use Symfony\Component\EventDispatcher\Event;
 
 /**
+ * The SyncEntityTypesEvent event.
+ *
  * Allows modules to define the entities that should be synced to the remote.
  */
 class SyncEntityTypesEvent extends Event {
@@ -19,7 +21,7 @@ class SyncEntityTypesEvent extends Event {
   protected $entitiesToSync;
 
   /**
-   * Constructs the object.
+   * Constructs the SyncEntityTypesEvent object.
    *
    * @param array $entities_to_sync
    *   The entity types to sync.

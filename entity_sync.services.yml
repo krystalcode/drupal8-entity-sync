@@ -1,3 +1,12 @@
 services:
+  logger.channel.entity_sync:
+    class: Drupal\Core\Logger\LoggerChannel
+    factory: logger.factory:get
+    arguments:
+      - '@entity_sync'
+
   entity_sync.sync_from.manager:
     class: Drupal\entity_sync\SyncFrom\Manager
+    arguments:
+      - '@logger.channel.entity_sync'
+      - '@event_dispatcher'

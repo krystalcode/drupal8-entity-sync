@@ -8,7 +8,10 @@ namespace Drupal\entity_sync\SyncFrom;
 interface ManagerInterface {
 
   /**
-   * Gets and syncs a list of entities that need to be updated from the remote.
+   * Syncs a list of entities that need to be updated from the remote.
+   *
+   * Fetches a list of entities for the given entity type from the remote
+   * service and syncs them with Drupal.
    *
    * @param string $sync_id
    *   The entity sync id.
@@ -17,6 +20,14 @@ interface ManagerInterface {
    * @param string $bundle
    *   The entity bundle.
    */
-  public function sync($sync_id, $entity_type_id, $bundle);
+  public function syncList($sync_id, $entity_type_id, $bundle);
+
+  /**
+   * Syncs a remote entity with the appropriate Drupal entity.
+   *
+   * @param object $remote_entity
+   *   The remote entity that should be synced.
+   */
+  public function sync($remote_entity);
 
 }
