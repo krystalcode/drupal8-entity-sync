@@ -162,8 +162,8 @@ class Manager implements ManagerInterface {
 
     // First check if the entity type bundle has the required fields.
     $required_fields = [
-      'field_sync_remote_id',
-      'field_sync_changed',
+      'sync_remote_id',
+      'sync_changed',
     ];
     foreach ($required_fields as $field_name) {
       if (!$this->bundleHasField(
