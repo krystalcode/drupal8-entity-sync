@@ -3,10 +3,12 @@
 namespace Drupal\entity_sync\SyncFrom;
 
 use Drupal\entity_sync\Event\ClientAdapterEvent;
+use Drupal\entity_sync\Event\EntityMappingEvent;
+use Drupal\entity_sync\Event\EntityUpdateEvent;
+use Drupal\entity_sync\Event\FieldMappingEvent;
 
 use Drupal\Core\Logger\LoggerChannelInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
-use Drupal\entity_sync\Event\EntityUpdateEvent;
 use Drupal\field\Entity\FieldStorageConfig;
 
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
@@ -107,22 +109,41 @@ class Manager implements ManagerInterface {
    * {@inheritDoc}
    */
   public function sync($remote_entity) {
-    // Dispatch an event to allow modules to update and save this entity.
-    try {
-      $event = new EntityUpdateEvent($remote_entity);
-      $this->eventDispatcher->dispatch(
-        EntityUpdateEvent::EVENT_NAME,
-        $event
-      );
+    // Dispatch an event to define which Drupal entity and ID to sync this
+    // remote entity with.
+    $event = new EntityMappingEvent($remote_entity, []);
+    $this->eventDispatcher->dispatch(
+      EntityMappingEvent::EVENT_NAME,
+      $event
+    );
+    $entity_mapping = $event->getEntityMapping();
+    if (empty($entity_mapping['type'])) {
+      $message = 'There is no entity mapping information for this entity.';
+      $this->logger->error($message);
+      throw new \RuntimeException($message);
     }
-    catch (\Exception $e) {
-      $this->logger->error(
-        $this->t('An error occurred while syncing from the remote service to Drupal.
-         The error was: @error', [
-           '@error' => $e->getMessage(),
-         ]
-      ));
+
+    // Now, dispatch another event to define which Drupal entity fields will be
+    // synced to which remote entity fields.
+    $event = new FieldMappingEvent($remote_entity, []);
+    $this->eventDispatcher->dispatch(FieldMappingEvent::EVENT_NAME, $event);
+    $field_mapping = $event->getFieldMapping();
+    if (empty($field_mapping)) {
+      $message = 'There is no field mapping information for this entity.';
+      $this->logger->error($message);
+      throw new \RuntimeException($message);
     }
+
+    // Now, run another event to do the official syncing.
+    $event = new EntityUpdateEvent(
+      $remote_entity,
+      $entity_mapping,
+      $field_mapping
+    );
+    $this->eventDispatcher->dispatch(
+      EntityUpdateEvent::EVENT_NAME,
+      $event
+    );
   }
 
   /**

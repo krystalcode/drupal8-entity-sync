@@ -68,4 +68,17 @@ class ClientAdapterEvent extends Event {
     return $this->clientAdapter;
   }
 
+  /**
+   * Sets the client adapter that should be used to make calls to the remote.
+   *
+   * @param object $client_adapter
+   *   The client adapter.
+   *
+   * @return $this
+   */
+  public function setClientAdapter($client_adapter) {
+    $this->clientAdapter = $client_adapter;
+    return $this;
+  }
+
 }
