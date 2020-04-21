@@ -35,7 +35,8 @@ function entity_sync_cronapi() {
     return $items;
   }
 
-  // Go through the entities to sync array create a cron item for each entity.
+  // Go through the entity types that need to be synced and create a cron item
+  // for each entity type.
   foreach ($entities_to_sync as $sync_id => $entity_info) {
     $item_name = $entity_info['provider']
       . '_' . $entity_info['entity_type_id']
@@ -53,8 +54,8 @@ function entity_sync_cronapi() {
 /**
  * Cron job callback.
  *
- * Calls the appropriate sync functions depending on the type of entity that is
- * being synced.
+ * Fetch entities of the given type from the remote service and sync them to the
+ * appropriate Drupal entity.
  *
  * @param string $sync_id
  *   The entity sync id.
@@ -64,9 +65,10 @@ function entity_sync_cronapi() {
  *   The name of the entity bundle.
  */
 function entity_sync_cron_job_callback($sync_id, $entity_type_id, $bundle) {
-  // Call the sync manager to sync the entity from the remote service.
+  // Call the sync manager to fetch and sync entities from the remote service
+  // for this particular entity type.
   $sync_from_manager = \Drupal::service('entity_sync.sync_from.manager');
-  $sync_from_manager->sync($sync_id, $entity_type_id, $bundle);
+  $sync_from_manager->syncList($sync_id, $entity_type_id, $bundle);
 }
 
 /**
@@ -74,26 +76,30 @@ function entity_sync_cron_job_callback($sync_id, $entity_type_id, $bundle) {
  */
 
 /**
- * Creates a cron job for a given entity.
+ * Creates a cron job for a given entity type.
  *
  * @param string $sync_id
  *   The entity sync id.
- * @param array $entity_info
- *   An array of information about the entity.
+ * @param array $entity_type_info
+ *   An array of information about the entity type.
  *
  * @return array
  *   An cron job item array.
  */
-function _entity_sync_create_cron_job($sync_id, array $entity_info) {
+function _entity_sync_create_cron_job($sync_id, array $entity_type_info) {
+  // @I Determine if we need more properties when defining the job
+  //    type     : improvement
+  //    priority : medium
+  //    labels   : refactoring
   return [
-    'title' => $entity_info['title'],
+    'title' => $entity_type_info['title'],
     'callback' => 'entity_sync_cron_job_callback',
     'callback arguments' => [
       $sync_id,
-      $entity_info['entity_type_id'],
-      $entity_info['entity_bundle']
+      $entity_type_info['entity_type_id'],
+      $entity_type_info['entity_bundle']
     ],
-    'enabled' => $entity_info['cron']['enabled'],
+    'enabled' => $entity_type_info['cron']['enabled'],
     'scheduler' => [
       'name' => 'simple',
       'simple' => [
