@@ -5,7 +5,7 @@ namespace Drupal\entity_sync\Client;
 /**
  * Provides the interface for all client implementations of API resources.
  *
- * @I Determine if this implementation is sufficient
+ * @I Determine if this implementation and iterator we're using is sufficient
  *    type     : improvement
  *    priority : normal
  *    labels   : refactoring

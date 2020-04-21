@@ -3,7 +3,7 @@
 namespace Drupal\entity_sync\Client;
 
 /**
- * Defines the interface for SDK iterators.
+ * Defines the interface for iterators.
  *
  * Iterators facilitates getting results from list endpoints that support
  * pagination.
