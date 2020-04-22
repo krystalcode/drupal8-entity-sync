@@ -67,8 +67,8 @@ function entity_sync_cronapi() {
 function entity_sync_cron_job_callback($sync_id, $entity_type, $bundle) {
   // Call the sync manager to fetch and sync entities from the remote service
   // for this particular entity type.
-  $sync_from_manager = \Drupal::service('entity_sync.sync_from.manager');
-  $sync_from_manager->syncList($sync_id, $entity_type, $bundle);
+  $import_manager = \Drupal::service('entity_sync.import.manager');
+  $import_manager->syncList($sync_id, $entity_type, $bundle);
 }
 
 /**

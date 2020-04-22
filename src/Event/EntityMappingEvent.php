@@ -12,7 +12,7 @@ use Symfony\Component\EventDispatcher\Event;
  */
 class EntityMappingEvent extends Event {
 
-  const EVENT_NAME = 'entity_sync.sync_from.entity_mapping';
+  const EVENT_NAME = 'entity_sync.import.entity_mapping';
 
   /**
    * The entity that's about to be synced.

@@ -12,7 +12,7 @@ use Symfony\Component\EventDispatcher\Event;
  */
 class FieldMappingEvent extends Event {
 
-  const EVENT_NAME = 'entity_sync.sync_from.field_mapping';
+  const EVENT_NAME = 'entity_sync.import.field_mapping';
 
   /**
    * The remote entity that's about to be synced.
