@@ -103,7 +103,7 @@ function _entity_sync_create_cron_job($sync_id, array $entity_type_info) {
     'scheduler' => [
       'name' => 'simple',
       'simple' => [
-        'rules' => ['0+@ * * * *'],
+        'rules' => $entity_type_info['cron']['frequency'],
       ],
     ],
   ];
