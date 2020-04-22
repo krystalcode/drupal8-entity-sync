@@ -59,6 +59,36 @@ class ClientAdapterEvent extends Event {
   }
 
   /**
+   * Returns the sync ID.
+   *
+   * @return string
+   *   The sync ID.
+   */
+  public function getSyncId() {
+    return $this->syncId;
+  }
+
+  /**
+   * Returns the entity type.
+   *
+   * @return string
+   *   The entity type.
+   */
+  public function getEntityType() {
+    return $this->entityType;
+  }
+
+  /**
+   * Returns the entity type bundle.
+   *
+   * @return string
+   *   The entity type bundle.
+   */
+  public function getBundle() {
+    return $this->bundle;
+  }
+
+  /**
    * Gets the client adapter object.
    *
    * @return \Drupal\entity_sync\Client\ClientInterface
