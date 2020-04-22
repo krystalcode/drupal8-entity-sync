@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\entity_sync\SyncFrom;
+namespace Drupal\entity_sync\Import;
 
 /**
  * Interface for the Manager class.

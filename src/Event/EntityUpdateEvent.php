@@ -11,7 +11,7 @@ use Symfony\Component\EventDispatcher\Event;
  */
 class EntityUpdateEvent extends Event {
 
-  const EVENT_NAME = 'entity_sync.sync_from.entity_update';
+  const EVENT_NAME = 'entity_sync.import.entity_update';
 
   /**
    * The remote entity that need to be synced.

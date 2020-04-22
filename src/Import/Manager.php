@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\entity_sync\SyncFrom;
+namespace Drupal\entity_sync\Import;
 
 use Drupal\entity_sync\Event\ClientAdapterEvent;
 use Drupal\entity_sync\Event\EntityMappingEvent;

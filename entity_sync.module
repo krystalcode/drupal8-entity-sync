@@ -38,10 +38,10 @@ function entity_sync_cronapi() {
   // Go through the entity types that need to be synced and create a cron item
   // for each entity type.
   foreach ($entities_to_sync as $sync_id => $entity_info) {
-    $item_name = $entity_info['provider']
-      . '_' . $entity_info['entity_type_id']
-      . '_' . $entity_info['entity_bundle'];
-    $items[$item_name] = _entity_sync_create_cron_job($sync_id, $entity_info);
+    $items[$sync_id . '_import_list'] = _entity_sync_create_cron_job(
+      $sync_id,
+      $entity_info
+    );
   }
 
   return $items;
@@ -67,8 +67,8 @@ function entity_sync_cronapi() {
 function entity_sync_cron_job_callback($sync_id, $entity_type, $bundle) {
   // Call the sync manager to fetch and sync entities from the remote service
   // for this particular entity type.
-  $sync_from_manager = \Drupal::service('entity_sync.sync_from.manager');
-  $sync_from_manager->syncList($sync_id, $entity_type, $bundle);
+  $import_manager = \Drupal::service('entity_sync.import.manager');
+  $import_manager->syncList($sync_id, $entity_type, $bundle);
 }
 
 /**

@@ -3,10 +3,10 @@ services:
     class: Drupal\Core\Logger\LoggerChannel
     factory: logger.factory:get
     arguments:
-      - '@entity_sync'
+      - 'entity_sync'
 
-  entity_sync.sync_from.manager:
-    class: Drupal\entity_sync\SyncFrom\Manager
+  entity_sync.import.manager:
+    class: Drupal\entity_sync\Import\Manager
     arguments:
       - '@logger.channel.entity_sync'
       - '@event_dispatcher'
