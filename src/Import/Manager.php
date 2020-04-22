@@ -2,6 +2,7 @@
 
 namespace Drupal\entity_sync\Import;
 
+use Drupal\entity_sync\Client\ClientInterface;
 use Drupal\entity_sync\Event\ClientAdapterEvent;
 use Drupal\entity_sync\Event\EntityMappingEvent;
 use Drupal\entity_sync\Event\EntityUpdateEvent;
@@ -84,8 +85,8 @@ class Manager implements ManagerInterface {
     );
     $this->clientAdapter = $event->getClientAdapter();
     // Throw an error if we don't get back a client adapter object.
-    if (!$this->clientAdapter) {
-      $message = 'There is no client adapter to sync this entity.';
+    if (!$this->clientAdapter instanceof ClientInterface) {
+      $message = 'There is no valid client adapter to sync this entity.';
       $this->logger->error($message);
       throw new \RuntimeException($message);
     }
