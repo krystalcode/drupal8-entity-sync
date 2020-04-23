@@ -3,7 +3,9 @@
 namespace Drupal\entity_sync\Client;
 
 use Drupal\entity_sync\Exception\InvalidConfigurationException;
+
 use Drupal\Core\Config\ConfigFactoryInterface;
+
 use Symfony\Component\DependencyInjection\ContainerAwareInterface;
 use Symfony\Component\DependencyInjection\ContainerAwareTrait;
 
@@ -39,6 +41,8 @@ class ClientFactory implements ContainerAwareInterface {
    *
    * @return \Drupal\entity_sync\Client\ClientInterface
    *   The initialized client.
+   *
+   * @throws \Drupal\entity_sync\Exception\InvalidConfigurationException
    */
   public function get($sync_type_id) {
     $sync_type = $this->configFactory->get(

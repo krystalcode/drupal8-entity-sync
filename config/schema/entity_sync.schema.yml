@@ -3,12 +3,16 @@ entity_sync.entity_sync_type.*:
   type: config_object
   label: 'Entity sync type'
   mapping:
-    entity_type_id:
-      type: string
-      label: 'The entity type ID'
-    entity_bundle:
-      type: string
-      label: 'The entity bundle'
+    entity:
+      type: mapping
+      label: 'The mapping between the Drupal and remote entity'
+      mapping:
+        entity_type_id:
+          type: string
+          label: 'The entity type ID'
+        entity_bundle:
+          type: string
+          label: 'The entity bundle'
     remote_resource:
       type: mapping
       label: 'Configuration related to the corresponding remote resource'
@@ -26,3 +30,18 @@ entity_sync.entity_sync_type.*:
             service:
               type: string
               label: 'The name of the service providing the client when its type is service'
+    fields:
+      type: mapping
+      label: 'The mapping between the Drupal and remote fields'
+      mapping:
+        name:
+          type: string
+          label: 'The name of the Drupal field'
+        remote_name:
+          type: string
+          label: 'The name of the remote field'
+        callback:
+          type: string
+          label: 'The name of the custom callback to execute to save the fields'
+
+
