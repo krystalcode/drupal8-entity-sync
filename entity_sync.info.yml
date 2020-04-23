@@ -1,0 +1,5 @@
+name: Entity Synchronization
+description: Provides a framework for synchronizing Drupal entities to and from remote systems.
+type: module
+package: Sync
+core_version_requirement: ^8.8 || ^9

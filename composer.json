@@ -1,0 +1,28 @@
+{
+  "name": "drupal/entity_sync",
+  "type": "drupal-module",
+  "description": "Provides a framework for synchronizing Drupal entities to and from remote systems.",
+  "keywords": ["Drupal"],
+  "homepage": "https://www.drupal.org/project/entity_sync",
+  "license": "GPL-2.0+",
+  "authors": [
+    {
+      "name": "krystalcode",
+      "homepage": "https://www.drupal.org/u/krystalcode",
+      "role": "Maintainer"
+    },
+    {
+      "name": "shabana.navas",
+      "homepage": "https://www.drupal.org/u/shabananavas",
+      "role": "Maintainer"
+    }
+  ],
+  "support": {
+    "issues": "https://www.drupal.org/project/issues/entity_sync",
+    "source": "https://git.drupalcode.org/project/entity_sync"
+  },
+  "require": {
+    "drupal/core": "^8.8 | ^9",
+    "drupal/ultimate_cron": "^2.0@alpha"
+  }
+}
