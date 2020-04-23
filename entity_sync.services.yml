@@ -1,7 +1,22 @@
 services:
+  logger.channel.entity_sync:
+    class: Drupal\Core\Logger\LoggerChannel
+    factory: logger.factory:get
+    arguments:
+      - 'entity_sync'
+
   entity_sync.client.factory:
     class: Drupal\entity_sync\Client\ClientFactory
     arguments: ['@config.factory']
     parent: container.trait
     calls:
       - [setContainer, ['@service_container']]
+
+  entity_sync.import.manager:
+    class: Drupal\entity_sync\Import\Manager
+    arguments:
+      - '@logger.channel.entity_sync'
+      - '@event_dispatcher'
+      - '@config.factory'
+      - '@entity_type.manager'
+      - '@datetime.time'
