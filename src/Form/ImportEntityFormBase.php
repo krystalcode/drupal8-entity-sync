@@ -9,9 +9,9 @@ use Drupal\Core\Queue\QueueFactory;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
- * Form for importing a list of entities.
+ * Form for importing a single entity.
  */
-class ImportEntityListFormBase extends FormBase {
+class ImportEntityFormBase extends FormBase {
 
   /**
    * The queue worker.
@@ -21,7 +21,7 @@ class ImportEntityListFormBase extends FormBase {
   protected $queue;
 
   /**
-   * Constructs a entities sync form object.
+   * Constructs a entity sync form object.
    *
    * @param \Drupal\Core\Queue\QueueFactory $queue_factory
    *   The queue factory.
@@ -29,7 +29,7 @@ class ImportEntityListFormBase extends FormBase {
   public function __construct(
     QueueFactory $queue_factory
   ) {
-    $this->queue = $queue_factory->get('entity_sync_import_list');
+    $this->queue = $queue_factory->get('entity_sync_import');
   }
 
   /**
@@ -45,7 +45,7 @@ class ImportEntityListFormBase extends FormBase {
    * {@inheritdoc}
    */
   public function getFormId() {
-    return 'entity_sync_import_entity_list_base_form';
+    return 'entity_sync_import_entity_base_form';
   }
 
   /**
@@ -54,7 +54,7 @@ class ImportEntityListFormBase extends FormBase {
   public function buildForm(array $form, FormStateInterface $form_state) {
     $form['sync'] = [
       '#type' => 'submit',
-      '#value' => $this->t('Sync Entities'),
+      '#value' => $this->t('Sync Entity'),
     ];
 
     return $form;
