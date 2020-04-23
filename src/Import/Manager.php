@@ -116,6 +116,10 @@ class Manager implements ManagerInterface {
     // Now, fetch the appropriate adapter to use for this sync type and fetch
     // the list of entities using that service.
     $client_adapter = $this->config->get('remote_resource.client.service');
+    // @I Figure out how we can properly implement this service call
+    //    type     : improvement
+    //    priority : normal
+    //    labels   : refactoring
     $entities = \Drupal::service($client_adapter)->list();
     if (!$entities) {
       return;
