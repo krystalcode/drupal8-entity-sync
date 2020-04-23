@@ -22,7 +22,7 @@
     "source": "https://git.drupalcode.org/project/entity_sync"
   },
   "require": {
-    "drupal/core": "^8.8",
+    "drupal/core": "^8.8 | ^9",
     "drupal/ultimate_cron": "^2.0@alpha"
   }
 }

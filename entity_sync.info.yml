@@ -2,7 +2,4 @@ name: Entity Sync
 description: Provides a framework to sync entities to and from remote systems.
 type: module
 package: Web services
-dependencies:
-  - drupal:system (>=8.8)
-  - ultimate_cron:ultimate_cron
-core: 8.x
+core_version_requirement: ^8.8 || ^9
