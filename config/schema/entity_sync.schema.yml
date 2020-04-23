@@ -1,0 +1,28 @@
+# Schema for defining entity sync types.
+entity_sync.entity_sync_type.*:
+  type: config_object
+  label: 'Entity sync type'
+  mapping:
+    entity_type_id:
+      type: string
+      label: 'The entity type ID'
+    entity_bundle:
+      type: string
+      label: 'The entity bundle'
+    remote_resource:
+      type: mapping
+      label: 'Configuration related to the corresponding remote resource'
+      mapping:
+        name:
+          type: string
+          label: 'The name of the resource'
+        client:
+          type: mapping
+          label: 'Configuration related to the remote resource client'
+          mapping:
+            type:
+              type: string
+              label: 'The type of the remote resource client'
+            service:
+              type: string
+              label: 'The name of the service providing the client when its type is service'

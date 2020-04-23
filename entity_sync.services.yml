@@ -1,0 +1,7 @@
+services:
+  entity_sync.client.factory:
+    class: Drupal\entity_sync\Client\ClientFactory
+    arguments: ['@config.factory']
+    parent: container.trait
+    calls:
+      - [setContainer, ['@service_container']]
