@@ -1,0 +1,6 @@
+entity_sync.configuration:
+  title: 'Entity Sync'
+  route_name: 'entity_sync.configuration'
+  parent: 'system.admin'
+  description: 'Administer and configure the entity syc module.'
+  weight: 5

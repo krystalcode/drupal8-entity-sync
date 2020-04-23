@@ -1,0 +1,7 @@
+entity_sync.configuration:
+  path: '/admin/sync'
+  defaults:
+    _controller: '\Drupal\system\Controller\SystemController::systemAdminMenuBlockPage'
+    _title: 'Entity Sync'
+  requirements:
+    _permission: 'access entity sync administration pages'
