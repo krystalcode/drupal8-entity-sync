@@ -48,6 +48,8 @@ class ClientFactory implements ContainerAwareInterface {
     $sync_type = $this->configFactory->get(
       'entity_sync.entity_sync_type.' . $sync_type_id
     );
+
+    // Check that the sync type exists.
     if ($sync_type->isNew()) {
       throw new \InvalidArgumentException(
         sprintf(
@@ -57,6 +59,7 @@ class ClientFactory implements ContainerAwareInterface {
       );
     }
 
+    // Check if a service has been defined for this sync type.
     $client_config = $sync_type->get('remote_resource.client');
     if (empty($client_config['type']) || $client_config['type'] !== 'service') {
       throw new InvalidConfigurationException(
@@ -67,6 +70,7 @@ class ClientFactory implements ContainerAwareInterface {
       );
     }
 
+    // Check if the sync type defines a service.
     if (empty($client_config['service'])) {
       throw new InvalidConfigurationException(
         sprintf(
@@ -76,11 +80,18 @@ class ClientFactory implements ContainerAwareInterface {
       );
     }
 
-    // @I Check that the given client implements the expected interface
-    //    type     : bug
-    //    priority : normal
-    //    labels   : error-handling
-    return $this->container->get($client_config['service']);
+    // Check that the service implements the ClientInterface.
+    $client = $this->container->get($client_config['service']);
+    if (!$client instanceof ClientInterface) {
+      throw new InvalidConfigurationException(
+        sprintf(
+          'The entity sync type "%s" must implement a service that is an instance of the \Drupal\entity_sync\Client\ClientInterface.',
+          $sync_type_id
+        )
+      );
+    }
+
+    return $client;
   }
 
 }
