@@ -8,6 +8,7 @@ use Drupal\entity_sync\Event\FieldMappingEvent;
 
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Logger\LoggerChannelInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
@@ -75,11 +76,11 @@ class Manager implements ManagerInterface {
   protected $clientFactory;
 
   /**
-   * The remote ID field for this sync entity type.
+   * The remote ID field name for this sync entity type.
    *
    * @var string
    */
-  protected $remoteIdField;
+  protected $remoteIdFieldName;
 
   /**
    * Constructs a new Manager instance.
@@ -124,7 +125,7 @@ class Manager implements ManagerInterface {
       ->get('entity_sync.entity_sync_type.' . $sync_type_id);
 
     // Get the remote ID field for this sync type.
-    $this->remoteIdField =
+    $this->remoteIdFieldName =
       !empty($this->config->get('entity.remote_id_field'))
         ? $this->config->get('entity.remote_id_field')
         : 'sync_remote_id';
@@ -182,7 +183,7 @@ class Manager implements ManagerInterface {
     }
 
     // Save the Drupal entity now.
-    $drupal_entity->set($this->remoteIdField, $remote_id);
+    $drupal_entity->set($this->remoteIdFieldName, $remote_id);
     $drupal_entity->set('sync_changed', $this->time->getRequestTime());
     $drupal_entity->save();
   }
@@ -192,9 +193,10 @@ class Manager implements ManagerInterface {
    */
   public function importField(
     $remote_entity,
-    $drupal_entity,
+    EntityInterface $drupal_entity,
     array $field_info
   ) {
+    // If this field should be saved via custom callback, then invoke that.
     if (isset($field_info['callback'])) {
       call_user_func(
         $field_info['callback'],
@@ -203,6 +205,7 @@ class Manager implements ManagerInterface {
         $field_info
       );
     }
+    // Else, we use the normal set() function.
     elseif ($drupal_entity->hasField($field_info['name'])) {
       $drupal_entity->set(
         $field_info['name'],
@@ -222,7 +225,7 @@ class Manager implements ManagerInterface {
 
     // First check if the entity type bundle has the required fields.
     $required_fields = [
-      $this->remoteIdField,
+      $this->remoteIdFieldName,
       'sync_changed',
     ];
     foreach ($required_fields as $field_name) {
@@ -289,13 +292,16 @@ class Manager implements ManagerInterface {
    *
    * @param object $remote_entity
    *   The remote entity.
-   * @param object $drupal_entity
+   * @param \Drupal\core\Entity\EntityInterface $drupal_entity
    *   The Drupal entity.
    *
    * @return array
    *   The final field mapping.
    */
-  protected function getFieldMapping($remote_entity, $drupal_entity) {
+  protected function getFieldMapping(
+    $remote_entity,
+    EntityInterface $drupal_entity
+  ) {
     // Now, dispatch another event to allow modules to alter which Drupal entity
     // fields will be synced to which remote entity fields.
     $event = new FieldMappingEvent(
@@ -320,7 +326,7 @@ class Manager implements ManagerInterface {
    * @param array $entity_mapping
    *   The entity mapping info.
    *
-   * @return object
+   * @return \Drupal\core\Entity\EntityInterface
    *   A Drupal entity.
    *
    * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
@@ -335,19 +341,19 @@ class Manager implements ManagerInterface {
     // Check if a Drupal entity exists for this entity.
     $results = $entity_storage
       ->getQuery()
-      ->condition($this->remoteIdField, $remote_id)
+      ->condition($this->remoteIdFieldName, $remote_id)
       ->execute();
-    $drupal_entity = $entity_storage->load(reset($results));
+    if ($results) {
+      return $entity_storage->load(reset($results));
+    }
 
     // If this is entity doesn't exist in Drupal, create it.
-    if (!$drupal_entity) {
-      $drupal_entity = $entity_storage
-        ->create([
-          'bundle' => $entity_mapping['entity_bundle'],
-          'status' => TRUE,
-        ]);
-      $drupal_entity->save();
-    }
+    $drupal_entity = $entity_storage
+      ->create([
+        'type' => $entity_mapping['entity_bundle'],
+        'status' => TRUE,
+      ]);
+    $drupal_entity->save();
 
     return $drupal_entity;
   }
