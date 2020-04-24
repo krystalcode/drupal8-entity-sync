@@ -2,6 +2,8 @@
 
 namespace Drupal\entity_sync\Import;
 
+use Drupal\Core\Entity\EntityInterface;
+
 /**
  * Interface for the Manager class.
  */
@@ -31,14 +33,14 @@ interface ManagerInterface {
    *
    * @param object $remote_entity
    *   The remote entity.
-   * @param object $drupal_entity
+   * @param \Drupal\Core\Entity\EntityInterface $drupal_entity
    *   The associated Drupal entity.
    * @param array $field_info
    *   The field info.
    */
   public function importField(
     $remote_entity,
-    $drupal_entity,
+    EntityInterface $drupal_entity,
     array $field_info
   );
 
