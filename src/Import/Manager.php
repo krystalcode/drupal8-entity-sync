@@ -2,6 +2,7 @@
 
 namespace Drupal\entity_sync\Import;
 
+use Drupal\entity_sync\Client\ClientFactory;
 use Drupal\entity_sync\Event\EntityMappingEvent;
 use Drupal\entity_sync\Event\FieldMappingEvent;
 
@@ -67,6 +68,20 @@ class Manager implements ManagerInterface {
   protected $time;
 
   /**
+   * The client factory.
+   *
+   * @var \Drupal\entity_sync\Client\ClientFactory
+   */
+  protected $clientFactory;
+
+  /**
+   * The remote ID field for this sync entity type.
+   *
+   * @var string
+   */
+  protected $remoteIdField;
+
+  /**
    * Constructs a new Manager instance.
    *
    * @param \Drupal\Core\Logger\LoggerChannelInterface $logger
@@ -79,6 +94,8 @@ class Manager implements ManagerInterface {
    *   The entity type manager.
    * @param \Drupal\Component\Datetime\TimeInterface $time
    *   The time interface.
+   * @param \Drupal\entity_sync\Client\ClientFactory $client_factory
+   *   The client factory.
    *
    * @throws \Exception
    */
@@ -87,13 +104,15 @@ class Manager implements ManagerInterface {
     EventDispatcherInterface $event_dispatcher,
     ConfigFactoryInterface $config_factory,
     EntityTypeManagerInterface $entity_type_manager,
-    TimeInterface $time
+    TimeInterface $time,
+    ClientFactory $client_factory
   ) {
     $this->logger = $logger;
     $this->eventDispatcher = $event_dispatcher;
     $this->configFactory = $config_factory;
     $this->entityTypeManager = $entity_type_manager;
     $this->time = $time;
+    $this->clientFactory = $client_factory;
   }
 
   /**
@@ -104,6 +123,12 @@ class Manager implements ManagerInterface {
     $this->config = $this->configFactory
       ->get('entity_sync.entity_sync_type.' . $sync_type_id);
 
+    // Get the remote ID field for this sync type.
+    $this->remoteIdField =
+      !empty($this->config->get('entity.remote_id_field'))
+        ? $this->config->get('entity.remote_id_field')
+        : 'sync_remote_id';
+
     // First, check if the application is properly set up for syncing this
     // entity.
     // Throw and error if the app isn't ready to sync this entity.
@@ -113,14 +138,8 @@ class Manager implements ManagerInterface {
       throw new \RuntimeException($message);
     }
 
-    // Now, fetch the appropriate adapter to use for this sync type and fetch
-    // the list of entities using that service.
-    $client_adapter = $this->config->get('remote_resource.client.service');
-    // @I Figure out how we can properly implement this service call
-    //    type     : improvement
-    //    priority : normal
-    //    labels   : refactoring
-    $entities = \Drupal::service($client_adapter)->list();
+    // Now, use the remote service to fetch the list of entities.
+    $entities = $this->clientFactory->get($sync_type_id)->list();
     if (!$entities) {
       return;
     }
@@ -163,7 +182,7 @@ class Manager implements ManagerInterface {
     }
 
     // Save the Drupal entity now.
-    $drupal_entity->set('sync_remote_id', $remote_id);
+    $drupal_entity->set($this->remoteIdField, $remote_id);
     $drupal_entity->set('sync_changed', $this->time->getRequestTime());
     $drupal_entity->save();
   }
@@ -203,7 +222,7 @@ class Manager implements ManagerInterface {
 
     // First check if the entity type bundle has the required fields.
     $required_fields = [
-      'sync_remote_id',
+      $this->remoteIdField,
       'sync_changed',
     ];
     foreach ($required_fields as $field_name) {
@@ -316,7 +335,7 @@ class Manager implements ManagerInterface {
     // Check if a Drupal entity exists for this entity.
     $results = $entity_storage
       ->getQuery()
-      ->condition('sync_remote_id', $remote_id)
+      ->condition($this->remoteIdField, $remote_id)
       ->execute();
     $drupal_entity = $entity_storage->load(reset($results));
 

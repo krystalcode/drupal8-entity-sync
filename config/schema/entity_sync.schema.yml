@@ -13,6 +13,9 @@ entity_sync.entity_sync_type.*:
         entity_bundle:
           type: string
           label: 'The entity bundle'
+        remote_id_field:
+          type: string
+          label: 'The field that stores the remote ID'
     remote_resource:
       type: mapping
       label: 'Configuration related to the corresponding remote resource'
