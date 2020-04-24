@@ -179,7 +179,11 @@ class Manager implements ManagerInterface {
 
     // Finally, do the field syncing.
     foreach ($fields as $field_info) {
-      $this->importField($remote_entity, $drupal_entity, $field_info);
+      $drupal_entity = $this->importField(
+        $remote_entity,
+        $drupal_entity,
+        $field_info
+      );
     }
 
     // Save the Drupal entity now.
@@ -212,6 +216,8 @@ class Manager implements ManagerInterface {
         $remote_entity->{$field_info['remote_name']}
       );
     }
+
+    return $drupal_entity;
   }
 
   /**

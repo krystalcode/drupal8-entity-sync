@@ -37,6 +37,9 @@ interface ManagerInterface {
    *   The associated Drupal entity.
    * @param array $field_info
    *   The field info.
+   *
+   * @return \Drupal\Core\Entity\EntityInterface
+   *   The Drupal entity.
    */
   public function importField(
     $remote_entity,
