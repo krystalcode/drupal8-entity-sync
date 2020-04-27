@@ -140,12 +140,14 @@ class Manager implements ManagerInterface {
   /**
    * {@inheritDoc}
    */
-  public function syncGet($sync_type_id, $id) {
+  public function syncGet($sync_type_id, EntityInterface $drupal_entity) {
     // Initialize the sync type.
     $this->initializeSyncType($sync_type_id);
 
+    // Get the remote ID from this Drupal entity.
+    $remote_id = $drupal_entity->get($this->remoteIdFieldName)->value;
     // Now, use the remote service to fetch the entity.
-    $entity = $this->clientFactory->get($sync_type_id)->get($id);
+    $entity = $this->clientFactory->get($sync_type_id)->get($remote_id);
     if (!$entity) {
       return;
     }

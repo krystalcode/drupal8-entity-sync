@@ -26,18 +26,18 @@ interface ManagerInterface {
   /**
    * Syncs an entity, given an ID, that needs to be updated from the remote.
    *
-   * Fetches an entity for the given ID and entity type from the remote
+   * Fetches an entity for the given Drupal ID and entity type from the remote
    * service and syncs it with Drupal.
    *
    * @param string $sync_type_id
    *   The ID of the entity sync type.
-   * @param int $id
-   *   The ID of the entity to fetch from the remote.
+   * @param \Drupal\Core\Entity\EntityInterface $drupal_entity
+   *   The Drupal entity that we are trying to sync.
    *
    * @return \Drupal\Core\Entity\EntityInterface
    *   The Drupal entity that was synced.
    */
-  public function syncGet($sync_type_id, $id);
+  public function syncGet($sync_type_id, EntityInterface $drupal_entity);
 
   /**
    * Syncs a remote entity with the appropriate Drupal entity.
