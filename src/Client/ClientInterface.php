@@ -39,4 +39,15 @@ interface ClientInterface {
    */
   public function list(array $options = []);
 
+  /**
+   * Gets the resource's main entity by its primary ID.
+   *
+   * @param int|string $id
+   *   The ID of the entity to get.
+   *
+   * @return object
+   *   The parsed response.
+   */
+  public function get($id): object;
+
 }
