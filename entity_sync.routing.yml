@@ -1,3 +1,4 @@
+
 entity_sync.admin:
   path: '/admin/sync'
   defaults:
