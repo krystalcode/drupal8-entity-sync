@@ -2,4 +2,4 @@ toolbar:
   version: VERSION
   css:
     theme:
-      css/entity_sync.icons.css: {}
+      css/entity-sync.icons.css: {}
