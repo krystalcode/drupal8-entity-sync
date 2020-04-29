@@ -65,7 +65,7 @@ abstract class ImportListBase extends FormBase {
     $form['help'] = [
       '#markup' => '<p>' . $this->t(
         'Initiating an import will put it in a queue and will be processed on
-        the background'
+        the background.'
       ) . '</p>',
     ];
 
