@@ -4,3 +4,10 @@ entity_sync.admin:
   parent: 'system.admin'
   description: 'Administer and configure your entity and other synchronizations.'
   weight: -7
+
+entity_sync.admin.entities:
+  title: 'Entities'
+  route_name: 'entity_sync.admin.entities'
+  parent: 'entity_sync.admin'
+  description: 'Administer your entity synchronizations.'
+  weight: -7
