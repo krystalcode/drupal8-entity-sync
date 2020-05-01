@@ -1,0 +1,192 @@
+# An entity synchronization describes how an entity should be synchronized with
+# a remote resource.
+#
+# @I Provide validation for sync configurations
+#    type     : bug
+#    priority : normal
+#    labels   : config, sync
+# @I Consider defining an EntitySync configuration entity type
+#    type     : improvement
+#    priority : normal
+#    labels   : config, sync
+entity_sync.sync.*:
+  type: config_object
+  label: 'Entity sync configuration'
+  mapping:
+    id:
+      type: string
+      label: 'The identifier for the synchronization'
+    entity:
+      type: mapping
+      label: 'Details about the entity being synced'
+      mapping:
+        type_id:
+          type: string
+          label: 'The entity type ID'
+        bundle:
+          type: string
+          label: 'The entity bundle'
+        remote_id_field:
+          type: string
+          label: ''
+        remote_changed_field:
+          type: string
+          label: ''
+    remote_resource:
+      type: mapping
+      label: 'Configuration about the corresponding remote resource'
+      mapping:
+        provider_id:
+          type: string
+          label: 'The ID of the provider responsible for the integration'
+        name:
+          type: string
+          label: 'The name of the resource'
+        identifier:
+          type: string
+          label: "The resource property that functions as the entity's primary identifier"
+        # @I Make the provider responsible for generating the client
+        #    type     : improvement
+        #    priority : normal
+        #    labels   : architecture, provider
+        client:
+          type: mapping
+          label: 'Details about the client responsible for executing the operations'
+          mapping:
+            # The only client type support at the moment is `service`.
+            type:
+              type: string
+              label: 'The type of the client'
+            service:
+              type: string
+              label: 'The Drupal service that provides the client'
+    operations:
+      type: sequence
+      label: 'The operations supported by this synchronization type'
+      sequence:
+        type: entity_sync.operation
+        label: 'The configuration for the synchronization operation'
+    fields:
+      type: sequence
+      label: 'The fields that will be synced for the entity'
+      sequence:
+        type: entity_sync.field
+        label: 'The configuration for syncing the field'
+
+# Synchronization providers make available the clients that communicate with the
+# remote resources in order to perform the synchronization operations. Multiple
+# providers can be defined in a module or application in order to allow
+# synchronization with multiple remote resources.
+#
+# Example provider for synchronizing with a remote ERP system:
+# entity_sync.provider.ipc_sync_api:
+#   id: ipc_sync_api
+#   operations:
+#     - import
+#     - importList
+#     - export
+#
+# @I Provide validation for provider configurations
+#    type     : bug
+#    priority : normal
+#    labels   : config, provider
+# @I Consider defining a Provider plugin
+#    type     : improvement
+#    priority : normal
+#    labels   : config, provider
+entity_sync.provider.*:
+  type: config_object
+  label: 'Provider configuration'
+  mapping:
+    id:
+      type: string
+      label: 'The ID of the synchronization provider'
+    operations:
+      type: sequence
+      label: 'The operations supported by the provider'
+      sequence:
+        type: string
+        label: 'The ID of the supported operation'
+
+# Synchronization operations are the operations supported by the Entity Sync
+# module. Providers should list the operations they support, and
+# synchronizations should list the operations to enable so that Entity Sync
+# can automatically perform related tasks.
+#
+# Currently supported operations are:
+# import: Import an individual entity from the remote resource.
+# importList: Import a list of entities from the remote resource.
+# export: Export an individual entity to the remote resource.
+#
+# Example operations section in a synchronization:
+# entity_sync.sync.user:
+#   id: user
+#   operations:
+#     - id: importList
+#       status: true
+#       label: 'Import users'
+#       block: true
+#       url_path: 'users'
+#       cron:
+#         frequency: @hourly
+#
+# @I Support an `exportList` operation
+#    type     : feature
+#    priority : normal
+#    labels   : operation
+entity_sync.operation:
+  type: mapping
+  label: 'The configuration for the synchronization operation'
+  mapping:
+    id:
+      type: string
+      label: 'The ID of the operation'
+    status:
+      type: boolean
+      label: 'Whether the operation is enabled or not'
+    label:
+      type: string
+      label: 'The human-friendly label describing the operation'
+    block:
+      type: boolean
+      label: 'Whether to provide a block for triggering the operation'
+    url_path:
+      type: string
+      label: 'The path that will be used in generating URLs related to the operation'
+    # Currently, the only operation supporting cron is `importList`. The cron
+    # frequency defines how frequently Entity Sync will be importing recently
+    # created or updated entities from the remote resource.
+    # The frequency format should follow the linux crontab format e.g. '@hourly'
+    # or '*/15+@ * * * *'.
+    cron:
+      type: mapping
+      label: 'Configuration for operations that have related cron tasks'
+      mapping:
+        status:
+          type: boolean
+          label: ''
+        frequency:
+          type: string
+          label: 'The frequency in which the operation should run via cron'
+
+# Field mapping configuration determines which entity field will be mapped with
+# which remote resource field/property and how.
+entity_sync.field:
+  type: mapping
+  label: 'The configuration for synchronizing an entity field'
+  mapping:
+    machine_name:
+      type: string
+      label: 'The machine name of the entity field being synced'
+    remote_name:
+      type: string
+      label: 'The name of the corresponding field in the remote resource'
+    # If no import/export callbacks are defined a direct copy of the value will
+    # be done. Callbacks would usually need to be defined for complex field
+    # types where a direct copy is not applicable.
+    import_callback:
+      type: string
+      label: 'A custom callback used to map the remote resource field value to the entity field value'
+    export_callback:
+      type: string
+      label: 'A custom callback used to map the entity field value to the remote resource field value'
