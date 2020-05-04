@@ -17,9 +17,6 @@ interface ManagerInterface {
    *
    * @param string $sync_type_id
    *   The ID of the entity sync type.
-   *
-   * @return array
-   *   An array of Drupal entities that were synced.
    */
   public function syncList($sync_type_id);
 
