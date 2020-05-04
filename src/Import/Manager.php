@@ -76,13 +76,6 @@ class Manager implements ManagerInterface {
   protected $clientFactory;
 
   /**
-   * The remote ID field name for this sync entity type.
-   *
-   * @var string
-   */
-  protected $remoteIdFieldName;
-
-  /**
    * Constructs a new Manager instance.
    *
    * @param \Drupal\Core\Logger\LoggerChannelInterface $logger
@@ -122,6 +115,9 @@ class Manager implements ManagerInterface {
   public function syncList($sync_type_id) {
     // Initialize the sync type.
     $this->initializeSyncType($sync_type_id);
+
+    // Validate the sync type.
+    $this->validateSyncType();
 
     // Now, use the remote service to fetch the list of entities.
     $entities = $this->clientFactory->get($sync_type_id)->list();
@@ -171,8 +167,14 @@ class Manager implements ManagerInterface {
     }
 
     // Save the Drupal entity now.
-    $drupal_entity->set($this->remoteIdFieldName, $remote_id);
-    $drupal_entity->set('sync_changed', $this->time->getRequestTime());
+    $drupal_entity->set(
+      $this->clientFactory->getRemoteIdFieldName(),
+      $remote_id
+    );
+    $drupal_entity->set(
+      $this->clientFactory->getRemoteChangedFieldName(),
+      $this->time->getRequestTime()
+    );
     $drupal_entity->save();
 
     return $drupal_entity;
@@ -204,54 +206,6 @@ class Manager implements ManagerInterface {
     }
 
     return $drupal_entity;
-  }
-
-  /**
-   * Check if the application is properly set up for syncing the given entity.
-   *
-   * @return bool
-   *   Returns TRUE if the app is ready for syncing the entity.
-   */
-  protected function appReady() {
-    $app_ready = TRUE;
-
-    // First check if the entity type bundle has the required fields.
-    $required_fields = [
-      $this->remoteIdFieldName,
-      'sync_changed',
-    ];
-    foreach ($required_fields as $field_name) {
-      if (!$this->bundleHasField($field_name)) {
-        $app_ready = FALSE;
-      }
-    }
-
-    return $app_ready;
-  }
-
-  /**
-   * Checks if an entity bundle has a specific field.
-   *
-   * @param string $field_name
-   *   The name of the field to check.
-   *
-   * @return bool
-   *   Returns TRUE if the field exists in the entity bundle.
-   */
-  protected function bundleHasField($field_name) {
-    $entity_info = $this->config->get('entity');
-    $field_storage = FieldStorageConfig::loadByName(
-      $entity_info['entity_type_id'],
-      $field_name
-    );
-    if (
-      !empty($field_storage)
-      && in_array($entity_info['entity_bundle'], $field_storage->getBundles())
-    ) {
-      return TRUE;
-    }
-
-    return FALSE;
   }
 
   /**
@@ -328,12 +282,12 @@ class Manager implements ManagerInterface {
   protected function getDrupalEntity($remote_id, array $entity_mapping) {
     $entity_storage = $this
       ->entityTypeManager
-      ->getStorage($entity_mapping['entity_type_id']);
+      ->getStorage($entity_mapping['type_id']);
 
     // Check if a Drupal entity exists for this entity.
     $results = $entity_storage
       ->getQuery()
-      ->condition($this->remoteIdFieldName, $remote_id)
+      ->condition($this->clientFactory->getRemoteIdFieldName(), $remote_id)
       ->execute();
     if ($results) {
       return $entity_storage->load(reset($results));
@@ -342,7 +296,7 @@ class Manager implements ManagerInterface {
     // If this is entity doesn't exist in Drupal, create it.
     $drupal_entity = $entity_storage
       ->create([
-        'type' => $entity_mapping['entity_bundle'],
+        'type' => $entity_mapping['bundle'],
         'status' => TRUE,
       ]);
     $drupal_entity->save();
@@ -361,19 +315,78 @@ class Manager implements ManagerInterface {
     $this->config = $this->configFactory
       ->get('entity_sync.sync.' . $sync_type_id);
 
-    // Get the remote ID field for this sync type.
-    $this->remoteIdFieldName =
+    // Set the remote ID field for this sync type.
+    $remote_id_field_name =
       !empty($this->config->get('entity.remote_id_field'))
         ? $this->config->get('entity.remote_id_field')
         : 'sync_remote_id';
+    $this->clientFactory->setRemoteIdFieldName($remote_id_field_name);
+    // Set the remote changed field for this sync type.
+    $remote_changed_field_name =
+      !empty($this->config->get('entity.remote_changed_field'))
+        ? $this->config->get('entity.remote_changed_field')
+        : 'sync_remote_changed';
+    $this->clientFactory->setRemoteChangedFieldName($remote_changed_field_name);
+  }
 
-    // Throw an error if the application is properly set up for syncing this
-    // entity.
+  /**
+   * Validate the sync type.
+   */
+  protected function validateSyncType() {
+    // Ensure that the application is properly set for syncing the entity.
     if (!$this->appReady()) {
       $message = 'The application is not properly set up to sync this entity.';
       $this->logger->error($message);
       throw new \RuntimeException($message);
     }
+  }
+
+  /**
+   * Check if the application is properly set up for syncing the given entity.
+   *
+   * @return bool
+   *   Returns TRUE if the app is ready for syncing the entity.
+   */
+  protected function appReady() {
+    $app_ready = TRUE;
+
+    // First check if the entity type bundle has the required fields.
+    $required_fields = [
+      $this->clientFactory->getRemoteIdFieldName(),
+      $this->clientFactory->getRemoteChangedFieldName(),
+    ];
+    foreach ($required_fields as $field_name) {
+      if (!$this->bundleHasField($field_name)) {
+        $app_ready = FALSE;
+      }
+    }
+
+    return $app_ready;
+  }
+
+  /**
+   * Checks if an entity bundle has a specific field.
+   *
+   * @param string $field_name
+   *   The name of the field to check.
+   *
+   * @return bool
+   *   Returns TRUE if the field exists in the entity bundle.
+   */
+  protected function bundleHasField($field_name) {
+    $entity_info = $this->config->get('entity');
+    $field_storage = FieldStorageConfig::loadByName(
+      $entity_info['type_id'],
+      $field_name
+    );
+    if (
+      !empty($field_storage)
+      && in_array($entity_info['bundle'], $field_storage->getBundles())
+    ) {
+      return TRUE;
+    }
+
+    return FALSE;
   }
 
 }
