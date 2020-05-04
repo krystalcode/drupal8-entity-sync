@@ -25,6 +25,9 @@ interface ManagerInterface {
    *
    * @param object $remote_entity
    *   The remote entity that should be synced.
+   *
+   * @return \Drupal\Core\Entity\EntityInterface
+   *   The Drupal entity that was synced.
    */
   public function sync($remote_entity);
 
@@ -37,6 +40,9 @@ interface ManagerInterface {
    *   The associated Drupal entity.
    * @param array $field_info
    *   The field info.
+   *
+   * @return \Drupal\Core\Entity\EntityInterface
+   *   The Drupal entity.
    */
   public function importField(
     $remote_entity,

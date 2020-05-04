@@ -120,24 +120,8 @@ class Manager implements ManagerInterface {
    * {@inheritDoc}
    */
   public function syncList($sync_type_id) {
-    // Get the config for this sync type.
-    $this->config = $this->configFactory
-      ->get('entity_sync.entity_sync_type.' . $sync_type_id);
-
-    // Get the remote ID field for this sync type.
-    $this->remoteIdFieldName =
-      !empty($this->config->get('entity.remote_id_field'))
-        ? $this->config->get('entity.remote_id_field')
-        : 'sync_remote_id';
-
-    // First, check if the application is properly set up for syncing this
-    // entity.
-    // Throw and error if the app isn't ready to sync this entity.
-    if (!$this->appReady()) {
-      $message = 'The application is not properly set up to sync this entity.';
-      $this->logger->error($message);
-      throw new \RuntimeException($message);
-    }
+    // Initialize the sync type.
+    $this->initializeSyncType($sync_type_id);
 
     // Now, use the remote service to fetch the list of entities.
     $entities = $this->clientFactory->get($sync_type_id)->list();
@@ -145,9 +129,9 @@ class Manager implements ManagerInterface {
       return;
     }
 
-    // Finally, sync the entities.
+    // Finally, sync the entities one by one.
     foreach ($entities as $remote_entity) {
-      $this->sync($remote_entity);
+      $drupal_entity = $this->sync($remote_entity);
     }
   }
 
@@ -179,13 +163,19 @@ class Manager implements ManagerInterface {
 
     // Finally, do the field syncing.
     foreach ($fields as $field_info) {
-      $this->importField($remote_entity, $drupal_entity, $field_info);
+      $drupal_entity = $this->importField(
+        $remote_entity,
+        $drupal_entity,
+        $field_info
+      );
     }
 
     // Save the Drupal entity now.
     $drupal_entity->set($this->remoteIdFieldName, $remote_id);
     $drupal_entity->set('sync_changed', $this->time->getRequestTime());
     $drupal_entity->save();
+
+    return $drupal_entity;
   }
 
   /**
@@ -212,6 +202,8 @@ class Manager implements ManagerInterface {
         $remote_entity->{$field_info['remote_name']}
       );
     }
+
+    return $drupal_entity;
   }
 
   /**
@@ -356,6 +348,32 @@ class Manager implements ManagerInterface {
     $drupal_entity->save();
 
     return $drupal_entity;
+  }
+
+  /**
+   * Initialize the sync type.
+   *
+   * @param string $sync_type_id
+   *   The ID of the entity sync type.
+   */
+  protected function initializeSyncType($sync_type_id) {
+    // Get the config for this sync type.
+    $this->config = $this->configFactory
+      ->get('entity_sync.sync.' . $sync_type_id);
+
+    // Get the remote ID field for this sync type.
+    $this->remoteIdFieldName =
+      !empty($this->config->get('entity.remote_id_field'))
+        ? $this->config->get('entity.remote_id_field')
+        : 'sync_remote_id';
+
+    // Throw an error if the application is properly set up for syncing this
+    // entity.
+    if (!$this->appReady()) {
+      $message = 'The application is not properly set up to sync this entity.';
+      $this->logger->error($message);
+      throw new \RuntimeException($message);
+    }
   }
 
 }
