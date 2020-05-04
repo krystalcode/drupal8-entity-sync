@@ -129,31 +129,10 @@ class Manager implements ManagerInterface {
       return;
     }
 
-    // Finally, sync the entities.
-    $synced_entities = [];
+    // Finally, sync the entities one by one.
     foreach ($entities as $remote_entity) {
       $drupal_entity = $this->sync($remote_entity);
-      $synced_entities[$drupal_entity->id()] = $drupal_entity;
     }
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  public function syncGet($sync_type_id, EntityInterface $drupal_entity) {
-    // Initialize the sync type.
-    $this->initializeSyncType($sync_type_id);
-
-    // Get the remote ID from this Drupal entity.
-    $remote_id = $drupal_entity->get($this->remoteIdFieldName)->value;
-    // Now, use the remote service to fetch the entity.
-    $entity = $this->clientFactory->get($sync_type_id)->get($remote_id);
-    if (!$entity) {
-      return;
-    }
-
-    // Finally, sync the entity.
-    return $this->sync($entity);
   }
 
   /**
@@ -380,7 +359,7 @@ class Manager implements ManagerInterface {
   protected function initializeSyncType($sync_type_id) {
     // Get the config for this sync type.
     $this->config = $this->configFactory
-      ->get('entity_sync.entity_sync_type.' . $sync_type_id);
+      ->get('entity_sync.sync.' . $sync_type_id);
 
     // Get the remote ID field for this sync type.
     $this->remoteIdFieldName =

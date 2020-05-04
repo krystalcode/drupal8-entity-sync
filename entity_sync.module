@@ -1,0 +1,13 @@
+<?php
+
+/**
+ * @file
+ * Defines hooks and common functionality for the Entity Synchronization module.
+ */
+
+/**
+ * Implements hook_toolbar_alter().
+ */
+function entity_sync_toolbar_alter(&$items) {
+  $items['administration']['#attached']['library'][] = 'entity_sync/toolbar';
+}

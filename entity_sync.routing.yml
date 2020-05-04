@@ -1,0 +1,16 @@
+
+entity_sync.admin:
+  path: '/admin/sync'
+  defaults:
+    _controller: '\Drupal\system\Controller\SystemController::systemAdminMenuBlockPage'
+    _title: 'Sync'
+  requirements:
+    _permission: 'access entity_sync administration pages'
+
+entity_sync.admin.entities:
+  path: '/admin/sync/entities'
+  defaults:
+    _controller: '\Drupal\system\Controller\SystemController::systemAdminMenuBlockPage'
+    _title: 'Entities'
+  requirements:
+    _permission: 'access entity_sync administration pages'
