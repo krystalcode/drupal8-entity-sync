@@ -1,0 +1,13 @@
+/**
+ * @file
+ * Entity sync toolbar icon styling.
+ */
+
+/* Tray styling (second row) */
+.toolbar-tray .toolbar-icon.toolbar-icon-entity-sync-admin:before {
+  background-image: url("../icons/787878/sync-alt-solid.svg");
+}
+.toolbar-tray .toolbar-icon.toolbar-icon-entity-sync-admin:active:before,
+.toolbar-tray .toolbar-icon.toolbar-icon-entity-sync-admin.is-active:before {
+  background-image: url("../icons/000000/sync-alt-solid.svg");
+}

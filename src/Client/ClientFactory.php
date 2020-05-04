@@ -46,7 +46,7 @@ class ClientFactory implements ContainerAwareInterface {
    */
   public function get($sync_type_id) {
     $sync_type = $this->configFactory->get(
-      'entity_sync.entity_sync_type.' . $sync_type_id
+      'entity_sync.sync.' . $sync_type_id
     );
 
     // Check that the sync type exists.
