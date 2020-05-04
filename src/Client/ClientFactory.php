@@ -24,6 +24,20 @@ class ClientFactory implements ContainerAwareInterface {
   protected $configFactory;
 
   /**
+   * The remote ID field name for this sync entity type.
+   *
+   * @var string
+   */
+  protected $remoteIdFieldName;
+
+  /**
+   * The remote changed field name for this sync entity type.
+   *
+   * @var int
+   */
+  protected $remoteChangedFieldName;
+
+  /**
    * Constructs a new ClientFactory object.
    *
    * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
@@ -31,6 +45,52 @@ class ClientFactory implements ContainerAwareInterface {
    */
   public function __construct(ConfigFactoryInterface $config_factory) {
     $this->configFactory = $config_factory;
+  }
+
+  /**
+   * Get the remote ID field for this sync type.
+   *
+   * @return mixed
+   *   The name of the remote ID field.
+   */
+  public function getRemoteIdFieldName() {
+    return $this->remoteIdFieldName;
+  }
+
+  /**
+   * Set the remote ID field name.
+   *
+   * @param mixed $remote_id_field_name
+   *   The name of the remote ID field.
+   *
+   * @return $this
+   */
+  public function setRemoteIdFieldName($remote_id_field_name) {
+    $this->remoteIdFieldName = $remote_id_field_name;
+    return $this;
+  }
+
+  /**
+   * Get the remote changed field for this sync type.
+   *
+   * @return mixed
+   *   The name of the remote changed field.
+   */
+  public function getRemoteChangedFieldName() {
+    return $this->remoteChangedFieldName;
+  }
+
+  /**
+   * Set the remote changed field name.
+   *
+   * @param mixed $remote_changed_field_name
+   *   The name of the remote changed field.
+   *
+   * @return $this
+   */
+  public function setRemoteChangedFieldName($remote_changed_field_name) {
+    $this->remoteChangedFieldName = $remote_changed_field_name;
+    return $this;
   }
 
   /**
