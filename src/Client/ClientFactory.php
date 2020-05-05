@@ -38,6 +38,13 @@ class ClientFactory implements ContainerAwareInterface {
   protected $remoteChangedFieldName;
 
   /**
+   * The bundle for this sync entity type.
+   *
+   * @var string
+   */
+  protected $bundle;
+
+  /**
    * Constructs a new ClientFactory object.
    *
    * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
@@ -90,6 +97,29 @@ class ClientFactory implements ContainerAwareInterface {
    */
   public function setRemoteChangedFieldName($remote_changed_field_name) {
     $this->remoteChangedFieldName = $remote_changed_field_name;
+    return $this;
+  }
+
+  /**
+   * Get the bundle for this sync type.
+   *
+   * @return string
+   *   The name of the bundle
+   */
+  public function getBundle() {
+    return $this->bundle;
+  }
+
+  /**
+   * Set the bundle for this sync type.
+   *
+   * @param string $bundle
+   *   The name of the bundle.
+   *
+   * @return $this
+   */
+  public function setBundle($bundle) {
+    $this->bundle = $bundle;
     return $this;
   }
 
