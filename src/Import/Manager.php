@@ -169,10 +169,6 @@ class Manager implements ManagerInterface {
     $remote_id = $remote_entity->{$remote_identifier};
     $drupal_entity = $this->getDrupalEntity($remote_id, $entity_mapping);
 
-    // @I Consider entities that don't implement the changed interface
-    //    type     : bug
-    //    priority : medium
-    //    labels   : refactor
     // If the entity's remote_changed value is the same as the remote's
     // last_changed value, we don't need to update anything.
     if ($drupal_entity->{$this->clientFactory->getRemoteChangedFieldName()}->value
