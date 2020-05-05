@@ -296,9 +296,10 @@ class Manager implements ManagerInterface {
     // If this is entity doesn't exist in Drupal, create it.
     $drupal_entity = $entity_storage
       ->create([
-        'type' => $entity_mapping['bundle'],
+        'type' => $this->clientFactory->getBundle(),
         'status' => TRUE,
       ]);
+    // Save the entity.
     $drupal_entity->save();
 
     return $drupal_entity;
@@ -321,12 +322,19 @@ class Manager implements ManagerInterface {
         ? $this->config->get('entity.remote_id_field')
         : 'sync_remote_id';
     $this->clientFactory->setRemoteIdFieldName($remote_id_field_name);
+
     // Set the remote changed field for this sync type.
     $remote_changed_field_name =
       !empty($this->config->get('entity.remote_changed_field'))
         ? $this->config->get('entity.remote_changed_field')
         : 'sync_remote_changed';
     $this->clientFactory->setRemoteChangedFieldName($remote_changed_field_name);
+
+    // Set the bundle for this sync type. If not bundle is set, use the entity
+    // type ID.
+    $entity_info = $this->config->get('entity');
+    $bundle = $entity_info['bundle'] ?: $entity_info['type_id'];
+    $this->clientFactory->setBundle($bundle);
   }
 
   /**
@@ -374,14 +382,16 @@ class Manager implements ManagerInterface {
    *   Returns TRUE if the field exists in the entity bundle.
    */
   protected function bundleHasField($field_name) {
-    $entity_info = $this->config->get('entity');
     $field_storage = FieldStorageConfig::loadByName(
-      $entity_info['type_id'],
+      $this->config->get('entity.type_id'),
       $field_name
     );
     if (
       !empty($field_storage)
-      && in_array($entity_info['bundle'], $field_storage->getBundles())
+      && in_array(
+        $this->clientFactory->getBundle(),
+        $field_storage->getBundles()
+      )
     ) {
       return TRUE;
     }
