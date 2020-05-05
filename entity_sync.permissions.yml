@@ -2,4 +2,4 @@
   title: 'Use the entity synchronization administration pages'
 
 permission_callbacks:
-  - \Drupal\entity_sync\PermissionProvider\ConfigPermissions::getPermissions
+  - \Drupal\entity_sync\PermissionProvider\Sync::buildPermissions
