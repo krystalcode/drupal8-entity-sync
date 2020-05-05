@@ -11,6 +11,7 @@ use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Logger\LoggerChannelInterface;
+use Drupal\Core\State\StateInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\field\Entity\FieldStorageConfig;
 
@@ -76,6 +77,13 @@ class Manager implements ManagerInterface {
   protected $clientFactory;
 
   /**
+   * The state.
+   *
+   * @var \Drupal\Core\State\StateInterface
+   */
+  protected $state;
+
+  /**
    * Constructs a new Manager instance.
    *
    * @param \Drupal\Core\Logger\LoggerChannelInterface $logger
@@ -88,6 +96,8 @@ class Manager implements ManagerInterface {
    *   The entity type manager.
    * @param \Drupal\Component\Datetime\TimeInterface $time
    *   The time interface.
+   * @param \Drupal\Core\State\StateInterface $state
+   *   The state.
    * @param \Drupal\entity_sync\Client\ClientFactory $client_factory
    *   The client factory.
    *
@@ -99,6 +109,7 @@ class Manager implements ManagerInterface {
     ConfigFactoryInterface $config_factory,
     EntityTypeManagerInterface $entity_type_manager,
     TimeInterface $time,
+    StateInterface $state,
     ClientFactory $client_factory
   ) {
     $this->logger = $logger;
@@ -106,21 +117,27 @@ class Manager implements ManagerInterface {
     $this->configFactory = $config_factory;
     $this->entityTypeManager = $entity_type_manager;
     $this->time = $time;
+    $this->state = $state;
     $this->clientFactory = $client_factory;
   }
 
   /**
    * {@inheritDoc}
    */
-  public function syncList($sync_type_id) {
+  public function syncList($sync_type_id, array $options) {
     // Initialize the sync type.
     $this->initializeSyncType($sync_type_id);
 
     // Validate the sync type.
     $this->validateSyncType();
 
+    // Form the options for the request.
+    // Fetch the last synced time.
+    $last_synced_state_name = 'entity_sync.' . $sync_type_id . '.import.' . 'last_synced';
+    $options = $this->getRequestOptions($options, $last_synced_state_name);
+
     // Now, use the remote service to fetch the list of entities.
-    $entities = $this->clientFactory->get($sync_type_id)->list();
+    $entities = $this->clientFactory->get($sync_type_id)->list($options);
     if (!$entities) {
       return;
     }
@@ -129,6 +146,9 @@ class Manager implements ManagerInterface {
     foreach ($entities as $remote_entity) {
       $drupal_entity = $this->sync($remote_entity);
     }
+
+    // Finally save the last synced time in the state.
+    $this->set($last_synced_state_name, $options['to']);
   }
 
   /**
@@ -148,6 +168,18 @@ class Manager implements ManagerInterface {
     $remote_identifier = $this->config->get('remote_resource.identifier');
     $remote_id = $remote_entity->{$remote_identifier};
     $drupal_entity = $this->getDrupalEntity($remote_id, $entity_mapping);
+
+    // @I Consider entities that don't implement the changed interface
+    //    type     : bug
+    //    priority : medium
+    //    labels   : refactor
+    // If the entity's remote_changed value is the same as the remote's
+    // last_changed value, we don't need to update anything.
+    if ($drupal_entity->{$this->clientFactory->getRemoteChangedFieldName()}->value
+      == $remote_entity->last_changed
+    ) {
+      return;
+    }
 
     // Fetch the field mapping for this remote entity.
     $fields = $this->getFieldMapping($remote_entity, $drupal_entity);
@@ -173,7 +205,7 @@ class Manager implements ManagerInterface {
     );
     $drupal_entity->set(
       $this->clientFactory->getRemoteChangedFieldName(),
-      $this->time->getRequestTime()
+      $remote_entity->last_changed
     );
     $drupal_entity->save();
 
@@ -397,6 +429,45 @@ class Manager implements ManagerInterface {
     }
 
     return FALSE;
+  }
+
+  /**
+   * Forms the options for a request.
+   *
+   * @param array $options
+   *   An array of options needed for the request.
+   * @param string $last_synced_state_name
+   *   The state name for the sync type and operation.
+   *
+   * @return array
+   *   The array of options.
+   */
+  protected function getRequestOptions(
+    array $options,
+    $last_synced_state_name
+  ) {
+    // If the force_all option is set, remove the from and to and return that.
+    if ($options['force_all']) {
+      unset($options['from']);
+      unset($options['to']);
+
+      return $options;
+    }
+
+
+    // If 'from' and 'to' are not set in $options, set it now.
+    // Get the last synced timestamp for this operation.
+    $last_synced = $this->state->get($last_synced_state_name);
+    if (!$options['from']) {
+      // Set the 'from' to the last synced time.
+      $options['from'] = $last_synced;
+    }
+    if (!$options['to']) {
+      // Set the 'to' to the current time.
+      $options['to'] = $this->time->getRequestTime();
+    }
+
+    return $options;
   }
 
 }

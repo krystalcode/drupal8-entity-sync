@@ -20,4 +20,5 @@ services:
       - '@config.factory'
       - '@entity_type.manager'
       - '@datetime.time'
+      - '@state'
       - '@entity_sync.client.factory'

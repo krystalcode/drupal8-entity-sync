@@ -17,8 +17,18 @@ interface ManagerInterface {
    *
    * @param string $sync_type_id
    *   The ID of the entity sync type.
+   * @param array $options
+   *   An associative array of options. Supported options are:
+   *   - from: (Optional) A Unix timestamp that when set, should limit the
+   *     remote entities to those created or updated after or at the given
+   *     timestamp.
+   *   - to: (Optional) A Unix timestamp that when set, should limit the
+   *     remote entities to those created or updated before or at the given
+   *     timestamp.
+   *   - force_all: (Optional) A boolean field that when set to TRUE, should
+   *     fetch all entities from the remote.
    */
-  public function syncList($sync_type_id);
+  public function syncList($sync_type_id, array $options);
 
   /**
    * Syncs a remote entity with the appropriate Drupal entity.
