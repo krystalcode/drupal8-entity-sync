@@ -4,6 +4,7 @@ namespace Drupal\entity_sync\EventSubscriber;
 
 use Drupal\entity_sync\Import\Event\FieldMappingEvent;
 use Drupal\entity_sync\Import\Event\Events;
+
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 /**
@@ -37,7 +38,7 @@ class DefaultImportFieldMapping implements EventSubscriberInterface {
       $field_mapping = [];
     }
 
-    $event->setEntityMapping($field_mapping);
+    $event->setFieldMapping($field_mapping);
   }
 
 }

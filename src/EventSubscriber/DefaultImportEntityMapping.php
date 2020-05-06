@@ -4,7 +4,10 @@ namespace Drupal\entity_sync\EventSubscriber;
 
 use Drupal\entity_sync\Import\Event\EntityMappingEvent;
 use Drupal\entity_sync\Import\Event\Events;
+use Drupal\entity_sync\Import\ManagerInterface;
+
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 /**

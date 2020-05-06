@@ -108,7 +108,7 @@ class Manager implements ManagerInterface {
 
     // Finally, update the entities one by one.
     foreach ($entities as $entity) {
-      $this->createOrUpdate($remote_entity, $sync);
+      $this->createOrUpdate($entity, $sync);
     }
   }
 
@@ -130,7 +130,7 @@ class Manager implements ManagerInterface {
     //    type     : bug
     //    priority : normal
     //    labels   : mapping, validation
-    $entity_mapping = $this->entityMapping($remote_entity);
+    $entity_mapping = $this->entityMapping($remote_entity, $sync);
 
     // If the entity mapping is empty we will not be updating or creating a
     // local entity; nothing to do.
@@ -142,21 +142,20 @@ class Manager implements ManagerInterface {
     if ($entity_mapping['action'] === ManagerInterface::ACTION_SKIP) {
       return;
     }
-
-    if ($entity_mapping['action'] === ManagerInterface::ACTION_CREATE) {
+    elseif ($entity_mapping['action'] === ManagerInterface::ACTION_CREATE) {
       $this->create($remote_entity, $sync, $entity_mapping);
     }
-
-    if ($entity_mapping['action'] === ManagerInterface::ACTION_UPDATE) {
+    elseif ($entity_mapping['action'] === ManagerInterface::ACTION_UPDATE) {
       $this->update($remote_entity, $sync, $entity_mapping);
     }
-
-    throw new \RuntimeException(
-      sprintf(
-        'Unsupported entity mapping action "%s"',
-        $entity_mapping['action']
-      )
-    );
+    else {
+      throw new \RuntimeException(
+        sprintf(
+          'Unsupported entity mapping action "%s"',
+          $entity_mapping['action']
+        )
+      );
+    }
   }
 
   /**
@@ -191,9 +190,9 @@ class Manager implements ManagerInterface {
     //    priority : normal
     //    labels   : import
     $local_entity = $this->entityTypeManager
-      ->getStorage($entity_mapping['type_id'])
+      ->getStorage($entity_mapping['entity_type_id'])
       ->create([
-        'type' => $entity_mapping['bundle'],
+        'type' => $entity_mapping['entity_bundle'],
       ]);
 
     $this->doImportEntity($remote_entity, $local_entity, $sync);
@@ -230,7 +229,7 @@ class Manager implements ManagerInterface {
     //    notes    : The synchronization configuration should allow bypassing
     //               bundle validation.
     $local_entity = $this->entityTypeManager
-      ->getStorage($entity_mapping['type_id'])
+      ->getStorage($entity_mapping['entity_type_id'])
       ->load($entity_mapping['id']);
 
     if (!$local_entity) {
@@ -271,7 +270,7 @@ class Manager implements ManagerInterface {
     //    type     : bug
     //    priority : normal
     //    labels   : mapping, validation
-    $field_mapping = $this->fieldMapping($remote_entity, $local_entity);
+    $field_mapping = $this->fieldMapping($remote_entity, $local_entity, $sync);
 
     // If the field mapping is empty we will not be updating any fields in the
     // local entity; nothing to do.
@@ -350,6 +349,10 @@ class Manager implements ManagerInterface {
     // @I Add more details about the field mapping in the exception message
     //    type     : task
     //    priority : low
+    //    labels   : error-handling, import
+    // @I Handle fields like the 'status' field
+    //    type     : bug
+    //    priority : normal
     //    labels   : error-handling, import
     elseif (!$local_entity->hasField($field_info['name'])) {
       throw new \RuntimeException(

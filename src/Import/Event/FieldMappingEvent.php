@@ -4,6 +4,7 @@ namespace Drupal\entity_sync\Import\Event;
 
 use Drupal\Core\Config\ImmutableConfig;
 use Drupal\Core\Entity\EntityInterface;
+
 use Symfony\Component\EventDispatcher\Event;
 
 /**
@@ -106,6 +107,16 @@ class FieldMappingEvent extends Event {
    */
   public function getRemoteEntity() {
     return $this->remoteEntity;
+  }
+
+  /**
+   * Gets the synchronizatio configuration object.
+   *
+   * @return \Drupal\Core\Config\ImmutableConfig
+   *   The synchronization configuration object.
+   */
+  public function getSync() {
+    return $this->sync;
   }
 
 }

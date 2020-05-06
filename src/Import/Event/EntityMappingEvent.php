@@ -3,6 +3,7 @@
 namespace Drupal\entity_sync\Import\Event;
 
 use Drupal\Core\Config\ImmutableConfig;
+
 use Symfony\Component\EventDispatcher\Event;
 
 /**
