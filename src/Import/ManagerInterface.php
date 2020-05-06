@@ -10,7 +10,7 @@ namespace Drupal\entity_sync\Import;
  * entities. Currently supported operations are:
  * - Import a list of of entities based on remote filters.
  *
- * @I Support a `importLocalList` operation
+ * @I Support an `importLocalList` operation
  *    type     : feature
  *    priority : low
  *    labels   : import, operation
