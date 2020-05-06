@@ -14,3 +14,7 @@ entity_sync.admin.entities:
     _title: 'Entities'
   requirements:
     _permission: 'access entity_sync administration pages'
+
+route_callbacks:
+  - '\Drupal\entity_sync\Routing\EntitySyncRoutes::routes'
+
