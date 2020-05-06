@@ -58,7 +58,7 @@ class EntitySyncRoutes implements ContainerInjectionInterface {
     // Loop through each entity_sync.sync configurations and create
     // corresponding routes.
     foreach ($this->configFactory->loadMultiple($sync_names) as $sync) {
-      $config = $sync->get($config_name);
+      $config = $sync->get();
 
       $bundle = $config['entity']['bundle'];
       $entity_type_id = $config['entity']['type_id'];
