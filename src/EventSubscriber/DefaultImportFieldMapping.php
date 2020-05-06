@@ -2,8 +2,8 @@
 
 namespace Drupal\entity_sync\EventSubscriber;
 
-use Drupal\entity_sync\Import\Event\FieldMappingEvent;
 use Drupal\entity_sync\Import\Event\Events;
+use Drupal\entity_sync\Import\Event\FieldMappingEvent;
 
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
