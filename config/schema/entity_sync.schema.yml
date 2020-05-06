@@ -42,9 +42,12 @@ entity_sync.sync.*:
         name:
           type: string
           label: 'The name of the resource'
-        identifier:
+        id_field:
           type: string
           label: "The resource property that functions as the entity's primary identifier"
+        changed_field:
+          type: string
+          label: "The resource property that indicates when the resource was last update"
         # @I Make the provider responsible for generating the client
         #    type     : improvement
         #    priority : normal
