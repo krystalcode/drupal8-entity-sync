@@ -10,39 +10,20 @@ use Symfony\Component\DependencyInjection\ContainerAwareInterface;
 use Symfony\Component\DependencyInjection\ContainerAwareTrait;
 
 /**
- * Factory for generating clients.
+ * Factory for generating Entity Sync clients.
+ *
+ * @see \Drupal\entity_sync\Client\ClientInterface
  */
 class ClientFactory implements ContainerAwareInterface {
 
   use ContainerAwareTrait;
 
   /**
-   * The configuration factory that will be used to load the sync type.
+   * The configuration factory that will be used to load the synchronization.
    *
    * @var array
    */
   protected $configFactory;
-
-  /**
-   * The remote ID field name for this sync entity type.
-   *
-   * @var string
-   */
-  protected $remoteIdFieldName;
-
-  /**
-   * The remote changed field name for this sync entity type.
-   *
-   * @var int
-   */
-  protected $remoteChangedFieldName;
-
-  /**
-   * The bundle for this sync entity type.
-   *
-   * @var string
-   */
-  protected $bundle;
 
   /**
    * Constructs a new ClientFactory object.
@@ -55,117 +36,48 @@ class ClientFactory implements ContainerAwareInterface {
   }
 
   /**
-   * Get the remote ID field for this sync type.
+   * Returns an initialized client for the requested synchronization.
    *
-   * @return mixed
-   *   The name of the remote ID field.
-   */
-  public function getRemoteIdFieldName() {
-    return $this->remoteIdFieldName;
-  }
-
-  /**
-   * Set the remote ID field name.
-   *
-   * @param mixed $remote_id_field_name
-   *   The name of the remote ID field.
-   *
-   * @return $this
-   */
-  public function setRemoteIdFieldName($remote_id_field_name) {
-    $this->remoteIdFieldName = $remote_id_field_name;
-    return $this;
-  }
-
-  /**
-   * Get the remote changed field for this sync type.
-   *
-   * @return mixed
-   *   The name of the remote changed field.
-   */
-  public function getRemoteChangedFieldName() {
-    return $this->remoteChangedFieldName;
-  }
-
-  /**
-   * Set the remote changed field name.
-   *
-   * @param mixed $remote_changed_field_name
-   *   The name of the remote changed field.
-   *
-   * @return $this
-   */
-  public function setRemoteChangedFieldName($remote_changed_field_name) {
-    $this->remoteChangedFieldName = $remote_changed_field_name;
-    return $this;
-  }
-
-  /**
-   * Get the bundle for this sync type.
-   *
-   * @return string
-   *   The name of the bundle
-   */
-  public function getBundle() {
-    return $this->bundle;
-  }
-
-  /**
-   * Set the bundle for this sync type.
-   *
-   * @param string $bundle
-   *   The name of the bundle.
-   *
-   * @return $this
-   */
-  public function setBundle($bundle) {
-    $this->bundle = $bundle;
-    return $this;
-  }
-
-  /**
-   * Returns an initialized client for the requested sync type.
-   *
-   * @param string $sync_type_id
-   *   The ID of the sync type that we will be performing operations for.
+   * @param string $sync_id
+   *   The ID of the sync that we will be performing operations for.
    *
    * @return \Drupal\entity_sync\Client\ClientInterface
    *   The initialized client.
    *
    * @throws \Drupal\entity_sync\Exception\InvalidConfigurationException
    */
-  public function get($sync_type_id) {
-    $sync_type = $this->configFactory->get(
-      'entity_sync.sync.' . $sync_type_id
+  public function get($sync_id) {
+    $sync = $this->configFactory->get(
+      'entity_sync.sync.' . $sync_id
     );
 
-    // Check that the sync type exists.
-    if ($sync_type->isNew()) {
+    // Check that the sync exists.
+    if ($sync->isNew()) {
       throw new \InvalidArgumentException(
         sprintf(
-          'There is no known entity sync type "%s"',
-          $sync_type_id
+          'There is no known entity sync "%s"',
+          $sync_id
         )
       );
     }
 
-    // Check if a service has been defined for this sync type.
-    $client_config = $sync_type->get('remote_resource.client');
+    // Check if a service has been defined for this sync.
+    $client_config = $sync->get('remote_resource.client');
     if (empty($client_config['type']) || $client_config['type'] !== 'service') {
       throw new InvalidConfigurationException(
         sprintf(
-          'The entity sync type "%s" does not define a service that provides the remote resource client.',
-          $sync_type_id
+          'The entity sync "%s" does not define a service that provides the remote resource client.',
+          $sync_id
         )
       );
     }
 
-    // Check if the sync type defines a service.
+    // Check if the sync defines a service.
     if (empty($client_config['service'])) {
       throw new InvalidConfigurationException(
         sprintf(
-          'The entity sync type "%s" does not define a service that provides the remote resource client.',
-          $sync_type_id
+          'The entity sync "%s" does not define a service that provides the remote resource client.',
+          $sync_id
         )
       );
     }
@@ -175,8 +87,9 @@ class ClientFactory implements ContainerAwareInterface {
     if (!$client instanceof ClientInterface) {
       throw new InvalidConfigurationException(
         sprintf(
-          'The entity sync type "%s" must implement a service that is an instance of the \Drupal\entity_sync\Client\ClientInterface.',
-          $sync_type_id
+          'The "%s" service defined as the client for the entity sync "%s" must implement the \Drupal\entity_sync\Client\ClientInterface interface.',
+          get_class($client),
+          $sync_id
         )
       );
     }

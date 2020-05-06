@@ -10,8 +10,8 @@ namespace Drupal\entity_sync\Client;
  * entity that we are exporting.
  *
  * Currently, clients need to be made available as services and identified in
- * the Sync Type's configuration so that the Client Factory will know how to
- * generate the client.
+ * the Sync's configuration so that the Client Factory will know how to generate
+ * the client.
  *
  * @see \Drupal\entity_sync\Client\ClientFactory
  */
@@ -22,10 +22,10 @@ interface ClientInterface {
    *
    * @param array $options
    *   An associative array of options. Supported options are:
-   *   - from: (Optional) A Unix timestamp that when set, should limit the
+   *   - fromTime: (Optional) A Unix timestamp that when set, should limit the
    *     remote entities to those created or updated after or at the given
    *     timestamp.
-   *   - to: (Optional) A Unix timestamp that when set, should limit the
+   *   - toTime: (Optional) A Unix timestamp that when set, should limit the
    *     remote entities to those created or updated before or at the given
    *     timestamp.
    *
@@ -37,6 +37,6 @@ interface ClientInterface {
    *    priority : high
    *    labels   : memory-consumption
    */
-  public function list(array $options = []);
+  public function importList(array $options = []);
 
 }
