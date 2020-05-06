@@ -14,7 +14,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * Currently, this form needs to be extended to customize it as required for a
  * specific entity list import.
  */
-abstract class ImportListBase extends FormBase {
+class ImportListBase extends FormBase {
 
   /**
    * The queue for importing a list of entities.
@@ -61,7 +61,12 @@ abstract class ImportListBase extends FormBase {
    *    priority : normal
    *    labels   : import, list
    */
-  public function buildForm(array $form, FormStateInterface $form_state) {
+  public function buildForm(
+    array $form,
+    FormStateInterface $form_state,
+    $label = NULL,
+    array $config = []
+  ) {
     $form['help'] = [
       '#markup' => '<p>' . $this->t(
         'Initiating an import will put it in a queue and will be processed on
@@ -71,7 +76,7 @@ abstract class ImportListBase extends FormBase {
 
     $form['submit'] = [
       '#type' => 'submit',
-      '#value' => $this->t('Import'),
+      '#value' => $label,
     ];
 
     return $form;

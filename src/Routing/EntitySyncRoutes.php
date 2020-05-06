@@ -4,26 +4,18 @@ namespace Drupal\entity_sync\Routing;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
-use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Core\StringTranslation\StringTranslationTrait;
 
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 use Symfony\Component\Routing\Route;
 
 /**
- * Defines dynamic routes.
+ * Defines Routes for each entity sync operation.
+ *
+ * Loop through the entity sync configurations and create route for each
+ * operation defined.
  */
 class EntitySyncRoutes implements ContainerInjectionInterface {
-
-  use StringTranslationTrait;
-
-  /**
-   * The entity type manager.
-   *
-   * @var \Drupal\Core\Entity\EntityTypeManagerInterface
-   */
-  protected $entityTypeManager;
 
   /**
    * The config factory.
@@ -33,18 +25,14 @@ class EntitySyncRoutes implements ContainerInjectionInterface {
   protected $configFactory;
 
   /**
-   * Constructs a new EntityPermissions object.
+   * Constructs a new EntitySyncRoutes object.
    *
-   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
-   *   The entity type manager.
    * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
    *   The configuration factory.
    */
   public function __construct(
-    EntityTypeManagerInterface $entity_type_manager,
     ConfigFactoryInterface $config_factory
   ) {
-    $this->entityTypeManager = $entity_type_manager;
     $this->configFactory = $config_factory;
   }
 
@@ -55,7 +43,6 @@ class EntitySyncRoutes implements ContainerInjectionInterface {
     ContainerInterface $container
   ) {
     return new static(
-      $container->get('entity_type.manager'),
       $container->get('config.factory')
     );
   }
@@ -72,6 +59,7 @@ class EntitySyncRoutes implements ContainerInjectionInterface {
     // corresponding routes.
     foreach ($this->configFactory->loadMultiple($sync_names) as $sync) {
       $config = $sync->get($config_name);
+
       $bundle = $config['entity']['bundle'];
       $entity_type_id = $config['entity']['type_id'];
 
@@ -82,7 +70,7 @@ class EntitySyncRoutes implements ContainerInjectionInterface {
         $route_id = 'entity_sync.sync.' . $config['id'];
 
         // Generate route url based on the url path set in configuration.
-        $route_url = '/admin/sync/entities' . $operation['url_path'];
+        $route_url = '/admin/sync/entities/' . $operation['url_path'];
 
         // If the operation is list operation we use the import list form, if
         // not we use the single import form.
@@ -98,12 +86,14 @@ class EntitySyncRoutes implements ContainerInjectionInterface {
           $permission = "entity_sync ${OPERATION_ID} ${BUNDLE} ${ENTITY_TYPE_ID}";
         }
 
+        // Create routes by passing in label and configuration as parameters.
         $routes[$route_id] = new Route(
           $route_url,
           [
             '_form' => $form_path,
             '_title' => $operation['label'],
             'label' => $operation['label'],
+            'config' => $config,
           ],
           [
             '_permission' => $permission,
@@ -112,6 +102,9 @@ class EntitySyncRoutes implements ContainerInjectionInterface {
             'parameters' => [
               'label' => [
                 'type' => 'string',
+              ],
+              'config' => [
+                'type' => 'array',
               ],
             ],
           ]

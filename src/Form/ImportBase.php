@@ -11,7 +11,7 @@ use Drupal\Core\Form\FormStateInterface;
  * Currently, this form needs to be extended to customize it as required for a
  * specific entity import.
  */
-abstract class ImportBase extends FormBase {
+class ImportBase extends FormBase {
 
   /**
    * {@inheritdoc}
@@ -32,7 +32,12 @@ abstract class ImportBase extends FormBase {
    *    priority : normal
    *    labels   : import, get
    */
-  public function buildForm(array $form, FormStateInterface $form_state) {
+  public function buildForm(
+    array $form,
+    FormStateInterface $form_state,
+    $label = NULL,
+    array $config = []
+  ) {
     $form['help'] = [
       '#markup' => '<p>' . $this->t(
         'Import the latest changes from the corresponding remote resource.'
@@ -41,7 +46,7 @@ abstract class ImportBase extends FormBase {
 
     $form['submit'] = [
       '#type' => 'submit',
-      '#value' => $this->t('Import'),
+      '#value' => $label,
     ];
 
     return $form;
