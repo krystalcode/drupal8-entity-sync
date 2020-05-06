@@ -20,8 +20,9 @@ interface ClientInterface {
   /**
    * Get the list of remote entities to import.
    *
-   * @param array $options
-   *   An associative array of options. Supported options are:
+   * @param array $filters
+   *   An associative array of filters that determine which entities will be
+   *   imported. Supported conditions are:
    *   - fromTime: (Optional) A Unix timestamp that when set, should limit the
    *     remote entities to those created or updated after or at the given
    *     timestamp.
@@ -29,14 +30,15 @@ interface ClientInterface {
    *     remote entities to those created or updated before or at the given
    *     timestamp.
    *
-   * @return \Iterator
-   *   An iterator containing the entities to import.
+   * @return \Iterator|null
+   *   An iterator containing the entities to import, or NULL if there are no
+   *   entities to import for the given filters.
    *
    * @I Support paginated results
    *    type     : improvement
    *    priority : high
-   *    labels   : memory-consumption
+   *    labels   : import, operation, memory-consumption
    */
-  public function importList(array $options = []);
+  public function importList(array $filters = []);
 
 }

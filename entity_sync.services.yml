@@ -15,9 +15,20 @@ services:
   entity_sync.import.manager:
     class: Drupal\entity_sync\Import\Manager
     arguments:
-      - '@logger.channel.entity_sync'
-      - '@event_dispatcher'
+      - '@entity_sync.client.factory'
       - '@config.factory'
       - '@entity_type.manager'
-      - '@datetime.time'
-      - '@entity_sync.client.factory'
+      - '@event_dispatcher'
+      - '@logger.channel.entity_sync'
+
+  entity_sync.import.default_entity_mapping_subscriber:
+    class: Drupal\entity_sync\EventSubscriber\DefaultImportEntityMapping
+    arguments:
+      - '@entity_type.manager'
+    tags:
+      - { name: event_subscriber }
+
+  entity_sync.import.default_field_mapping_subscriber:
+    class: Drupal\entity_sync\EventSubscriber\DefaultImportFieldMapping
+    tags:
+      - { name: event_subscriber }
