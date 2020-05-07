@@ -3,56 +3,22 @@
 namespace Drupal\entity_sync\Import;
 
 use Drupal\entity_sync\Client\ClientFactory;
-use Drupal\entity_sync\Event\EntityMappingEvent;
-use Drupal\entity_sync\Event\FieldMappingEvent;
+use Drupal\entity_sync\Import\Event\EntityMappingEvent;
+use Drupal\entity_sync\Import\Event\Events;
+use Drupal\entity_sync\Import\Event\FieldMappingEvent;
 
-use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Config\ImmutableConfig;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Logger\LoggerChannelInterface;
-use Drupal\Core\StringTranslation\StringTranslationTrait;
-use Drupal\field\Entity\FieldStorageConfig;
 
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 /**
- * The manager class for syncing entities from a remote service.
- *
- * Helps perform operations related to syncing a list of entities and specific
- * entities, from a remote service to Drupal.
+ * The default import manager.
  */
 class Manager implements ManagerInterface {
-
-  use StringTranslationTrait;
-
-  /**
-   * Logger service.
-   *
-   * @var \Psr\Log\LoggerInterface
-   */
-  protected $logger;
-
-  /**
-   * An event dispatcher instance.
-   *
-   * @var \Symfony\Component\EventDispatcher\EventDispatcherInterface
-   */
-  protected $eventDispatcher;
-
-  /**
-   * The config factory.
-   *
-   * @var \Drupal\Core\Config\ConfigFactoryInterface
-   */
-  protected $configFactory;
-
-  /**
-   * The config object.
-   *
-   * @var \Drupal\Core\Config\Config
-   */
-  protected $config;
 
   /**
    * The entity type manager.
@@ -62,11 +28,11 @@ class Manager implements ManagerInterface {
   protected $entityTypeManager;
 
   /**
-   * The time service.
+   * The event dispatcher.
    *
-   * @var \Drupal\Component\Datetime\TimeInterface
+   * @var \Symfony\Component\EventDispatcher\EventDispatcherInterface
    */
-  protected $time;
+  protected $eventDispatcher;
 
   /**
    * The client factory.
@@ -76,327 +42,483 @@ class Manager implements ManagerInterface {
   protected $clientFactory;
 
   /**
+   * The config factory.
+   *
+   * @var \Drupal\Core\Config\ConfigFactoryInterface
+   */
+  protected $configFactory;
+
+  /**
+   * The logger service.
+   *
+   * @var \Psr\Log\LoggerInterface
+   */
+  protected $logger;
+
+  /**
    * Constructs a new Manager instance.
    *
-   * @param \Drupal\Core\Logger\LoggerChannelInterface $logger
-   *   The logger to pass to the client.
-   * @param \Symfony\Component\EventDispatcher\EventDispatcherInterface $event_dispatcher
-   *   The event dispatcher.
+   * @param \Drupal\entity_sync\Client\ClientFactory $client_factory
+   *   The client factory.
    * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
    *   The configuration factory.
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
    *   The entity type manager.
-   * @param \Drupal\Component\Datetime\TimeInterface $time
-   *   The time interface.
-   * @param \Drupal\entity_sync\Client\ClientFactory $client_factory
-   *   The client factory.
-   *
-   * @throws \Exception
+   * @param \Symfony\Component\EventDispatcher\EventDispatcherInterface $event_dispatcher
+   *   The event dispatcher.
+   * @param \Drupal\Core\Logger\LoggerChannelInterface $logger
+   *   The logger to pass to the client.
    */
   public function __construct(
-    LoggerChannelInterface $logger,
-    EventDispatcherInterface $event_dispatcher,
+    ClientFactory $client_factory,
     ConfigFactoryInterface $config_factory,
     EntityTypeManagerInterface $entity_type_manager,
-    TimeInterface $time,
-    ClientFactory $client_factory
+    EventDispatcherInterface $event_dispatcher,
+    LoggerChannelInterface $logger
   ) {
     $this->logger = $logger;
     $this->eventDispatcher = $event_dispatcher;
     $this->configFactory = $config_factory;
     $this->entityTypeManager = $entity_type_manager;
-    $this->time = $time;
     $this->clientFactory = $client_factory;
   }
 
   /**
    * {@inheritDoc}
    */
-  public function syncList($sync_type_id) {
-    // Initialize the sync type.
-    $this->initializeSyncType($sync_type_id);
+  public function importRemoteList(
+    $sync_id,
+    array $filters = [],
+    array $options = []
+  ) {
+    // Load the sync.
+    // @I Validate the sync/operation configuration
+    //    type     : bug
+    //    priority : normal
+    //    labels   : operation, sync, validation
+    //    notes    : Review whether the validation should happen upon runtime
+    //               i.e. here, or when the configuration is created/imported.
+    // @I Validate that the provider supports the `import_list` operation
+    //    type     : bug
+    //    priority : normal
+    //    labels   : operation, sync, validation
+    //    notes    : Review whether the validation should happen upon runtime
+    //               i.e. here, or when the configuration is created/imported.
+    $sync = $this->configFactory->get('entity_sync.sync.' . $sync_id);
 
-    // Validate the sync type.
-    $this->validateSyncType();
-
-    // Now, use the remote service to fetch the list of entities.
-    $entities = $this->clientFactory->get($sync_type_id)->list();
+    // Now, use the remote client to fetch the list of entities.
+    $entities = $this->clientFactory->get($sync_id)->importList($filters);
     if (!$entities) {
       return;
     }
 
-    // Finally, sync the entities one by one.
-    foreach ($entities as $remote_entity) {
-      $drupal_entity = $this->sync($remote_entity);
+    $this->doubleIteratorApply(
+      $entities,
+      [$this, 'tryCreateOrUpdate'],
+      $sync,
+      'import_list'
+    );
+  }
+
+  /**
+   * Imports the changes without halting execution if an exception is thrown.
+   *
+   * An error is logged instead; the caller may then continue with import the
+   * next entity, if there is one.
+   *
+   * @param object $remote_entity
+   *   The remote entity.
+   * @param \Drupal\Core\Config\ImmutableConfig $sync
+   *   The configuration object for synchronization that defines the operation
+   *   we are currently executing.
+   * @param string $operation
+   *   The operation that is doing the import; used for logging purposes.
+   */
+  protected function tryCreateOrUpdate(
+    $remote_entity,
+    ImmutableConfig $sync,
+    $operation
+  ) {
+    try {
+      $this->createOrUpdate($remote_entity, $sync);
+    }
+    catch (\Exception $e) {
+      $id_field = $sync->get('remote_resource.id_field');
+      $this->logger->error(
+        sprintf(
+          'An error occur while importing the remote entity with ID "%s" as part of the "%s" synchronization and the "%s" operation. The error messages was: %s',
+          $remote_entity->{$id_field},
+          $sync->get('id'),
+          $operation,
+          $e->getMessage()
+        )
+      );
     }
   }
 
   /**
-   * {@inheritDoc}
+   * Import the changes contained in the given remote entity to a local entity.
+   *
+   * If an associated local entity is identified, the local entity will be
+   * updated. A new local entity will be created otherwise.
+   *
+   * @param object $remote_entity
+   *   The remote entity.
+   * @param \Drupal\Core\Config\ImmutableConfig $sync
+   *   The configuration object for synchronization that defines the operation
+   *   we are currently executing.
    */
-  public function sync($remote_entity) {
-    // Fetch the entity mapping for this remote entity.
-    $entity_mapping = $this->getEntityMapping($remote_entity);
+  protected function createOrUpdate($remote_entity, ImmutableConfig $sync) {
+    // Build the entity mapping for this remote entity.
+    // @I Validate the final entity mapping
+    //    type     : bug
+    //    priority : normal
+    //    labels   : mapping, validation
+    $entity_mapping = $this->entityMapping($remote_entity, $sync);
+
+    // If the entity mapping is empty we will not be updating or creating a
+    // local entity; nothing to do.
     if (!$entity_mapping) {
-      $message = 'There is no entity mapping information for this entity.';
-      $this->logger->error($message);
       return;
     }
 
-    // Fetch the Drupal entity that this remote entity is associated with, if
-    // one exists.
-    $remote_identifier = $this->config->get('remote_resource.identifier');
-    $remote_id = $remote_entity->{$remote_identifier};
-    $drupal_entity = $this->getDrupalEntity($remote_id, $entity_mapping);
-
-    // Fetch the field mapping for this remote entity.
-    $fields = $this->getFieldMapping($remote_entity, $drupal_entity);
-    if (!$fields) {
-      $message = 'There is no field mapping information for this entity.';
-      $this->logger->error($message);
+    // Skip updating the local entity if we are explicitly told to do so.
+    if ($entity_mapping['action'] === ManagerInterface::ACTION_SKIP) {
       return;
     }
+    elseif ($entity_mapping['action'] === ManagerInterface::ACTION_CREATE) {
+      $this->create($remote_entity, $sync, $entity_mapping);
+    }
+    elseif ($entity_mapping['action'] === ManagerInterface::ACTION_UPDATE) {
+      $this->update($remote_entity, $sync, $entity_mapping);
+    }
+    else {
+      throw new \RuntimeException(
+        sprintf(
+          'Unsupported entity mapping action "%s"',
+          $entity_mapping['action']
+        )
+      );
+    }
+  }
 
-    // Finally, do the field syncing.
-    foreach ($fields as $field_info) {
-      $drupal_entity = $this->importField(
-        $remote_entity,
-        $drupal_entity,
-        $field_info
+  /**
+   * Import the changes from the given remote entity to a new local entity.
+   *
+   * @param object $remote_entity
+   *   The remote entity.
+   * @param \Drupal\Core\Config\ImmutableConfig $sync
+   *   The configuration object for synchronization that defines the operation
+   *   we are currently executing.
+   * @param array $entity_mapping
+   *   An associative array containing information about the local entity being
+   *   mapped to the given remote entity.
+   *   See \Drupal\entity_sync\Event\EntityMapping::entityMapping.
+   *
+   * @I Support entity creation validation
+   *    type     : bug
+   *    priority : normal
+   *    labels   : import, validation
+   */
+  protected function create(
+    $remote_entity,
+    ImmutableConfig $sync,
+    array $entity_mapping
+  ) {
+    // @I Support creation of local entities of types that do not have bundles
+    //    type     : bug
+    //    priority : normal
+    //    labels   : import
+    // @I Load the bundle property from the entity keys
+    //    type     : bug
+    //    priority : normal
+    //    labels   : import
+    $local_entity = $this->entityTypeManager
+      ->getStorage($entity_mapping['entity_type_id'])
+      ->create([
+        'type' => $entity_mapping['entity_bundle'],
+      ]);
+
+    $this->doImportEntity($remote_entity, $local_entity, $sync);
+  }
+
+  /**
+   * Import the changes from the given remote entity to the local entity.
+   *
+   * @param object $remote_entity
+   *   The remote entity.
+   * @param \Drupal\Core\Config\ImmutableConfig $sync
+   *   The configuration object for synchronization that defines the operation
+   *   we are currently executing.
+   * @param array $entity_mapping
+   *   An associative array containing information about the local entity being
+   *   mapped to the given remote entity.
+   *   See \Drupal\entity_sync\Event\EntityMapping::entityMapping.
+   *
+   * @I Support entity update validation
+   *    type     : bug
+   *    priority : normal
+   *    labels   : import, validation
+   */
+  protected function update(
+    $remote_entity,
+    ImmutableConfig $sync,
+    array $entity_mapping
+  ) {
+    // Load the local entity that this remote entity is associated with.
+    // @I Validate that the local entity is of the expected bundle
+    //    type     : task
+    //    priority : low
+    //    labels   : import, validation
+    //    notes    : The synchronization configuration should allow bypassing
+    //               bundle validation.
+    $local_entity = $this->entityTypeManager
+      ->getStorage($entity_mapping['entity_type_id'])
+      ->load($entity_mapping['id']);
+
+    if (!$local_entity) {
+      // @I Add more details about the remote entity in the exception message
+      //    type     : task
+      //    priority : low
+      //    labels   : error-handling, import
+      throw new \RuntimeException(
+        sprintf(
+          'A non-existing local entity of type "%s" and ID "%s" was requested to be mapped to a remote entity.',
+          $entity_mapping['type_id'],
+          $local_entity->id()
+        )
       );
     }
 
-    // Save the Drupal entity now.
-    $drupal_entity->set(
-      $this->clientFactory->getRemoteIdFieldName(),
-      $remote_id
-    );
-    $drupal_entity->set(
-      $this->clientFactory->getRemoteChangedFieldName(),
-      $this->time->getRequestTime()
-    );
-    $drupal_entity->save();
-
-    return $drupal_entity;
+    $this->doImportEntity($remote_entity, $local_entity, $sync);
   }
 
   /**
-   * {@inheritDoc}
+   * Performs the actual import of a remote entity to a local entity.
+   *
+   * @param object $remote_entity
+   *   The remote entity.
+   * @param \Drupal\Core\Entity\EntityInterface $local_entity
+   *   The associated local entity.
+   * @param \Drupal\Core\Config\ImmutableConfig $sync
+   *   The configuration object for synchronization that defines the operation
+   *   we are currently executing.
    */
-  public function importField(
+  protected function doImportEntity(
     $remote_entity,
-    EntityInterface $drupal_entity,
+    EntityInterface $local_entity,
+    ImmutableConfig $sync
+  ) {
+    // Build the field mapping for the fields that will be imported.
+    // @I Validate the final field mapping
+    //    type     : bug
+    //    priority : normal
+    //    labels   : mapping, validation
+    $field_mapping = $this->fieldMapping($remote_entity, $local_entity, $sync);
+
+    // If the field mapping is empty we will not be updating any fields in the
+    // local entity; nothing to do.
+    if (!$field_mapping) {
+      return;
+    }
+
+    foreach ($field_mapping as $field_info) {
+      $this->doImportField($remote_entity, $local_entity, $field_info);
+    }
+
+    // Update the remote ID field.
+    // @I Support not updating the remote ID field
+    //    type     : bug
+    //    priority : low
+    //    labels   : import
+    // @I Move updating remote ID and remote changed fields to separate methods
+    //    type     : task
+    //    priority : low
+    //    labels   : refactoring
+    $local_id_field = $sync->get('entity.remote_id_field');
+    if ($local_entity->hasField($local_id_field)) {
+      $remote_id_field = $sync->get('remote_resource.id_field');
+      $local_entity->set(
+        $local_id_field,
+        $remote_entity->{$remote_id_field}
+      );
+    }
+
+    // Update the remote changed field. The remote changed field will be used in
+    // `hook_entity_insert` to prevent triggering an export of the local entity.
+    // @I Support non-Unix timestamp formats for the remote changed field
+    //    type     : bug
+    //    priority : normal
+    //    labels   : import
+    $local_changed_field = $sync->get('entity.remote_changed_field');
+    if ($local_entity->hasField($local_changed_field)) {
+      $remote_changed_field = $sync->get('remote_resource.changed_field');
+      $local_entity->set(
+        $local_changed_field,
+        $remote_entity->{$remote_changed_field}
+      );
+    }
+
+    $local_entity->save();
+  }
+
+  /**
+   * Performs the actual import of a remote field to a local field.
+   *
+   * @param object $remote_entity
+   *   The remote entity.
+   * @param \Drupal\Core\Entity\EntityInterface $local_entity
+   *   The associated local entity.
+   * @param array $field_info
+   *   The field info.
+   *   See \Drupal\entity_sync\Event\FieldMapping::fieldMapping.
+   */
+  protected function doImportField(
+    $remote_entity,
+    EntityInterface $local_entity,
     array $field_info
   ) {
-    // If this field should be saved via custom callback, then invoke that.
+    // If the field value should be converted and stored by a custom callback,
+    // then invoke that.
     if (isset($field_info['callback'])) {
       call_user_func(
         $field_info['callback'],
         $remote_entity,
-        $drupal_entity,
+        $local_entity,
         $field_info
       );
     }
-    // Else, we use the normal set() function.
-    elseif ($drupal_entity->hasField($field_info['name'])) {
-      $drupal_entity->set(
+    // Else, we assume direct copy of the remote field value into the local
+    // field.
+    // @I Add more details about the field mapping in the exception message
+    //    type     : task
+    //    priority : low
+    //    labels   : error-handling, import
+    // @I Handle fields like the 'status' field
+    //    type     : bug
+    //    priority : normal
+    //    labels   : error-handling, import
+    elseif (!$local_entity->hasField($field_info['name'])) {
+      throw new \RuntimeException(
+        sprintf(
+          'The non-existing local entity field "%s" was requested to be mapped to a remote field',
+          $field_info['name']
+        )
+      );
+    }
+    else {
+      $local_entity->set(
         $field_info['name'],
         $remote_entity->{$field_info['remote_name']}
       );
     }
-
-    return $drupal_entity;
   }
 
   /**
-   * Get the entity mapping for this remote entity.
+   * Builds and returns the entity mapping for the given remote entity.
+   *
+   * The entity mapping defines if and which local entity will be updated with
+   * the data contained in the given remote entity. The default mapping
+   * identifies the local entity based on an entity field containing the remote
+   * entity's ID.
+   *
+   * An event is dispatched that allows subscribers to map the remote entity to
+   * a different local entity, or to decide to not import it at all.
    *
    * @param object $remote_entity
    *   The remote entity.
+   * @param \Drupal\Core\Config\ImmutableConfig $sync
+   *   The configuration object for synchronization that defines the operation
+   *   we are currently executing.
    *
    * @return array
    *   The final entity mapping.
    */
-  protected function getEntityMapping($remote_entity) {
-    // Dispatch an event to allow modules to alter which Drupal entity and ID to
-    // sync this remote entity with.
-    $event = new EntityMappingEvent(
-      $remote_entity,
-      $this->config->get('entity')
-    );
-    $this->eventDispatcher->dispatch(
-      EntityMappingEvent::EVENT_NAME,
-      $event
-    );
+  protected function entityMapping($remote_entity, ImmutableConfig $sync) {
+    $event = new EntityMappingEvent($remote_entity, $sync);
+    $this->eventDispatcher->dispatch(Events::ENTITY_MAPPING, $event);
 
-    // Fetch the final mappings.
+    // Return the final mapping.
     return $event->getEntityMapping();
   }
 
   /**
-   * Get the field mapping for this remote entity.
+   * Builds and returns the field mapping for the given entities.
+   *
+   * The field mapping defines which local entity fields will be updated with
+   * which values contained in the given remote entity. The default mapping is
+   * defined in the synchronization to which the operation we are currently
+   * executing belongs.
+   *
+   * An event is dispatched that allows subscribers to alter the default field
+   * mapping.
    *
    * @param object $remote_entity
    *   The remote entity.
-   * @param \Drupal\core\Entity\EntityInterface $drupal_entity
-   *   The Drupal entity.
+   * @param \Drupal\core\Entity\EntityInterface $local_entity
+   *   The local entity.
+   * @param \Drupal\Core\Config\ImmutableConfig $sync
+   *   The configuration object for synchronization that defines the operation
+   *   we are currently executing.
    *
    * @return array
    *   The final field mapping.
    */
-  protected function getFieldMapping(
+  protected function fieldMapping(
     $remote_entity,
-    EntityInterface $drupal_entity
+    EntityInterface $local_entity,
+    ImmutableConfig $sync
   ) {
-    // Now, dispatch another event to allow modules to alter which Drupal entity
-    // fields will be synced to which remote entity fields.
     $event = new FieldMappingEvent(
       $remote_entity,
-      $drupal_entity,
-      $this->config->get('fields')
+      $local_entity,
+      $sync
     );
-    $this->eventDispatcher->dispatch(
-      FieldMappingEvent::EVENT_NAME,
-      $event
-    );
+    $this->eventDispatcher->dispatch(Events::FIELD_MAPPING, $event);
 
-    // Fetch the final mappings.
+    // Return the final mappings.
     return $event->getFieldMapping();
   }
 
   /**
-   * Fetch/create a Drupal entity for this remote entity.
+   * Apply a callback to all items within an iterator.
    *
-   * @param string $remote_id
-   *   The remote ID of the entity.
-   * @param array $entity_mapping
-   *   The entity mapping info.
+   * The callback needs to accept the item as its first argument.
    *
-   * @return \Drupal\core\Entity\EntityInterface
-   *   A Drupal entity.
+   * If the items of the iterator are iterators theselves, the callback is
+   * applied to the items in the inner iterator.
    *
-   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
-   * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
-   * @throws \Drupal\Core\Entity\EntityStorageException
+   * This is used to support paging; the outer iterator contains pages and each
+   * page is an iterator that contains the items.
+   *
+   * @param \Iterator $iterator
+   *   The iterator that contains the items.
+   * @param callback $callback
+   *   The callback to apply to the items.
+   * @param mixed $args
+   *   The arguments to pass to the callback after the item.
    */
-  protected function getDrupalEntity($remote_id, array $entity_mapping) {
-    $entity_storage = $this
-      ->entityTypeManager
-      ->getStorage($entity_mapping['type_id']);
+  protected function doubleIteratorApply(
+    \Iterator $iterator,
+    callback $callback,
+    ...$args
+  ) {
+    foreach ($iterator as $items) {
+      if (!$items instanceof \Iterator) {
+        call_user_func_array(
+          $callback,
+          array_merge([$items], $args)
+        );
+        continue;
+      }
 
-    // Check if a Drupal entity exists for this entity.
-    $results = $entity_storage
-      ->getQuery()
-      ->condition($this->clientFactory->getRemoteIdFieldName(), $remote_id)
-      ->execute();
-    if ($results) {
-      return $entity_storage->load(reset($results));
-    }
-
-    // If this is entity doesn't exist in Drupal, create it.
-    $drupal_entity = $entity_storage
-      ->create([
-        'type' => $this->clientFactory->getBundle(),
-        'status' => TRUE,
-      ]);
-    // Save the entity.
-    $drupal_entity->save();
-
-    return $drupal_entity;
-  }
-
-  /**
-   * Initialize the sync type.
-   *
-   * @param string $sync_type_id
-   *   The ID of the entity sync type.
-   */
-  protected function initializeSyncType($sync_type_id) {
-    // Get the config for this sync type.
-    $this->config = $this->configFactory
-      ->get('entity_sync.sync.' . $sync_type_id);
-
-    // Set the remote ID field for this sync type.
-    $remote_id_field_name =
-      !empty($this->config->get('entity.remote_id_field'))
-        ? $this->config->get('entity.remote_id_field')
-        : 'sync_remote_id';
-    $this->clientFactory->setRemoteIdFieldName($remote_id_field_name);
-
-    // Set the remote changed field for this sync type.
-    $remote_changed_field_name =
-      !empty($this->config->get('entity.remote_changed_field'))
-        ? $this->config->get('entity.remote_changed_field')
-        : 'sync_remote_changed';
-    $this->clientFactory->setRemoteChangedFieldName($remote_changed_field_name);
-
-    // Set the bundle for this sync type. If not bundle is set, use the entity
-    // type ID.
-    $entity_info = $this->config->get('entity');
-    $bundle = $entity_info['bundle'] ?: $entity_info['type_id'];
-    $this->clientFactory->setBundle($bundle);
-  }
-
-  /**
-   * Validate the sync type.
-   */
-  protected function validateSyncType() {
-    // Ensure that the application is properly set for syncing the entity.
-    if (!$this->appReady()) {
-      $message = 'The application is not properly set up to sync this entity.';
-      $this->logger->error($message);
-      throw new \RuntimeException($message);
-    }
-  }
-
-  /**
-   * Check if the application is properly set up for syncing the given entity.
-   *
-   * @return bool
-   *   Returns TRUE if the app is ready for syncing the entity.
-   */
-  protected function appReady() {
-    $app_ready = TRUE;
-
-    // First check if the entity type bundle has the required fields.
-    $required_fields = [
-      $this->clientFactory->getRemoteIdFieldName(),
-      $this->clientFactory->getRemoteChangedFieldName(),
-    ];
-    foreach ($required_fields as $field_name) {
-      if (!$this->bundleHasField($field_name)) {
-        $app_ready = FALSE;
+      foreach ($items as $item) {
+        call_user_func_array(
+          $callback,
+          array_merge([$item], $args)
+        );
       }
     }
-
-    return $app_ready;
-  }
-
-  /**
-   * Checks if an entity bundle has a specific field.
-   *
-   * @param string $field_name
-   *   The name of the field to check.
-   *
-   * @return bool
-   *   Returns TRUE if the field exists in the entity bundle.
-   */
-  protected function bundleHasField($field_name) {
-    $field_storage = FieldStorageConfig::loadByName(
-      $this->config->get('entity.type_id'),
-      $field_name
-    );
-    if (
-      !empty($field_storage)
-      && in_array(
-        $this->clientFactory->getBundle(),
-        $field_storage->getBundles()
-      )
-    ) {
-      return TRUE;
-    }
-
-    return FALSE;
   }
 
 }
