@@ -99,7 +99,7 @@ class Manager implements ManagerInterface {
     //    labels   : operation, sync, validation
     //    notes    : Review whether the validation should happen upon runtime
     //               i.e. here, or when the configuration is created/imported.
-    // @I Validate that the provider supports the `importList` operation
+    // @I Validate that the provider supports the `import_list` operation
     //    type     : bug
     //    priority : normal
     //    labels   : operation, sync, validation
@@ -115,8 +115,9 @@ class Manager implements ManagerInterface {
 
     $this->doubleIteratorApply(
       $entities,
-      'importList',
-      [$this, 'tryCreateOrUpdate']
+      [$this, 'tryCreateOrUpdate'],
+      $sync,
+      'import_list'
     );
   }
 
@@ -560,15 +561,15 @@ class Manager implements ManagerInterface {
    *
    * @param \Iterator $iterator
    *   The iterator that contains the items.
-   * @param string $callback
+   * @param callable $callback
    *   The callback to apply to the items.
    * @param mixed $args
    *   The arguments to pass to the callback after the item.
    */
   protected function doubleIteratorApply(
     \Iterator $iterator,
-    $callback,
-    $args
+    callable $callback,
+    ...$args
   ) {
     foreach ($iterator as $items) {
       if (!$items instanceof \Iterator) {
