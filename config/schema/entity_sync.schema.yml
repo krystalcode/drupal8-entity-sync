@@ -86,7 +86,7 @@ entity_sync.sync.*:
 #   id: ipc_sync_api
 #   operations:
 #     - import
-#     - importList
+#     - import_list
 #     - export
 #
 # @I Provide validation for provider configurations
@@ -97,6 +97,10 @@ entity_sync.sync.*:
 #    type     : improvement
 #    priority : normal
 #    labels   : config, provider
+# @I Review the relationship between sync and provider operations
+#    type     : task
+#    priority : normal
+#    labels   : architecture, operation
 entity_sync.provider.*:
   type: config_object
   label: 'Provider configuration'
@@ -118,14 +122,14 @@ entity_sync.provider.*:
 #
 # Currently supported operations are:
 # import: Import an individual entity from the remote resource.
-# importList: Import a list of entities from the remote resource.
+# import_list: Import a list of entities from the remote resource.
 # export: Export an individual entity to the remote resource.
 #
 # Example operations section in a synchronization:
 # entity_sync.sync.user:
 #   id: user
 #   operations:
-#     - id: importList
+#     - id: import_list
 #       status: true
 #       label: 'Import users'
 #       block: true
@@ -133,7 +137,7 @@ entity_sync.provider.*:
 #       cron:
 #         frequency: @hourly
 #
-# @I Support an `exportList` operation
+# @I Support an `export_list` operation
 #    type     : feature
 #    priority : normal
 #    labels   : operation
@@ -156,7 +160,7 @@ entity_sync.operation:
     url_path:
       type: string
       label: 'The path that will be used in generating URLs related to the operation'
-    # Currently, the only operation supporting cron is `importList`. The cron
+    # Currently, the only operation supporting cron is `import_list`. The cron
     # frequency defines how frequently Entity Sync will be importing recently
     # created or updated entities from the remote resource.
     # The frequency format should follow the linux crontab format e.g. '@hourly'

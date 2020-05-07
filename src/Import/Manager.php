@@ -92,7 +92,13 @@ class Manager implements ManagerInterface {
     array $options = []
   ) {
     // Load the sync.
-    // @I Validate the sync/operation
+    // @I Validate the sync/operation configuration
+    //    type     : bug
+    //    priority : normal
+    //    labels   : operation, sync, validation
+    //    notes    : Review whether the validation should happen upon runtime
+    //               i.e. here, or when the configuration is created/imported.
+    // @I Validate that the provider supports the `import_list` operation
     //    type     : bug
     //    priority : normal
     //    labels   : operation, sync, validation
