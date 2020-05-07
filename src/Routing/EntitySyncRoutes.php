@@ -5,8 +5,8 @@ namespace Drupal\entity_sync\Routing;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 
+use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-
 use Symfony\Component\Routing\Route;
 
 /**
@@ -53,12 +53,24 @@ class EntitySyncRoutes implements ContainerInjectionInterface {
   public function routes() {
     $routes = [];
 
+    // @I Move this to a generic place as loading sync configurations are used
+    //    in serveral other places.
+    //    type     : improvement
+    //    priority : low
+    //    labels   : refactoring
     $sync_names = $this->configFactory->listAll('entity_sync.sync.');
 
     // Loop through each entity_sync.sync configurations and create
     // corresponding routes.
     foreach ($this->configFactory->loadMultiple($sync_names) as $sync) {
       $config = $sync->get();
+
+      // Throw an exception if we cannot find a entity type id.
+      if (!$config['entity']['type_id']) {
+        throw new InvalidConfigurationException(
+          "Entity type id should be defined for configuration entity_sync.sync"
+        );
+      }
 
       $bundle = $config['entity']['bundle'];
       $entity_type_id = $config['entity']['type_id'];
@@ -71,6 +83,12 @@ class EntitySyncRoutes implements ContainerInjectionInterface {
 
         // Generate route url based on the url path set in configuration.
         $route_url = '/admin/sync/entities/' . $operation['url_path'];
+
+        // @I Move We need to use some better logic to fetch the form classes
+        //    There would be export operations in the future.
+        //    type     : improvement
+        //    priority : high
+        //    labels   : refactoring
 
         // If the operation is list operation we use the import list form, if
         // not we use the single import form.
