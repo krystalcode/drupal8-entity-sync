@@ -493,14 +493,14 @@ class Manager implements ManagerInterface {
    *
    * @param \Iterator $iterator
    *   The iterator that contains the items.
-   * @param callback $callback
+   * @param callable $callback
    *   The callback to apply to the items.
    * @param mixed $args
    *   The arguments to pass to the callback after the item.
    */
   protected function doubleIteratorApply(
     \Iterator $iterator,
-    callback $callback,
+    callable $callback,
     ...$args
   ) {
     foreach ($iterator as $items) {
