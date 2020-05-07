@@ -225,6 +225,18 @@ class Manager implements ManagerInterface {
     ImmutableConfig $sync,
     array $entity_mapping
   ) {
+    // @I Provide defaults for settings not explicitly set
+    //    type     : improvement
+    //    priority : low
+    //    labels   : config
+    // @I Consider using the PHP toggle to switch operations/feature on/off
+    //    type     : task
+    //    priority : low
+    //    labels   : config
+    if ($sync->get('operations.import_list.create_entities')) {
+      return;
+    }
+
     // @I Support creation of local entities of types that do not have bundles
     //    type     : bug
     //    priority : normal

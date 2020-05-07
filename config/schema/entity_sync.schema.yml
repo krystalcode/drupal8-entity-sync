@@ -148,6 +148,13 @@ entity_sync.operation.import_list:
     status:
       type: boolean
       label: 'Whether the operation is enabled or not'
+      # @I Support entity import modes
+      #    type     : feature
+      #    priority : normal
+      #    labels   : import
+    create_entities:
+      type: boolean
+      label: "Whether local entities should be created if they don't exist"
     label:
       type: string
       label: 'The human-friendly label describing the operation'
@@ -165,6 +172,9 @@ entity_sync.operation.import_entity:
     block:
       type: boolean
       label: 'Whether to provide a block for triggering the operation'
+    create_entities:
+      type: boolean
+      label: "Whether local entities should be created if they don't exist"
     label:
       type: string
       label: 'The human-friendly label describing the operation'
