@@ -32,3 +32,8 @@ services:
     class: Drupal\entity_sync\EventSubscriber\DefaultImportFieldMapping
     tags:
       - { name: event_subscriber }
+
+  entity_sync.import.default_remote_id_mapping_subscriber:
+    class: Drupal\entity_sync\EventSubscriber\DefaultImportRemoteIdMapping
+    tags:
+      - { name: event_subscriber }
