@@ -78,8 +78,8 @@ class EntitySyncRoutes implements ContainerInjectionInterface {
       foreach ($config['operations'] as $operation) {
         $operation_id = $operation['id'];
 
-        // Generate route id with the configuration id.
-        $route_id = 'entity_sync.sync.' . $config['id'];
+        // Generate route id with the operation id.
+        $route_id = 'entity_sync.sync.' . $operation_id;
 
         // Generate route url based on the url path set in configuration.
         $route_url = '/admin/sync/entities/' . $operation['url_path'];
