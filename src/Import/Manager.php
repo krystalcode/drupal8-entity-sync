@@ -106,6 +106,17 @@ class Manager implements ManagerInterface {
     //               i.e. here, or when the configuration is created/imported.
     $sync = $this->configFactory->get('entity_sync.sync.' . $sync_id);
 
+    // Make sure the operation is enabled and supported by the provider.
+    if (!$this->operationSupported($sync, 'import_list')) {
+      $this->logger->error(
+        sprintf(
+          'The synchronization with ID "%s" and/or its provider do not support the `import_list` operation.',
+          $sync_id
+        )
+      );
+      return;
+    }
+
     // Now, use the remote client to fetch the list of entities.
     $entities = $this->clientFactory->get($sync_id)->importList($filters);
     if (!$entities) {
@@ -490,6 +501,30 @@ class Manager implements ManagerInterface {
 
     // Return the final mappings.
     return $event->getFieldMapping();
+  }
+
+  /**
+   * Checks that the given operation is enabled for the given synchronization.
+   *
+   * @param \Drupal\Core\Config\ImmutableConfig $sync
+   *   The configuration object for the synchronization that defines the
+   *   operation we are currently executing.
+   * @param string $operation
+   *   The operation to check.
+   *
+   * @return bool
+   *   TRUE if the operation is enabled and supported, FALSE otherwise.
+   */
+  protected function operationSupported(ImmutableConfig $sync, $operation) {
+    // @I Check that the provider supports the corresponding method as well
+    //    type     : bug
+    //    priority : normal
+    //    labels   : import, operation, validation
+    if (!$sync->get("operations.$operation.status")) {
+      return FALSE;
+    }
+
+    return TRUE;
   }
 
   /**
