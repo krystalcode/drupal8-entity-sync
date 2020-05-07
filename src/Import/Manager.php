@@ -112,9 +112,47 @@ class Manager implements ManagerInterface {
       return;
     }
 
-    // Finally, update the entities one by one.
-    foreach ($entities as $entity) {
-      $this->createOrUpdate($entity, $sync);
+    $this->doubleIteratorApply(
+      $entities,
+      [$this, 'tryCreateOrUpdate'],
+      $sync,
+      'import_list'
+    );
+  }
+
+  /**
+   * Imports the changes without halting execution if an exception is thrown.
+   *
+   * An error is logged instead; the caller may then continue with import the
+   * next entity, if there is one.
+   *
+   * @param object $remote_entity
+   *   The remote entity.
+   * @param \Drupal\Core\Config\ImmutableConfig $sync
+   *   The configuration object for synchronization that defines the operation
+   *   we are currently executing.
+   * @param string $operation
+   *   The operation that is doing the import; used for logging purposes.
+   */
+  protected function tryCreateOrUpdate(
+    $remote_entity,
+    ImmutableConfig $sync,
+    $operation
+  ) {
+    try {
+      $this->createOrUpdate($remote_entity, $sync);
+    }
+    catch (\Exception $e) {
+      $id_field = $sync->get('remote_resource.id_field');
+      $this->logger->error(
+        sprintf(
+          'An error occur while importing the remote entity with ID "%s" as part of the "%s" synchronization and the "%s" operation. The error messages was: %s',
+          $remote_entity->{$id_field},
+          $sync->get('id'),
+          $operation,
+          $e->getMessage()
+        )
+      );
     }
   }
 
@@ -440,6 +478,47 @@ class Manager implements ManagerInterface {
 
     // Return the final mappings.
     return $event->getFieldMapping();
+  }
+
+  /**
+   * Apply a callback to all items within an iterator.
+   *
+   * The callback needs to accept the item as its first argument.
+   *
+   * If the items of the iterator are iterators theselves, the callback is
+   * applied to the items in the inner iterator.
+   *
+   * This is used to support paging; the outer iterator contains pages and each
+   * page is an iterator that contains the items.
+   *
+   * @param \Iterator $iterator
+   *   The iterator that contains the items.
+   * @param callback $callback
+   *   The callback to apply to the items.
+   * @param mixed $args
+   *   The arguments to pass to the callback after the item.
+   */
+  protected function doubleIteratorApply(
+    \Iterator $iterator,
+    callback $callback,
+    ...$args
+  ) {
+    foreach ($iterator as $items) {
+      if (!$items instanceof \Iterator) {
+        call_user_func_array(
+          $callback,
+          array_merge([$items], $args)
+        );
+        continue;
+      }
+
+      foreach ($items as $item) {
+        call_user_func_array(
+          $callback,
+          array_merge([$item], $args)
+        );
+      }
+    }
   }
 
 }
