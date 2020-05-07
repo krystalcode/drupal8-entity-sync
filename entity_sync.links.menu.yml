@@ -11,3 +11,7 @@ entity_sync.admin.entities:
   parent: 'entity_sync.admin'
   description: 'Administer your entity synchronizations.'
   weight: -7
+
+entity_sync.admin.sync:
+  class: \Drupal\entity_sync\Plugin\Menu\SyncMenuLink
+  deriver: \Drupal\entity_sync\Plugin\Derivative\SyncMenuLink
