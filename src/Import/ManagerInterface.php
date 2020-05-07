@@ -2,6 +2,8 @@
 
 namespace Drupal\entity_sync\Import;
 
+use Drupal\Core\Entity\EntityInterface;
+
 /**
  * Defines the interface for the import manager.
  *
@@ -87,6 +89,42 @@ interface ManagerInterface {
   public function importRemoteList(
     $sync_id,
     array $filters = [],
+    array $options = []
+  );
+
+  /**
+   * Import an entity, given a local entity, from the remote resource.
+   *
+   * Fetches an entity for the given local entity from the remote resource and
+   * imports it.
+   *
+   * @param \Drupal\Core\Entity\EntityInterface $local_entity
+   *   The local entity.
+   * @param string $sync_id
+   *   The ID of the entity sync.
+   * @param array $options
+   *   An associative array of options that determine various aspects of the
+   *   import. No options are supported yet, it is added to more completely
+   *   define the interface. Known options that will be supported are the import
+   *   mode and whether to create local entities for incoming remote entities
+   *   that do not have local associations yet.
+   *
+   * @I Implement import modes
+   *    type     : feature
+   *    priority : normal
+   *    labels   : import, operation
+   *    notes    : Import modes define different courses of action when
+   *               importing entity fields such as to always override the local
+   *               value with the remote, to only import the value if the field
+   *               is empty, or to import value only when the entity is being
+   *               created.
+   *
+   * @return \Drupal\Core\Entity\EntityInterface
+   *   The Drupal entity that was synced.
+   */
+  public function importLocalEntity(
+    EntityInterface $local_entity,
+    $sync_id,
     array $options = []
   );
 
