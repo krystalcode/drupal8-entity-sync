@@ -25,4 +25,13 @@ final class Events {
    */
   const FIELD_MAPPING = 'entity_sync.import.field_mapping';
 
+  /**
+   * Name of the event fired when an import remote ID mapping is being built.
+   *
+   * @Event
+   *
+   * @see \Drupal\entity_sync\Import\Event\RemoteIdMappingEvent
+   */
+  const REMOTE_ID_MAPPING = 'entity_sync.import.remote_id_mapping';
+
 }

@@ -42,7 +42,7 @@ interface ClientInterface {
   public function importList(array $filters = []);
 
   /**
-   * Gets the resource's main entity by its primary ID.
+   * Gets the resource's main entity by its primary ID to import.
    *
    * @param int|string $id
    *   The ID of the entity to get.
@@ -50,6 +50,6 @@ interface ClientInterface {
    * @return object
    *   The remote entity object.
    */
-  public function get($id);
+  public function importEntity($id);
 
 }

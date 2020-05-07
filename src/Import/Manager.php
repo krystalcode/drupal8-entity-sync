@@ -6,6 +6,7 @@ use Drupal\entity_sync\Client\ClientFactory;
 use Drupal\entity_sync\Import\Event\EntityMappingEvent;
 use Drupal\entity_sync\Import\Event\Events;
 use Drupal\entity_sync\Import\Event\FieldMappingEvent;
+use Drupal\entity_sync\Import\Event\RemoteIdMappingEvent;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\ImmutableConfig;
@@ -118,6 +119,39 @@ class Manager implements ManagerInterface {
       $sync,
       'import_list'
     );
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  public function importLocalEntity(
+    EntityInterface $local_entity,
+    $sync_id,
+    array $options = []
+  ) {
+    // Load the sync.
+    // @I Validate the sync/operation
+    //    type     : bug
+    //    priority : normal
+    //    labels   : operation, sync, validation
+    //    notes    : Review whether the validation should happen upon runtime
+    //               i.e. here, or when the configuration is created/imported.
+    $sync = $this->configFactory->get('entity_sync.sync.' . $sync_id);
+
+    // Build the remote ID mapping for this local entity.
+    $remote_id = $this->remoteIdMapping($local_entity, $sync);
+
+    // Now, use the remote client to fetch the remote entity for this ID.
+    $remote_entity = $this
+      ->clientFactory
+      ->get($sync_id)
+      ->importEntity($remote_id);
+    if (!$remote_entity) {
+      return;
+    }
+
+    // Finally, update the entity.
+    $this->createOrUpdate($remote_entity, $sync);
   }
 
   /**
@@ -478,6 +512,40 @@ class Manager implements ManagerInterface {
 
     // Return the final mappings.
     return $event->getFieldMapping();
+  }
+
+  /**
+   * Builds and returns the remote ID for the given local entity.
+   *
+   * The remote ID mapping defines which remote ID to use to fetch the remote
+   * entity. The default remote ID field used to fetch the value is defined in
+   * the synchronization to which the operation we are currently executing
+   * belongs.
+   *
+   * An event is dispatched that allows subscribers to alter the default remote
+   * ID mapping.
+   *
+   * @param \Drupal\core\Entity\EntityInterface $local_entity
+   *   The local entity.
+   * @param \Drupal\Core\Config\ImmutableConfig $sync
+   *   The configuration object for synchronization that defines the operation
+   *   we are currently executing.
+   *
+   * @return array
+   *   The final field mapping.
+   */
+  protected function remoteIdMapping(
+    EntityInterface $local_entity,
+    ImmutableConfig $sync
+  ) {
+    $event = new RemoteIdMappingEvent(
+      $local_entity,
+      $sync
+    );
+    $this->eventDispatcher->dispatch(Events::REMOTE_ID_MAPPING, $event);
+
+    // Return the remote ID.
+    return $event->getRemoteId();
   }
 
   /**
