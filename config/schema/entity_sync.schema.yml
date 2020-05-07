@@ -82,8 +82,8 @@ entity_sync.sync.*:
 # synchronization with multiple remote resources.
 #
 # Example provider for synchronizing with a remote ERP system:
-# entity_sync.provider.ipc_sync_api:
-#   id: ipc_sync_api
+# entity_sync.provider.erp:
+#   id: erp
 #   operations:
 #     - import
 #     - import_list
