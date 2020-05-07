@@ -73,12 +73,17 @@ class Sync implements ContainerInjectionInterface {
   public function buildPermissions() {
     $permissions = [];
 
+    // @I Move this to a generic place as loading sync configurations are used
+    //    in serveral other places.
+    //    type     : improvement
+    //    priority : low
+    //    labels   : refactoring
     $sync_names = $this->configFactory->listAll('entity_sync.sync.');
 
     // Loop through each entity_sync.sync configurations and create
     // corresponding permissions.
     foreach ($this->configFactory->loadMultiple($sync_names) as $sync) {
-      $config = $sync->get($config_name);
+      $config = $sync->get();
 
       // Throw an exception if we cannot find a entity type id.
       if (!$config['entity']['type_id']) {
@@ -146,8 +151,13 @@ class Sync implements ContainerInjectionInterface {
   ) {
     $permissions = [];
 
+    $bundle_entity_type = $this->entityTypeManager
+      ->getStorage('group')
+      ->getEntityType()
+      ->getBundleEntityType();
+
     $bundle_label = $this->entityTypeManager
-      ->getStorage($entity_type_id)
+      ->getStorage($bundle_entity_type)
       ->load($bundle)
       ->label();
 
@@ -156,7 +166,7 @@ class Sync implements ContainerInjectionInterface {
       $operation_id = $operation['id'];
 
       $permissions += [
-        "entity_sync ${OPERATION_ID} ${BUNDLE} ${ENTITY_TYPE_ID}" => [
+        "entity_sync ${operation_id} ${bundle} ${entity_type_id}" => [
           'title' => $this->t('
             %bundle: Run the @operation_label operation on @entity_type_plural_label',
             [
@@ -197,7 +207,7 @@ class Sync implements ContainerInjectionInterface {
       $operation_id = $operation['id'];
 
       $permissions += [
-        "entity_sync ${OPERATION_ID} ${ENTITY_TYPE_ID}" => [
+        "entity_sync ${operation_id} ${entity_type_id}" => [
           'title' => $this->t('
             Run the @operation_label operation on @entity_type_plural_label',
             [
