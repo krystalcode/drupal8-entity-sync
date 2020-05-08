@@ -107,6 +107,17 @@ class Manager implements ManagerInterface {
     //               i.e. here, or when the configuration is created/imported.
     $sync = $this->configFactory->get('entity_sync.sync.' . $sync_id);
 
+    // Make sure the operation is enabled and supported by the provider.
+    if (!$this->operationSupported($sync, 'import_list')) {
+      $this->logger->error(
+        sprintf(
+          'The synchronization with ID "%s" and/or its provider do not support the `import_list` operation.',
+          $sync_id
+        )
+      );
+      return;
+    }
+
     // Now, use the remote client to fetch the list of entities.
     $entities = $this->clientFactory->get($sync_id)->importList($filters);
     if (!$entities) {
@@ -180,7 +191,8 @@ class Manager implements ManagerInterface {
       $id_field = $sync->get('remote_resource.id_field');
       $this->logger->error(
         sprintf(
-          'An error occur while importing the remote entity with ID "%s" as part of the "%s" synchronization and the "%s" operation. The error messages was: %s',
+          'An "%s" exception was thrown while importing the remote entity with ID "%s" as part of the "%s" synchronization and the "%s" operation. The error messages was: %s',
+          get_class($e),
           $remote_entity->{$id_field},
           $sync->get('id'),
           $operation,
@@ -259,6 +271,18 @@ class Manager implements ManagerInterface {
     ImmutableConfig $sync,
     array $entity_mapping
   ) {
+    // @I Provide defaults for settings not explicitly set
+    //    type     : improvement
+    //    priority : low
+    //    labels   : config
+    // @I Consider using the PHP toggle to switch operations/feature on/off
+    //    type     : task
+    //    priority : low
+    //    labels   : config
+    if (!$sync->get('operations.import_list.create_entities')) {
+      return;
+    }
+
     // @I Support creation of local entities of types that do not have bundles
     //    type     : bug
     //    priority : normal
@@ -414,9 +438,9 @@ class Manager implements ManagerInterface {
   ) {
     // If the field value should be converted and stored by a custom callback,
     // then invoke that.
-    if (isset($field_info['callback'])) {
+    if (isset($field_info['import_callback'])) {
       call_user_func(
-        $field_info['callback'],
+        $field_info['import_callback'],
         $remote_entity,
         $local_entity,
         $field_info
@@ -432,17 +456,17 @@ class Manager implements ManagerInterface {
     //    type     : bug
     //    priority : normal
     //    labels   : error-handling, import
-    elseif (!$local_entity->hasField($field_info['name'])) {
+    elseif (!$local_entity->hasField($field_info['machine_name'])) {
       throw new \RuntimeException(
         sprintf(
           'The non-existing local entity field "%s" was requested to be mapped to a remote field',
-          $field_info['name']
+          $field_info['machine_name']
         )
       );
     }
     else {
       $local_entity->set(
-        $field_info['name'],
+        $field_info['machine_name'],
         $remote_entity->{$field_info['remote_name']}
       );
     }
@@ -546,6 +570,30 @@ class Manager implements ManagerInterface {
 
     // Return the remote ID.
     return $event->getRemoteId();
+  }
+
+  /**
+   * Checks that the given operation is enabled for the given synchronization.
+   *
+   * @param \Drupal\Core\Config\ImmutableConfig $sync
+   *   The configuration object for the synchronization that defines the
+   *   operation we are currently executing.
+   * @param string $operation
+   *   The operation to check.
+   *
+   * @return bool
+   *   TRUE if the operation is enabled and supported, FALSE otherwise.
+   */
+  protected function operationSupported(ImmutableConfig $sync, $operation) {
+    // @I Check that the provider supports the corresponding method as well
+    //    type     : bug
+    //    priority : normal
+    //    labels   : import, operation, validation
+    if (!$sync->get("operations.$operation.status")) {
+      return FALSE;
+    }
+
+    return TRUE;
   }
 
   /**

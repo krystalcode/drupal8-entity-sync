@@ -62,6 +62,15 @@ class DefaultImportEntityMapping implements EventSubscriberInterface {
     $local_entity_ids = $this->entityTypeManager
       ->getStorage($entity_info['type_id'])
       ->getQuery()
+      // @I Review whether disabling access check is always safe
+      //    type     : bug
+      //    priority : high
+      //    labels   : security
+      // @I Review solutions from preventing anonymous entity ownership
+      //    type     : bug
+      //    priority : high
+      //    labels   : security
+      ->accessCheck(FALSE)
       ->condition(
         $entity_info['remote_id_field'],
         $remote_entity->{$remote_id_field}
