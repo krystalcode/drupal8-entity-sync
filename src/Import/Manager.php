@@ -157,7 +157,8 @@ class Manager implements ManagerInterface {
       $id_field = $sync->get('remote_resource.id_field');
       $this->logger->error(
         sprintf(
-          'An error occur while importing the remote entity with ID "%s" as part of the "%s" synchronization and the "%s" operation. The error messages was: %s',
+          'An "%s" exception was thrown while importing the remote entity with ID "%s" as part of the "%s" synchronization and the "%s" operation. The error messages was: %s',
+          get_class($e),
           $remote_entity->{$id_field},
           $sync->get('id'),
           $operation,
@@ -403,9 +404,9 @@ class Manager implements ManagerInterface {
   ) {
     // If the field value should be converted and stored by a custom callback,
     // then invoke that.
-    if (isset($field_info['callback'])) {
+    if (isset($field_info['import_callback'])) {
       call_user_func(
-        $field_info['callback'],
+        $field_info['import_callback'],
         $remote_entity,
         $local_entity,
         $field_info
@@ -421,17 +422,17 @@ class Manager implements ManagerInterface {
     //    type     : bug
     //    priority : normal
     //    labels   : error-handling, import
-    elseif (!$local_entity->hasField($field_info['name'])) {
+    elseif (!$local_entity->hasField($field_info['machine_name'])) {
       throw new \RuntimeException(
         sprintf(
           'The non-existing local entity field "%s" was requested to be mapped to a remote field',
-          $field_info['name']
+          $field_info['machine_name']
         )
       );
     }
     else {
       $local_entity->set(
-        $field_info['name'],
+        $field_info['machine_name'],
         $remote_entity->{$field_info['remote_name']}
       );
     }
