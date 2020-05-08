@@ -244,7 +244,7 @@ class Manager implements ManagerInterface {
     //    type     : task
     //    priority : low
     //    labels   : config
-    if ($sync->get('operations.import_list.create_entities')) {
+    if (!$sync->get('operations.import_list.create_entities')) {
       return;
     }
 
