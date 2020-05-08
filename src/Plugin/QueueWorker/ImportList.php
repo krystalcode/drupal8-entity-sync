@@ -2,6 +2,8 @@
 
 namespace Drupal\entity_sync\Plugin\QueueWorker;
 
+use Drupal\entity_sync\Import\Manager;
+
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Queue\QueueWorkerBase;
@@ -28,6 +30,13 @@ class ImportList extends QueueWorkerBase implements
   protected $configFactory;
 
   /**
+   * The entity sync import manager service.
+   *
+   * @var \Drupal\entity_sync\Import\Manager
+   */
+  protected $manager;
+
+  /**
    * Constructs a new ImportList instance.
    *
    * @param array $configuration
@@ -38,16 +47,20 @@ class ImportList extends QueueWorkerBase implements
    *   The plugin implementation definition.
    * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
    *   The configuration factory.
+   * @param \Drupal\entity_sync\Import\Manager $manager
+   *   The entity sync import manager service.
    */
   public function __construct(
     array $configuration,
     $plugin_id,
     $plugin_definition,
-    ConfigFactoryInterface $config_factory
+    ConfigFactoryInterface $config_factory,
+    Manager $manager
   ) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
 
     $this->configFactory = $config_factory;
+    $this->manager = $manager;
   }
 
   /**
@@ -63,7 +76,8 @@ class ImportList extends QueueWorkerBase implements
       $configuration,
       $plugin_id,
       $plugin_definition,
-      $container->get('config.factory')
+      $container->get('config.factory'),
+      $container->get('entity_sync.import.manager')
     );
   }
 
@@ -80,13 +94,13 @@ class ImportList extends QueueWorkerBase implements
     $sync = $this->configFactory->get('entity_sync.sync.' . $sync_id);
 
     // If the sync has defined a callback to use, use that.
-    if ($sync->get('operations.import_list.manager_callback')) {
-      call_user_func('operations.import_list.manager_callback');
+    $callback = $sync->get('operations.import_list.manager_callback');
+    if ($callback) {
+      call_user_func($callback);
     }
     // Otherwise, we call the default importRemoteList() service.
     else {
-      \Drupal::service('entity_sync.import.manager')
-        ->importRemoteList($sync_id);
+      $this->manager->importRemoteList($sync_id);
     }
   }
 
