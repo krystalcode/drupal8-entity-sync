@@ -80,8 +80,8 @@ class ImportList extends QueueWorkerBase implements
     $sync = $this->configFactory->get('entity_sync.sync.' . $sync_id);
 
     // If the sync has defined a callback to use, use that.
-    if ($sync->get('manager_callback')) {
-      call_user_func('manager_callback');
+    if ($sync->get('operations.import_list.manager_callback')) {
+      call_user_func('operations.import_list.manager_callback');
     }
     // Otherwise, we call the default importRemoteList() service.
     else {
