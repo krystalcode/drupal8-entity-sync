@@ -418,33 +418,11 @@ class Manager implements ManagerInterface {
     //    type     : bug
     //    priority : low
     //    labels   : import
-    // @I Move updating remote ID and remote changed fields to separate methods
-    //    type     : task
-    //    priority : low
-    //    labels   : refactoring
-    $local_id_field = $sync->get('entity.remote_id_field');
-    if ($local_entity->hasField($local_id_field)) {
-      $remote_id_field = $sync->get('remote_resource.id_field');
-      $local_entity->set(
-        $local_id_field,
-        $remote_entity->{$remote_id_field}
-      );
-    }
+    $this->setRemoteIdField($remote_entity, $local_entity, $sync);
 
     // Update the remote changed field. The remote changed field will be used in
     // `hook_entity_insert` to prevent triggering an export of the local entity.
-    // @I Support non-Unix timestamp formats for the remote changed field
-    //    type     : bug
-    //    priority : normal
-    //    labels   : import
-    $local_changed_field = $sync->get('entity.remote_changed_field');
-    if ($local_entity->hasField($local_changed_field)) {
-      $remote_changed_field = $sync->get('remote_resource.changed_field');
-      $local_entity->set(
-        $local_changed_field,
-        $remote_entity->{$remote_changed_field}
-      );
-    }
+    $this->setRemoteChangedField($remote_entity, $local_entity, $sync);
 
     $local_entity->save();
   }
@@ -667,6 +645,75 @@ class Manager implements ManagerInterface {
         );
       }
     }
+  }
+
+  /**
+   * Sets the remote ID field in the local entity.
+   *
+   * @param object $remote_entity
+   *   The remote entity.
+   * @param \Drupal\Core\Entity\EntityInterface $local_entity
+   *   The associated local entity.
+   * @param \Drupal\Core\Config\ImmutableConfig $sync
+   *   The configuration object for synchronization that defines the operation
+   *   we are currently executing.
+   */
+  protected function setRemoteIdField(
+    $remote_entity,
+    EntityInterface $local_entity,
+    ImmutableConfig $sync
+  ) {
+    $local_id_field = $sync->get('entity.remote_id_field');
+    if (!$local_entity->hasField($local_id_field)) {
+      return;
+    }
+
+    $remote_id_field = $sync->get('remote_resource.id_field');
+    $local_entity->set(
+      $local_id_field,
+      $remote_entity->{$remote_id_field}
+    );
+  }
+
+  /**
+   * Sets the remote changed field in the local entity.
+   *
+   * @param object $remote_entity
+   *   The remote entity.
+   * @param \Drupal\Core\Entity\EntityInterface $local_entity
+   *   The associated local entity.
+   * @param \Drupal\Core\Config\ImmutableConfig $sync
+   *   The configuration object for synchronization that defines the operation
+   *   we are currently executing.
+   */
+  protected function setRemoteChangedField(
+    $remote_entity,
+    EntityInterface $local_entity,
+    ImmutableConfig $sync
+  ) {
+    $local_changed_field = $sync->get('entity.remote_changed_field');
+    if (!$local_entity->hasField($local_changed_field)) {
+      return;
+    }
+
+    $field_config = $sync->get('remote_resource.changed_field');
+
+    // Prepare the value based on the configured format.
+    $field_name = $field_config['name'];
+    $field_value = NULL;
+    if ($field_config['format'] === 'timestamp') {
+      $field_value = $remote_entity->{$field_name};
+    }
+    elseif ($field_config['format'] === 'string') {
+      $field_value = strtotime(
+        $remote_entity->{$field_name}
+      );
+    }
+
+    $local_entity->set(
+      $local_changed_field,
+      $field_value
+    );
   }
 
 }

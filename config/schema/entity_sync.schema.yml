@@ -46,8 +46,18 @@ entity_sync.sync.*:
           type: string
           label: "The resource property that functions as the entity's primary identifier"
         changed_field:
-          type: string
-          label: "The resource property that indicates when the resource was last update"
+          type: mapping
+          labels: "The resource property that indicates when the resource was last update"
+          mapping:
+            name:
+              type: string
+              label: "The name of the resource property"
+            # Supported formats are:
+            # timestamp: Unix-timestamp.
+            # string: Textual datetime in any format supported by PHP's `strtotime`.
+            format:
+              type: string
+              label: "The format of the datetime value contained in the field"
         # @I Make the provider responsible for generating the client
         #    type     : improvement
         #    priority : normal
