@@ -14,7 +14,7 @@ the following content:
 id: erp
 operations:
   - import
-  - importList
+  - import_list
   - export
 ```
 
@@ -41,7 +41,7 @@ remote_resource:
     type: service
     service: my_module.entity_sync_client.user
   operations:
-    - id: importList
+    - id: import_list
       status: true
       label: 'Import users'
       url_path: users

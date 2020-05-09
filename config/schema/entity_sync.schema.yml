@@ -28,10 +28,10 @@ entity_sync.sync.*:
           label: 'The entity bundle'
         remote_id_field:
           type: string
-          label: ''
+          label: 'The field that holds the ID of the associated remote resource'
         remote_changed_field:
           type: string
-          label: ''
+          label: 'The field that holds the time that the associated remote resource was last changed'
     remote_resource:
       type: mapping
       label: 'Configuration about the corresponding remote resource'
@@ -42,9 +42,12 @@ entity_sync.sync.*:
         name:
           type: string
           label: 'The name of the resource'
-        identifier:
+        id_field:
           type: string
           label: "The resource property that functions as the entity's primary identifier"
+        changed_field:
+          type: string
+          label: "The resource property that indicates when the resource was last update"
         # @I Make the provider responsible for generating the client
         #    type     : improvement
         #    priority : normal
@@ -64,7 +67,7 @@ entity_sync.sync.*:
       type: sequence
       label: 'The operations supported by this synchronization type'
       sequence:
-        type: entity_sync.operation
+        type: entity_sync.operation.[%key]
         label: 'The configuration for the synchronization operation'
     fields:
       type: sequence
@@ -79,11 +82,11 @@ entity_sync.sync.*:
 # synchronization with multiple remote resources.
 #
 # Example provider for synchronizing with a remote ERP system:
-# entity_sync.provider.ipc_sync_api:
-#   id: ipc_sync_api
+# entity_sync.provider.erp:
+#   id: erp
 #   operations:
 #     - import
-#     - importList
+#     - import_list
 #     - export
 #
 # @I Provide validation for provider configurations
@@ -94,6 +97,10 @@ entity_sync.sync.*:
 #    type     : improvement
 #    priority : normal
 #    labels   : config, provider
+# @I Review the relationship between sync and provider operations
+#    type     : task
+#    priority : normal
+#    labels   : architecture, operation
 entity_sync.provider.*:
   type: config_object
   label: 'Provider configuration'
@@ -115,14 +122,14 @@ entity_sync.provider.*:
 #
 # Currently supported operations are:
 # import: Import an individual entity from the remote resource.
-# importList: Import a list of entities from the remote resource.
+# import_list: Import a list of entities from the remote resource.
 # export: Export an individual entity to the remote resource.
 #
 # Example operations section in a synchronization:
 # entity_sync.sync.user:
 #   id: user
 #   operations:
-#     - id: importList
+#     - id: import_list
 #       status: true
 #       label: 'Import users'
 #       block: true
@@ -130,30 +137,51 @@ entity_sync.provider.*:
 #       cron:
 #         frequency: @hourly
 #
-# @I Support an `exportList` operation
+# @I Support an `export_list` operation
 #    type     : feature
 #    priority : normal
 #    labels   : operation
-entity_sync.operation:
+entity_sync.operation.import_list:
   type: mapping
-  label: 'The configuration for the synchronization operation'
+  label: 'The configuration for the Import List operation'
   mapping:
-    id:
-      type: string
-      label: 'The ID of the operation'
     status:
       type: boolean
       label: 'Whether the operation is enabled or not'
+      # @I Support entity import modes
+      #    type     : feature
+      #    priority : normal
+      #    labels   : import
+    create_entities:
+      type: boolean
+      label: "Whether local entities should be created if they don't exist"
     label:
       type: string
       label: 'The human-friendly label describing the operation'
-    block:
-      type: boolean
-      label: 'Whether to provide a block for triggering the operation'
     url_path:
       type: string
       label: 'The path that will be used in generating URLs related to the operation'
-    # Currently, the only operation supporting cron is `importList`. The cron
+
+entity_sync.operation.import_entity:
+  type: mapping
+  label: 'The configuration for the Import Entity operation'
+  mapping:
+    status:
+      type: boolean
+      label: 'Whether the operation is enabled or not'
+    block:
+      type: boolean
+      label: 'Whether to provide a block for triggering the operation'
+    create_entities:
+      type: boolean
+      label: "Whether local entities should be created if they don't exist"
+    label:
+      type: string
+      label: 'The human-friendly label describing the operation'
+    url_path:
+      type: string
+      label: 'The path that will be used in generating URLs related to the operation'
+    # Currently, the only operation supporting cron is `import_list`. The cron
     # frequency defines how frequently Entity Sync will be importing recently
     # created or updated entities from the remote resource.
     # The frequency format should follow the linux crontab format e.g. '@hourly'

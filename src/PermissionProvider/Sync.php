@@ -2,6 +2,8 @@
 
 namespace Drupal\entity_sync\PermissionProvider;
 
+use Drupal\entity_sync\ManagerInterface;
+
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
@@ -32,19 +34,30 @@ class Sync implements ContainerInjectionInterface {
   protected $configFactory;
 
   /**
+   * The sync manager service.
+   *
+   * @var \Drupal\entity_sync\ManagerInterface
+   */
+  protected $syncManager;
+
+  /**
    * Constructs a new EntityPermissions object.
    *
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
    *   The entity type manager.
    * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
    *   The configuration factory.
+   * @param \Drupal\entity_sync\ManagerInterface $sync_manager
+   *   The sync manager.
    */
   public function __construct(
     EntityTypeManagerInterface $entity_type_manager,
-    ConfigFactoryInterface $config_factory
+    ConfigFactoryInterface $config_factory,
+    ManagerInterface $sync_manager
   ) {
     $this->entityTypeManager = $entity_type_manager;
     $this->configFactory = $config_factory;
+    $this->syncManager = $sync_manager;
   }
 
   /**
@@ -55,7 +68,8 @@ class Sync implements ContainerInjectionInterface {
   ) {
     return new static(
       $container->get('entity_type.manager'),
-      $container->get('config.factory')
+      $container->get('config.factory'),
+      $container->get('entity_sync.manager')
     );
   }
 
@@ -73,16 +87,7 @@ class Sync implements ContainerInjectionInterface {
   public function buildPermissions() {
     $permissions = [];
 
-    // @I Move this to a generic place as loading sync configurations are used
-    //    in serveral other places.
-    //    type     : improvement
-    //    priority : low
-    //    labels   : refactoring
-    $sync_names = $this->configFactory->listAll('entity_sync.sync.');
-
-    // Loop through each entity_sync.sync configurations and create
-    // corresponding permissions.
-    foreach ($this->configFactory->loadMultiple($sync_names) as $sync) {
+    foreach ($this->syncManager->getAllSyncConfig() as $sync) {
       $config = $sync->get();
 
       // Throw an exception if we cannot find a entity type id.
@@ -162,8 +167,11 @@ class Sync implements ContainerInjectionInterface {
       ->label();
 
     // Loop through each entity sync operation and create permission.
-    foreach ($operations as $operation) {
-      $operation_id = $operation['id'];
+    foreach ($operations as $operation_id => $operation) {
+      // We only create permissions for operations whose status is true.
+      if (!$operation['status']) {
+        continue;
+      }
 
       $permissions += [
         "entity_sync ${operation_id} ${bundle} ${entity_type_id}" => [
@@ -203,8 +211,11 @@ class Sync implements ContainerInjectionInterface {
     $permissions = [];
 
     // Loop through each entity sync operation and create permission.
-    foreach ($operations as $operation) {
-      $operation_id = $operation['id'];
+    foreach ($operations as $operation_id => $operation) {
+      // We only create permissions for operations whose status is true.
+      if (!$operation['status']) {
+        continue;
+      }
 
       $permissions += [
         "entity_sync ${operation_id} ${entity_type_id}" => [
