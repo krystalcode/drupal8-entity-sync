@@ -46,4 +46,13 @@ class Manager implements ManagerInterface {
     ];
   }
 
+  /**
+   * {@inheritdoc}
+   */
+  public function getSyncOperationsForBlock() {
+    return [
+      'import' => 'Drupal\entity_sync\Form\ImportBase',
+    ];
+  }
+
 }
