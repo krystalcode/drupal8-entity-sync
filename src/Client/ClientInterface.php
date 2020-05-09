@@ -18,7 +18,7 @@ namespace Drupal\entity_sync\Client;
 interface ClientInterface {
 
   /**
-   * Get the list of remote entities to import.
+   * Gets the list of remote entities to import.
    *
    * @param array $filters
    *   An associative array of filters that determine which entities will be
@@ -40,5 +40,16 @@ interface ClientInterface {
    *    labels   : import, operation, memory-consumption
    */
   public function importList(array $filters = []);
+
+  /**
+   * Gets the remote entity with the given primary ID.
+   *
+   * @param int|string $id
+   *   The ID of the entity to get.
+   *
+   * @return object
+   *   The remote entity object.
+   */
+  public function importEntity($id);
 
 }

@@ -3,41 +3,43 @@
 namespace Drupal\entity_sync\Import\Event;
 
 use Drupal\Core\Config\ImmutableConfig;
+use Drupal\Core\Entity\EntityInterface;
 
 use Symfony\Component\EventDispatcher\Event;
 
 /**
- * Defines the import entity mapping event.
+ * Defines the import local entity mapping event.
  *
- * Allows subscribers to define which local entity a remote entity should be
+ * Allows subscribers to define which remote entity a local entity should be
  * mapped to.
  */
-class EntityMappingEvent extends Event {
+class LocalEntityMappingEvent extends Event {
 
   /**
-   * The entity mapping for the remote entity being imported.
+   * The entity mapping for the local entity being mapped.
    *
-   * The mapping is an associative array that defines which local entity the
-   * remote entity should be mapped to. Supported array elements:
+   * The mapping is an associative array that defines which remote entity the
+   * local entity should be mapped to. Supported array elements:
    * - action: The action to be taken. Possible values are:
    *   - ManagerInterface::ACTION_SKIP: Do not import the entity.
-   *   - ManagerInterface::ACTION_CREATE: Create a new local entity.
-   *   - ManagerInterface::ACTION_UPDATE: Update an existing local entity.
+   *   - ManagerInterface::ACTION_IMPORT: Import the remote entity.
    *   See \Drupal\entity_sync\Import\ManagerInterface.
-   * - type_id: The type ID of the entity that will be created or updated.
-   * - bundle: The bundle of the entity that will be created or updated.
-   * - id: The ID of the entity that will be created or updated.
+   * - client: An associative array that contains the details of the client that
+   *   will be used to fetch the remote entity. Supported elements are:
+   *   - type: The type of the client; currently supported type is `service`.
+   *   - service: The Drupal service that provides the client.
+   * - id: The ID of the entity that will be imported.
    *
    * @var array
    */
   protected $entityMapping = [];
 
   /**
-   * The remote entity being imported.
+   * The local entity.
    *
-   * @var object
+   * @var \Drupal\Core\Entity\EntityInterface
    */
-  protected $remoteEntity;
+  protected $localEntity;
 
   /**
    * The synchronization configuration object.
@@ -47,16 +49,19 @@ class EntityMappingEvent extends Event {
   protected $sync;
 
   /**
-   * Constructs a new EntityMappingEvent object.
+   * Constructs a new LocalRemoteIdMapping object.
    *
-   * @param object $remote_entity
-   *   The remote entity that's about to be synced.
+   * @param \Drupal\Core\Entity\EntityInterface $local_entity
+   *   The local entity that's being mapped.
    * @param \Drupal\Core\Config\ImmutableConfig $sync
    *   The configuration object for synchronization that defines the operation
    *   we are currently executing.
    */
-  public function __construct($remote_entity, ImmutableConfig $sync) {
-    $this->remoteEntity = $remote_entity;
+  public function __construct(
+    EntityInterface $local_entity,
+    ImmutableConfig $sync
+  ) {
+    $this->localEntity = $local_entity;
     $this->sync = $sync;
   }
 
@@ -81,13 +86,13 @@ class EntityMappingEvent extends Event {
   }
 
   /**
-   * Gets the remote entity.
+   * Gets the local entity.
    *
-   * @return object
-   *   The remote entity.
+   * @return \Drupal\Core\Entity\EntityInterface
+   *   The local entity.
    */
-  public function getRemoteEntity() {
-    return $this->remoteEntity;
+  public function getLocalEntity() {
+    return $this->localEntity;
   }
 
   /**
