@@ -15,4 +15,12 @@ interface ManagerInterface {
    */
   public function getAllSyncConfig();
 
+  /**
+   * Provides a list of all entity sync operation for which a route is needed.
+   *
+   * @return array
+   *   Associated array with operation id as key and form class as value.
+   */
+  public function getSyncOperationsForRoute();
+
 }

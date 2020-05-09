@@ -2,6 +2,8 @@
 
 namespace Drupal\entity_sync\Routing;
 
+use Drupal\entity_sync\ManagerInterface;
+
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 
@@ -25,15 +27,26 @@ class EntitySyncRoutes implements ContainerInjectionInterface {
   protected $configFactory;
 
   /**
+   * The sync manager service.
+   *
+   * @var \Drupal\entity_sync\ManagerInterface
+   */
+  protected $syncManager;
+
+  /**
    * Constructs a new EntitySyncRoutes object.
    *
    * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
    *   The configuration factory.
+   * @param \Drupal\entity_sync\ManagerInterface $sync_manager
+   *   The sync manager.
    */
   public function __construct(
-    ConfigFactoryInterface $config_factory
+    ConfigFactoryInterface $config_factory,
+    ManagerInterface $sync_manager
   ) {
     $this->configFactory = $config_factory;
+    $this->syncManager = $sync_manager;
   }
 
   /**
@@ -43,7 +56,8 @@ class EntitySyncRoutes implements ContainerInjectionInterface {
     ContainerInterface $container
   ) {
     return new static(
-      $container->get('config.factory')
+      $container->get('config.factory'),
+      $container->get('entity_sync.manager')
     );
   }
 
@@ -53,16 +67,7 @@ class EntitySyncRoutes implements ContainerInjectionInterface {
   public function routes() {
     $routes = [];
 
-    // @I Move this to a generic place as loading sync configurations are used
-    //    in serveral other places.
-    //    type     : improvement
-    //    priority : low
-    //    labels   : refactoring
-    $sync_names = $this->configFactory->listAll('entity_sync.sync.');
-
-    // Loop through each entity_sync.sync configurations and create
-    // corresponding routes.
-    foreach ($this->configFactory->loadMultiple($sync_names) as $sync) {
+    foreach ($this->syncManager->getAllSyncConfig() as $sync) {
       $config = $sync->get();
 
       // Throw an exception if we cannot find a entity type id.
@@ -72,62 +77,71 @@ class EntitySyncRoutes implements ContainerInjectionInterface {
         );
       }
 
-      $bundle = $config['entity']['bundle'];
-      $entity_type_id = $config['entity']['type_id'];
+      $routes = $this->buildRoutes($config);
 
-      foreach ($config['operations'] as $operation) {
-        $operation_id = $operation['id'];
+    }
 
-        // Generate route id with the operation id.
-        $route_id = 'entity_sync.sync.' . $operation_id;
+    return $routes;
+  }
 
-        // Generate route url based on the url path set in configuration.
-        $route_url = '/admin/sync/entities/' . $operation['url_path'];
+  /**
+   * Build route for each sync operation.
+   *
+   * We build route only for operations which have set route as required.
+   *
+   * @param array $config
+   *   The sync config array.
+   *
+   * @return array
+   *   The route array
+   */
+  private function buildRoutes(array $config) {
+    $routes = [];
 
-        // @I Move We need to use some better logic to fetch the form classes
-        //    There would be export operations in the future.
-        //    type     : improvement
-        //    priority : high
-        //    labels   : refactoring
+    $bundle = $config['entity']['bundle'];
+    $entity_type_id = $config['entity']['type_id'];
 
-        // If the operation is list operation we use the import list form, if
-        // not we use the single import form.
-        $form_path = 'Drupal\entity_sync\Form\ImportBase';
-        if ($operation_id === 'importList') {
-          $form_path = 'Drupal\entity_sync\Form\ImportListBase';
-        }
+    $route_operations = $this->syncManager->getSyncOperationsForRoute();
 
-        // If a bundle is set for the config we use the bundle and entity perm,
-        // if not we use the entity type permission.
-        $permission = "entity_sync ${OPERATION_ID} ${ENTITY_TYPE_ID}";
-        if ($bundle) {
-          $permission = "entity_sync ${OPERATION_ID} ${BUNDLE} ${ENTITY_TYPE_ID}";
-        }
+    foreach ($route_operations as $operation_id => $form_class) {
+      $operation = $config['operations'][$operation_id];
 
-        // Create routes by passing in label and configuration as parameters.
-        $routes[$route_id] = new Route(
-          $route_url,
-          [
-            '_form' => $form_path,
-            '_title' => $operation['label'],
-            'label' => $operation['label'],
-            'config' => $config,
-          ],
-          [
-            '_permission' => $permission,
-          ],
-          [
-            'parameters' => [
-              'label' => [
-                'type' => 'string',
-              ],
-              'config' => [
-                'type' => 'array',
-              ],
-            ],
-          ]
-        );
+      // Generate route id with the operation id.
+      $route_id = 'entity_sync.sync.' . $operation_id;
+
+      // Generate route url based on the url path set in configuration.
+      $route_url = '/admin/sync/entities/' . $operation['url_path'];
+
+      // If a bundle is set for the config we use the bundle and entity perm,
+      // if not we use the entity type permission.
+      $permission = "entity_sync ${operation_id} ${entity_type_id}";
+      if ($bundle) {
+        $permission = "entity_sync ${operation_id} ${bundle} ${entity_type_id}";
       }
+
+      // Create routes by passing in label and configuration as parameters.
+      $routes[$route_id] = new Route(
+        $route_url,
+        [
+          '_form' => $form_class,
+          '_title' => $operation['label'],
+          'label' => $operation['label'],
+          'config' => $config,
+        ],
+        [
+          '_permission' => $permission,
+        ],
+        [
+          'parameters' => [
+            'label' => [
+              'type' => 'string',
+            ],
+            'config' => [
+              'type' => 'array',
+            ],
+          ],
+        ]
+      );
     }
 
     return $routes;
