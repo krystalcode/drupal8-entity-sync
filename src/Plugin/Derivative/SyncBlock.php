@@ -2,6 +2,8 @@
 
 namespace Drupal\entity_sync\Plugin\Derivative;
 
+use Drupal\entity_sync\ManagerInterface;
+
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Plugin\Discovery\ContainerDeriverInterface;
 use Drupal\Component\Plugin\Derivative\DeriverBase;
@@ -23,13 +25,26 @@ class SyncBlock extends DeriverBase implements ContainerDeriverInterface {
   protected $configFactory;
 
   /**
+   * The sync manager service.
+   *
+   * @var \Drupal\entity_sync\ManagerInterface
+   */
+  protected $syncManager;
+
+  /**
    * Creates a new Sync Block.
    *
    * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
    *   The configuration factory.
+   * @param \Drupal\entity_sync\ManagerInterface $sync_manager
+   *   The sync manager.
    */
-  public function __construct(ConfigFactoryInterface $config_factory) {
+  public function __construct(
+    ConfigFactoryInterface $config_factory,
+    ManagerInterface $sync_manager
+  ) {
     $this->configFactory = $config_factory;
+    $this->syncManager = $sync_manager;
   }
 
   /**
@@ -40,7 +55,8 @@ class SyncBlock extends DeriverBase implements ContainerDeriverInterface {
     $base_plugin_id
   ) {
     return new static(
-      $container->get('config.factory')
+      $container->get('config.factory'),
+      $container->get('entity_sync.manager')
     );
   }
 
@@ -52,13 +68,16 @@ class SyncBlock extends DeriverBase implements ContainerDeriverInterface {
 
     // Loop through each entity_sync.sync configurations and create
     // corresponding permissions.
-    foreach ($this->configFactory->loadMultiple($sync_names) as $sync_name => $sync) {
+    foreach ($this->syncManager->getAllSyncConfig() as $sync) {
       $config = $sync->get();
 
       $operations = $config['operations'];
 
-      // Loop through each entity sync operation and create blocks.
-      foreach ($operations as $operation) {
+      $block_operations = $this->syncManager->getSyncOperationsForBlock();
+
+      foreach ($block_operations as $operation_id => $form_class) {
+        $operation = $config['operations'][$operation_id];
+
         $derivative_id = $sync_name . '-' . $operation['id'] . '-' . $operation['label'];
 
         $this->derivatives[$derivative_id] = $base_plugin_definition;

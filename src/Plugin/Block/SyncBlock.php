@@ -2,6 +2,8 @@
 
 namespace Drupal\entity_sync\Plugin\Block;
 
+use Drupal\entity_sync\ManagerInterface;
+
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Block\BlockBase;
 
@@ -39,6 +41,13 @@ class SyncBlock extends BlockBase implements ContainerFactoryPluginInterface {
   protected $formBuilder;
 
   /**
+   * The sync manager service.
+   *
+   * @var \Drupal\entity_sync\ManagerInterface
+   */
+  protected $syncManager;
+
+  /**
    * Creates a SyncBlock instance.
    *
    * @param array $configuration
@@ -51,18 +60,22 @@ class SyncBlock extends BlockBase implements ContainerFactoryPluginInterface {
    *   The configuration factory.
    * @param \Drupal\Core\Form\FormBuilderInterface $form_builder
    *   The form builder.
+   * @param \Drupal\entity_sync\ManagerInterface $sync_manager
+   *   The sync manager.
    */
   public function __construct(
     array $configuration,
     $plugin_id,
     $plugin_definition,
     ConfigFactoryInterface $config_factory,
-    FormBuilderInterface $form_builder
+    FormBuilderInterface $form_builder,
+    ManagerInterface $sync_manager
   ) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
 
     $this->configFactory = $config_factory;
     $this->formbuilder = $form_builder;
+    $this->syncManager = $sync_manager;
 
     $block_id_array = explode("-", $this->getDerivativeId());
 
@@ -85,7 +98,8 @@ class SyncBlock extends BlockBase implements ContainerFactoryPluginInterface {
       $plugin_id,
       $plugin_definition,
       $container->get('config.factory'),
-      $container->get('form_builder')
+      $container->get('form_builder'),
+      $container->get('entity_sync.manager')
     );
   }
 
@@ -93,15 +107,11 @@ class SyncBlock extends BlockBase implements ContainerFactoryPluginInterface {
    * {@inheritdoc}
    */
   public function build() {
-    // If the operation is list operation we use the import list form, if
-    // not we use the single import form.
-    $form_path = 'Drupal\entity_sync\Form\ImportBase';
-    if ($this->operationId === 'importList') {
-      $form_path = 'Drupal\entity_sync\Form\ImportListBase';
-    }
+
+    $block_operations = $this->syncManager->getSyncOperationsForBlock();
 
     return $this->formbuilder->getForm(
-      $form_path,
+      $block_operations['import_list'],
       $this->label,
       $this->config
     );
