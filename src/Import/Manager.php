@@ -3,10 +3,10 @@
 namespace Drupal\entity_sync\Import;
 
 use Drupal\entity_sync\Client\ClientFactory;
-use Drupal\entity_sync\Import\Event\EntityMappingEvent;
 use Drupal\entity_sync\Import\Event\Events;
 use Drupal\entity_sync\Import\Event\FieldMappingEvent;
-use Drupal\entity_sync\Import\Event\RemoteIdMappingEvent;
+use Drupal\entity_sync\Import\Event\LocalEntityMappingEvent;
+use Drupal\entity_sync\Import\Event\RemoteEntityMappingEvent;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\ImmutableConfig;
@@ -136,8 +136,8 @@ class Manager implements ManagerInterface {
    * {@inheritDoc}
    */
   public function importLocalEntity(
-    EntityInterface $local_entity,
     $sync_id,
+    EntityInterface $local_entity,
     array $options = []
   ) {
     // Load the sync.
@@ -147,19 +147,48 @@ class Manager implements ManagerInterface {
     //    labels   : operation, sync, validation
     //    notes    : Review whether the validation should happen upon runtime
     //               i.e. here, or when the configuration is created/imported.
+    // @I Validate that the provider supports the `import_entity` operation
+    //    type     : bug
+    //    priority : normal
+    //    labels   : operation, sync, validation
+    //    notes    : Review whether the validation should happen upon runtime
+    //               i.e. here, or when the configuration is created/imported.
     $sync = $this->configFactory->get('entity_sync.sync.' . $sync_id);
 
-    // Build the remote ID mapping for this local entity.
-    $remote_id = $this->remoteIdMapping($local_entity, $sync);
-
-    // Now, use the remote client to fetch the remote entity for this ID.
-    $remote_entity = $this
-      ->clientFactory
-      ->get($sync_id)
-      ->importEntity($remote_id);
-    if (!$remote_entity) {
+    // Make sure the operation is enabled and supported by the provider.
+    if (!$this->operationSupported($sync, 'import_entity')) {
+      $this->logger->error(
+        sprintf(
+          'The synchronization with ID "%s" and/or its provider do not support the `import_entity` operation.',
+          $sync_id
+        )
+      );
       return;
     }
+
+    // Build the entity mapping for this local entity.
+    $entity_mapping = $this->localEntityMapping($local_entity, $sync);
+    if (!$entity_mapping) {
+      return;
+    }
+
+    // Skip importing the remote entity if we are explicitly told to do so.
+    if ($entity_mapping['action'] === ManagerInterface::ACTION_SKIP) {
+      return;
+    }
+    elseif ($entity_mapping['action'] !== ManagerInterface::ACTION_IMPORT) {
+      throw new \RuntimeException(
+        sprintf(
+          'Unsupported entity mapping action "%s"',
+          $entity_mapping['action']
+        )
+      );
+    }
+
+    // Now, use the remote client to fetch the remote entity for this ID.
+    $remote_entity = $this->clientFactory
+      ->getByClientConfig($entity_mapping['client'])
+      ->importEntity($entity_mapping['entity_id']);
 
     // Finally, update the entity.
     $this->createOrUpdate($remote_entity, $sync);
@@ -220,7 +249,7 @@ class Manager implements ManagerInterface {
     //    type     : bug
     //    priority : normal
     //    labels   : mapping, validation
-    $entity_mapping = $this->entityMapping($remote_entity, $sync);
+    $entity_mapping = $this->remoteEntityMapping($remote_entity, $sync);
 
     // If the entity mapping is empty we will not be updating or creating a
     // local entity; nothing to do.
@@ -259,7 +288,7 @@ class Manager implements ManagerInterface {
    * @param array $entity_mapping
    *   An associative array containing information about the local entity being
    *   mapped to the given remote entity.
-   *   See \Drupal\entity_sync\Event\EntityMapping::entityMapping.
+   *   See \Drupal\entity_sync\Event\RemoteEntityMapping::entityMapping.
    *
    * @I Support entity creation validation
    *    type     : bug
@@ -311,7 +340,7 @@ class Manager implements ManagerInterface {
    * @param array $entity_mapping
    *   An associative array containing information about the local entity being
    *   mapped to the given remote entity.
-   *   See \Drupal\entity_sync\Event\EntityMapping::entityMapping.
+   *   See \Drupal\entity_sync\Event\RemoteEntityMapping::entityMapping.
    *
    * @I Support entity update validation
    *    type     : bug
@@ -492,9 +521,12 @@ class Manager implements ManagerInterface {
    * @return array
    *   The final entity mapping.
    */
-  protected function entityMapping($remote_entity, ImmutableConfig $sync) {
-    $event = new EntityMappingEvent($remote_entity, $sync);
-    $this->eventDispatcher->dispatch(Events::ENTITY_MAPPING, $event);
+  protected function remoteEntityMapping(
+    $remote_entity,
+    ImmutableConfig $sync
+  ) {
+    $event = new RemoteEntityMappingEvent($remote_entity, $sync);
+    $this->eventDispatcher->dispatch(Events::REMOTE_ENTITY_MAPPING, $event);
 
     // Return the final mapping.
     return $event->getEntityMapping();
@@ -541,13 +573,13 @@ class Manager implements ManagerInterface {
   /**
    * Builds and returns the remote ID for the given local entity.
    *
-   * The remote ID mapping defines which remote ID to use to fetch the remote
-   * entity. The default remote ID field used to fetch the value is defined in
-   * the synchronization to which the operation we are currently executing
-   * belongs.
+   * The local entity mapping defines if and which remote entity will be
+   * imported for the given local entity. The default mapping identifies the
+   * remote entity based on a local entity field containing the remote
+   * entity's ID.
    *
-   * An event is dispatched that allows subscribers to alter the default remote
-   * ID mapping.
+   * An event is dispatched that allows subscribers to map the local entity to a
+   * different remote entity, or to decide to not import it at all.
    *
    * @param \Drupal\core\Entity\EntityInterface $local_entity
    *   The local entity.
@@ -556,20 +588,20 @@ class Manager implements ManagerInterface {
    *   we are currently executing.
    *
    * @return array
-   *   The final field mapping.
+   *   The final entity mapping.
    */
-  protected function remoteIdMapping(
+  protected function localEntityMapping(
     EntityInterface $local_entity,
     ImmutableConfig $sync
   ) {
-    $event = new RemoteIdMappingEvent(
+    $event = new LocalEntityMappingEvent(
       $local_entity,
       $sync
     );
-    $this->eventDispatcher->dispatch(Events::REMOTE_ID_MAPPING, $event);
+    $this->eventDispatcher->dispatch(Events::LOCAL_ENTITY_MAPPING, $event);
 
-    // Return the remote ID.
-    return $event->getRemoteId();
+    // Return the final mapping.
+    return $event->getEntityMapping();
   }
 
   /**

@@ -23,19 +23,24 @@ use Drupal\Core\Entity\EntityInterface;
 interface ManagerInterface {
 
   /**
+   * Import the remote entity.
+   */
+  const ACTION_IMPORT = 0;
+
+  /**
    * Create a new local entity as a response to a remote entity import.
    */
-  const ACTION_CREATE = 0;
+  const ACTION_CREATE = 1;
 
   /**
    * Update an existing local entity as a response to a remote entity import.
    */
-  const ACTION_UPDATE = 1;
+  const ACTION_UPDATE = 2;
 
   /**
    * Do nothing as a response to a remote entity import.
    */
-  const ACTION_SKIP = 2;
+  const ACTION_SKIP = 3;
 
   /**
    * Imports a list of entities from the remote resource.
@@ -110,10 +115,10 @@ interface ManagerInterface {
    * them will result in new local entities being created, subject to the
    * synchronization configuration..
    *
-   * @param \Drupal\Core\Entity\EntityInterface $local_entity
-   *   The local entity.
    * @param string $sync_id
    *   The ID of the entity sync.
+   * @param \Drupal\Core\Entity\EntityInterface $local_entity
+   *   The local entity.
    * @param array $options
    *   An associative array of options that determine various aspects of the
    *   import. No options are supported yet, it is added to more completely
@@ -130,13 +135,10 @@ interface ManagerInterface {
    *               value with the remote, to only import the value if the field
    *               is empty, or to import value only when the entity is being
    *               created.
-   *
-   * @return \Drupal\Core\Entity\EntityInterface
-   *   The Drupal entity that was synced.
    */
   public function importLocalEntity(
-    EntityInterface $local_entity,
     $sync_id,
+    EntityInterface $local_entity,
     array $options = []
   );
 
