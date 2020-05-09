@@ -48,7 +48,8 @@ interface ManagerInterface {
    * them will result in the local entities being updated.
    *
    * Importing remote entities that do not have local entities associated with
-   * them will result new local entities being created.
+   * them will result in new local entities being created, subject to the
+   * synchronization configuration.
    *
    * @param string $sync_id
    *   The ID of the entity sync.
@@ -93,10 +94,21 @@ interface ManagerInterface {
   );
 
   /**
-   * Import an entity, given a local entity, from the remote resource.
+   * Imports the remote entity that is associated with the given local entity.
    *
-   * Fetches an entity for the given local entity from the remote resource and
-   * imports it.
+   * The most common use case is to update the given local entity with the
+   * latest changes contained in its associated remote entity. However,
+   * subscribers to the entity mapping event can determine that the remote
+   * entity should be imported to a different local entity.
+   *
+   * With that in mind:
+   *
+   * Importing remote entities that already have local entities associated with
+   * them will result in the local entities being updated.
+   *
+   * Importing remote entities that do not have local entities associated with
+   * them will result in new local entities being created, subject to the
+   * synchronization configuration..
    *
    * @param \Drupal\Core\Entity\EntityInterface $local_entity
    *   The local entity.
