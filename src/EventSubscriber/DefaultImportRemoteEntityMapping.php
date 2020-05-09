@@ -2,8 +2,8 @@
 
 namespace Drupal\entity_sync\EventSubscriber;
 
-use Drupal\entity_sync\Import\Event\EntityMappingEvent;
 use Drupal\entity_sync\Import\Event\Events;
+use Drupal\entity_sync\Import\Event\RemoteEntityMappingEvent;
 use Drupal\entity_sync\Import\ManagerInterface;
 
 use Drupal\Core\Entity\EntityTypeManagerInterface;
@@ -11,9 +11,9 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 /**
- * Builds the default entity mapping for import operations.
+ * Builds the default remote entity mapping for import operations.
  */
-class DefaultImportEntityMapping implements EventSubscriberInterface {
+class DefaultImportRemoteEntityMapping implements EventSubscriberInterface {
 
   /**
    * The entity type manager.
@@ -23,7 +23,7 @@ class DefaultImportEntityMapping implements EventSubscriberInterface {
   protected $entityTypeManager;
 
   /**
-   * Constructs a new OrderNumberSubscriber object.
+   * Constructs a new DefaultImportRemoteEntityMapping object.
    *
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
    *   The entity type manager.
@@ -37,21 +37,21 @@ class DefaultImportEntityMapping implements EventSubscriberInterface {
    */
   public static function getSubscribedEvents() {
     $events = [
-      Events::ENTITY_MAPPING => ['buildEntityMapping', 0],
+      Events::REMOTE_ENTITY_MAPPING => ['buildEntityMapping', 0],
     ];
     return $events;
   }
 
   /**
-   * Builds the default entity mapping.
+   * Builds the default remote entity mapping.
    *
    * The default entity mapping is defined in the synchronization configuration
    * object.
    *
-   * @param \Drupal\entity_sync\Import\Event\EntityMappingEvent $event
+   * @param \Drupal\entity_sync\Import\Event\RemoteEntityMappingEvent $event
    *   The entity mapping event.
    */
-  public function buildEntityMapping(EntityMappingEvent $event) {
+  public function buildEntityMapping(RemoteEntityMappingEvent $event) {
     $entity_mapping = [];
 
     $sync = $event->getSync();
