@@ -2,15 +2,16 @@
 
 namespace Drupal\entity_sync\Plugin\Derivative;
 
-use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\entity_sync\ManagerInterface;
 
-use Drupal\Component\Plugin\Derivative\DeriverBase;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Plugin\Discovery\ContainerDeriverInterface;
+use Drupal\Component\Plugin\Derivative\DeriverBase;
 
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
- * Derivative class that provides the menu links for the Sync operations.
+ * Derivative class that provides the menu links for Sync operations.
  */
 class SyncMenuLink extends DeriverBase implements ContainerDeriverInterface {
 
@@ -22,18 +23,29 @@ class SyncMenuLink extends DeriverBase implements ContainerDeriverInterface {
   protected $configFactory;
 
   /**
+   * The sync manager service.
+   *
+   * @var \Drupal\entity_sync\ManagerInterface
+   */
+  protected $syncManager;
+
+  /**
    * Creates a ProductMenuLink instance.
    *
    * @param string $base_plugin_id
    *   The base plugin id.
    * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
    *   The configuration factory.
+   * @param \Drupal\entity_sync\ManagerInterface $sync_manager
+   *   The sync manager.
    */
   public function __construct(
     $base_plugin_id,
-    ConfigFactoryInterface $config_factory
+    ConfigFactoryInterface $config_factory,
+    ManagerInterface $sync_manager
   ) {
     $this->configFactory = $config_factory;
+    $this->syncManager = $sync_manager;
   }
 
   /**
@@ -45,7 +57,8 @@ class SyncMenuLink extends DeriverBase implements ContainerDeriverInterface {
   ) {
     return new static(
       $base_plugin_id,
-      $container->get('config.factory')
+      $container->get('config.factory'),
+      $container->get('entity_sync.manager')
     );
   }
 
@@ -55,16 +68,7 @@ class SyncMenuLink extends DeriverBase implements ContainerDeriverInterface {
   public function getDerivativeDefinitions($base_plugin_definition) {
     $links = [];
 
-    // @I Move this to a generic place as loading sync configurations are used
-    //    in serveral other places.
-    //    type     : improvement
-    //    priority : low
-    //    labels   : refactoring
-    $sync_names = $this->configFactory->listAll('entity_sync.sync.');
-
-    // Loop through each entity_sync.sync configurations and create
-    // corresponding route links.
-    foreach ($this->configFactory->loadMultiple($sync_names) as $sync) {
+    foreach ($this->syncManager->getAllSyncConfig() as $sync) {
       $config = $sync->get();
 
       // Throw an exception if we cannot find a entity type id.
@@ -74,8 +78,9 @@ class SyncMenuLink extends DeriverBase implements ContainerDeriverInterface {
         );
       }
 
-      foreach ($config['operations'] as $operation) {
-        $operation_id = $operation['id'];
+      $route_operations = $this->syncManager->getSyncOperationsForRoute();
+      foreach ($route_operations as $operation_id => $form_class) {
+        $operation = $config['operations'][$operation_id];
 
         // Generate route id with the configuration id.
         $route_id = 'entity_sync.sync.' . $operation_id;
