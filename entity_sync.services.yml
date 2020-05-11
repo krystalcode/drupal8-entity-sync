@@ -21,8 +21,13 @@ services:
       - '@event_dispatcher'
       - '@logger.channel.entity_sync'
 
-  entity_sync.import.default_entity_mapping_subscriber:
-    class: Drupal\entity_sync\EventSubscriber\DefaultImportEntityMapping
+  entity_sync.import.local_entity_mapping_subscriber:
+    class: Drupal\entity_sync\EventSubscriber\DefaultImportLocalEntityMapping
+    tags:
+      - { name: event_subscriber }
+
+  entity_sync.import.remote_entity_mapping_subscriber:
+    class: Drupal\entity_sync\EventSubscriber\DefaultImportRemoteEntityMapping
     arguments:
       - '@entity_type.manager'
     tags:
