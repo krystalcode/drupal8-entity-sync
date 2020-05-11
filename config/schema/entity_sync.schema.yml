@@ -171,6 +171,9 @@ entity_sync.operation.import_list:
     url_path:
       type: string
       label: 'The path that will be used in generating URLs related to the operation'
+    manager_callback:
+      type: string
+      label: 'The callback function to use when this operation is triggered'
 
 entity_sync.operation.import_entity:
   type: mapping
