@@ -194,6 +194,9 @@ entity_sync.operation.import_entity:
     url_path:
       type: string
       label: 'The path that will be used in generating URLs related to the operation'
+    manager_callback:
+      type: string
+      label: 'The callback function to use when this operation is triggered'
     # Currently, the only operation supporting cron is `import_list`. The cron
     # frequency defines how frequently Entity Sync will be importing recently
     # created or updated entities from the remote resource.
