@@ -3,8 +3,10 @@
 namespace Drupal\entity_sync\Import;
 
 use Drupal\entity_sync\Client\ClientFactory;
+use Drupal\entity_sync\Event\TerminateOperationEvent;
 use Drupal\entity_sync\Import\Event\Events;
 use Drupal\entity_sync\Import\Event\FieldMappingEvent;
+use Drupal\entity_sync\Import\Event\ListFiltersEvent;
 use Drupal\entity_sync\Import\Event\LocalEntityMappingEvent;
 use Drupal\entity_sync\Import\Event\RemoteEntityMappingEvent;
 
@@ -118,6 +120,11 @@ class Manager implements ManagerInterface {
       return;
     }
 
+    $context = $options['context'] ?? [];
+
+    // Build the filters for fetching the list of entities.
+    $filters = $this->remoteListFilters($filters, $context, $sync);
+
     // Now, use the remote client to fetch the list of entities.
     $entities = $this->clientFactory->get($sync_id)->importList($filters);
     if (!$entities) {
@@ -129,6 +136,14 @@ class Manager implements ManagerInterface {
       [$this, 'tryCreateOrUpdate'],
       $sync,
       'import_list'
+    );
+
+    // Terminate the operation.
+    $this->terminate(
+      Events::REMOTE_LIST_TERMINATE,
+      'import_list',
+      $context,
+      $sync
     );
   }
 
@@ -344,6 +359,10 @@ class Manager implements ManagerInterface {
    *
    * @I Support entity update validation
    *    type     : bug
+   *    priority : normal
+   *    labels   : import, validation
+   * @I Check if the changes have already been imported
+   *    type     : improvement
    *    priority : normal
    *    labels   : import, validation
    */
@@ -580,6 +599,67 @@ class Manager implements ManagerInterface {
 
     // Return the final mapping.
     return $event->getEntityMapping();
+  }
+
+  /**
+   * Builds and returns the filters for importing a remote list of entities.
+   *
+   * An event is dispatched that allows subscribers to alter the filters that
+   * determine which entities will be fetched from the remote resource.
+   *
+   * @param array $filters
+   *   The current filters.
+   * @param array $context
+   *   The context of the operation we are currently executing.
+   * @param \Drupal\Core\Config\ImmutableConfig $sync
+   *   The configuration object for synchronization that defines the operation
+   *   we are currently executing.
+   *
+   * @return array
+   *   The final filters.
+   */
+  protected function remoteListFilters(
+    array $filters,
+    array $context,
+    ImmutableConfig $sync
+  ) {
+    $event = new ListFiltersEvent(
+      $filters,
+      $context,
+      $sync
+    );
+    $this->eventDispatcher->dispatch(Events::REMOTE_LIST_FILTERS, $event);
+
+    // Return the final filters.
+    return $event->getFilters();
+  }
+
+  /**
+   * Dispatches an event when an operation is being terminated.
+   *
+   * @param string $event_name
+   *   The name of the event to dispatch. It must be a name for a
+   *   `TerminateOperationEvent` event.
+   * @param string $operation
+   *   The name of the operation being terminated.
+   * @param array $context
+   *   The context of the operation we are currently executing.
+   * @param \Drupal\Core\Config\ImmutableConfig $sync
+   *   The configuration object for synchronization that defines the operation
+   *   we are currently executing.
+   */
+  protected function terminate(
+    $event_name,
+    $operation,
+    array $context,
+    ImmutableConfig $sync
+  ) {
+    $event = new TerminateOperationEvent(
+      $operation,
+      $context,
+      $sync
+    );
+    $this->eventDispatcher->dispatch($event_name, $event);
   }
 
   /**

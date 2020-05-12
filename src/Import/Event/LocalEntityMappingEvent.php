@@ -49,7 +49,7 @@ class LocalEntityMappingEvent extends Event {
   protected $sync;
 
   /**
-   * Constructs a new LocalRemoteIdMapping object.
+   * Constructs a new LocalEntityMappingEvent object.
    *
    * @param \Drupal\Core\Entity\EntityInterface $local_entity
    *   The local entity that's being mapped.

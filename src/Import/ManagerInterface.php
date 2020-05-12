@@ -61,19 +61,28 @@ interface ManagerInterface {
    * @param array $filters
    *   An associative array of filters that determine which entities will be
    *   imported. Supported filters are:
-   *   - fromTime: (Optional) A Unix timestamp that when set, should limit the
-   *     remote entities to those created or updated after or at the given
-   *     timestamp.
-   *   - toTime: (Optional) A Unix timestamp that when set, should limit the
-   *     remote entities to those created or updated before or at the given
+   *   - created_start: (Optional) A Unix timestamp that when set, should limit
+   *     the remote entities to those created after or at the given timestamp.
+   *   - created_end: (Optional) A Unix timestamp that when set, should limit
+   *     the remote entities to those created before or at the given timestamp.
+   *   - changed_start: (Optional) A Unix timestamp that when set, should limit
+   *     the remote entities to those created or updated after or at the given
+   *      timestamp.
+   *   - changed_end: (Optional) A Unix timestamp that when set, should limit
+   *     the remote entities to those created or updated before or at the given
    *     timestamp.
    * @param array $options
    *   An associative array of options that determine various aspects of the
-   *   import. No options are supported yet, it is added to more completely
-   *   define the interface. Known options that will be supported are the import
-   *   mode and whether to create local entities for incoming remote entities
-   *   that do not have local associations yet.
+   *   import. Currently supported options are:
+   *   - context: An associative array of context related to the circumstances
+   *     of the operation. It is passed to dispatched events and can help
+   *     subscribers determine how to alter list filters and entity/field
+   *     mappings.
    *
+   * @I Pass the context to all events
+   *    type     : improvement
+   *    priority : normal
+   *    labels   : import, operation
    * @I Support disabling local entity creation for unassociated remote entities
    *    type     : improvement
    *    priority : normal
