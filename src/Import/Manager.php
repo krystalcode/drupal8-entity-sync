@@ -120,6 +120,10 @@ class Manager implements ManagerInterface {
       return;
     }
 
+    // @I Consider always adding the filters/options to the context
+    //    type     : improvement
+    //    priority : normal
+    //    labels   : context, import, operation
     $context = $options['context'] ?? [];
 
     // Build the filters for fetching the list of entities.
@@ -134,6 +138,7 @@ class Manager implements ManagerInterface {
     $this->doubleIteratorApply(
       $entities,
       [$this, 'tryCreateOrUpdate'],
+      $options['limit'] ?? NULL,
       $sync,
       'import_list'
     );
@@ -697,32 +702,57 @@ class Manager implements ManagerInterface {
    * This is used to support paging; the outer iterator contains pages and each
    * page is an iterator that contains the items.
    *
+   * If a limit is provided, applying the callback will simply stop when we
+   * reach the limit; otherwise, all items contained in the iterator(s) will be
+   * processed.
+   *
+   * @I Review and implement logging strategy for `info` and `debug` levels
+   *    type     : feature
+   *    priority : normal
+   *    labels   : logging
+   *
    * @param \Iterator $iterator
    *   The iterator that contains the items.
    * @param callable $callback
    *   The callback to apply to the items.
+   * @param int $limit
+   *   The maximum number of items to apply the callback to, or NULL for no
+   *   limit.
    * @param mixed $args
    *   The arguments to pass to the callback after the item.
    */
   protected function doubleIteratorApply(
     \Iterator $iterator,
     callable $callback,
+    $limit = NULL,
     ...$args
   ) {
+    $counter = 0;
+
     foreach ($iterator as $items) {
+      if ($counter === $limit) {
+        break;
+      }
+
       if (!$items instanceof \Iterator) {
         call_user_func_array(
           $callback,
           array_merge([$items], $args)
         );
+        $counter++;
         continue;
       }
 
       foreach ($items as $item) {
+        if ($counter === $limit) {
+          break 2;
+        }
+
         call_user_func_array(
           $callback,
           array_merge([$item], $args)
         );
+        $counter++;
       }
     }
   }

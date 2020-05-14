@@ -151,6 +151,11 @@ entity_sync.provider.*:
 #    type     : feature
 #    priority : normal
 #    labels   : operation
+# @I Support limit for list operations
+#    type     : improvement
+#    priority : normal
+#    labels   : operation
+#    notes    : Right now a limit can be set via the import manager options.
 entity_sync.operation.import_list:
   type: mapping
   label: 'The configuration for the Import List operation'

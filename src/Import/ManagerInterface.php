@@ -78,7 +78,21 @@ interface ManagerInterface {
    *     of the operation. It is passed to dispatched events and can help
    *     subscribers determine how to alter list filters and entity/field
    *     mappings.
+   *   - limit: The maximum number of entities to import; leave empty or set to
+   *     NULL for no limit. The filters define the entities that we will get
+   *     from the remote resource. No limit will result in all entities to be
+   *     imported, while setting a limit will result in importing to stop when
+   *     that limit is reached - which might happen before importing all
+   *     incoming entities.
    *
+   * @I Support overriding synchronization via options
+   *    type     : feature
+   *    priority : normal
+   *    labels   : config
+   * @I Support paging filters
+   *    type     : improvement
+   *    priority : normal
+   *    labels   : import, operation
    * @I Pass the context to all events
    *    type     : improvement
    *    priority : normal
