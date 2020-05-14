@@ -52,4 +52,13 @@ final class Events {
    */
   const REMOTE_LIST_TERMINATE = 'entity_sync.import.remote_list_terminate';
 
+  /**
+   * Name of the event fired after importing a local entity has finished.
+   *
+   * @Event
+   *
+   * @see \Drupal\entity_sync\Import\Event\TerminateOperationEvent
+   */
+  const LOCAL_ENTITY_TERMINATE = 'entity_sync.import.local_entity_terminate';
+
 }

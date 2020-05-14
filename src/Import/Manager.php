@@ -110,6 +110,10 @@ class Manager implements ManagerInterface {
     $sync = $this->configFactory->get('entity_sync.sync.' . $sync_id);
 
     // Make sure the operation is enabled and supported by the provider.
+    // @I Consider throwing an exception if unsupported operations are run
+    //    type     : bug
+    //    priority : normal
+    //    labels   : operation, sync, error-handling
     if (!$this->operationSupported($sync, 'import_list')) {
       $this->logger->error(
         sprintf(
@@ -186,6 +190,8 @@ class Manager implements ManagerInterface {
       return;
     }
 
+    $context = $options['context'] ?? [];
+
     // Build the entity mapping for this local entity.
     $entity_mapping = $this->localEntityMapping($local_entity, $sync);
     if (!$entity_mapping) {
@@ -212,6 +218,15 @@ class Manager implements ManagerInterface {
 
     // Finally, update the entity.
     $this->createOrUpdate($remote_entity, $sync);
+
+    // Terminate the operation.
+    // Add to the context the local entity that was imported.
+    $this->terminate(
+      Events::LOCAL_ENTITY_TERMINATE,
+      'import_entity',
+      $context + ['local_entity' => $local_entity],
+      $sync
+    );
   }
 
   /**
