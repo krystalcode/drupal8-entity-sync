@@ -21,11 +21,10 @@ class SkeletonTest extends UnitTestCase {
     \Drupal::logger('entity_sync')->notice('testing');
     $results = \Drupal::service('entity_sync.import.manager')
       ->importRemoteList('group__app_company', $filters);
-    \Drupal::logger('entity_sync')->notice($results);*/
+    */
     $this->assertEquals(
       1, 1
     );
-    //\Drupal::logger('entity_sync')->notice('logging to debug');
 
   }
 
