@@ -3,9 +3,12 @@
 namespace Drupal\entity_sync\Import;
 
 use Drupal\entity_sync\Client\ClientFactory;
-use Drupal\entity_sync\Import\Event\EntityMappingEvent;
+use Drupal\entity_sync\Event\TerminateOperationEvent;
 use Drupal\entity_sync\Import\Event\Events;
 use Drupal\entity_sync\Import\Event\FieldMappingEvent;
+use Drupal\entity_sync\Import\Event\ListFiltersEvent;
+use Drupal\entity_sync\Import\Event\LocalEntityMappingEvent;
+use Drupal\entity_sync\Import\Event\RemoteEntityMappingEvent;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\ImmutableConfig;
@@ -107,6 +110,10 @@ class Manager implements ManagerInterface {
     $sync = $this->configFactory->get('entity_sync.sync.' . $sync_id);
 
     // Make sure the operation is enabled and supported by the provider.
+    // @I Consider throwing an exception if unsupported operations are run
+    //    type     : bug
+    //    priority : normal
+    //    labels   : operation, sync, error-handling
     if (!$this->operationSupported($sync, 'import_list')) {
       $this->logger->error(
         sprintf(
@@ -117,6 +124,15 @@ class Manager implements ManagerInterface {
       return;
     }
 
+    // @I Consider always adding the filters/options to the context
+    //    type     : improvement
+    //    priority : normal
+    //    labels   : context, import, operation
+    $context = $options['context'] ?? [];
+
+    // Build the filters for fetching the list of entities.
+    $filters = $this->remoteListFilters($filters, $context, $sync);
+
     // Now, use the remote client to fetch the list of entities.
     $entities = $this->clientFactory->get($sync_id)->importList($filters);
     if (!$entities) {
@@ -126,8 +142,90 @@ class Manager implements ManagerInterface {
     $this->doubleIteratorApply(
       $entities,
       [$this, 'tryCreateOrUpdate'],
+      $options['limit'] ?? NULL,
       $sync,
       'import_list'
+    );
+
+    // Terminate the operation.
+    $this->terminate(
+      Events::REMOTE_LIST_TERMINATE,
+      'import_list',
+      $context,
+      $sync
+    );
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  public function importLocalEntity(
+    $sync_id,
+    EntityInterface $local_entity,
+    array $options = []
+  ) {
+    // Load the sync.
+    // @I Validate the sync/operation
+    //    type     : bug
+    //    priority : normal
+    //    labels   : operation, sync, validation
+    //    notes    : Review whether the validation should happen upon runtime
+    //               i.e. here, or when the configuration is created/imported.
+    // @I Validate that the provider supports the `import_entity` operation
+    //    type     : bug
+    //    priority : normal
+    //    labels   : operation, sync, validation
+    //    notes    : Review whether the validation should happen upon runtime
+    //               i.e. here, or when the configuration is created/imported.
+    $sync = $this->configFactory->get('entity_sync.sync.' . $sync_id);
+
+    // Make sure the operation is enabled and supported by the provider.
+    if (!$this->operationSupported($sync, 'import_entity')) {
+      $this->logger->error(
+        sprintf(
+          'The synchronization with ID "%s" and/or its provider do not support the `import_entity` operation.',
+          $sync_id
+        )
+      );
+      return;
+    }
+
+    $context = $options['context'] ?? [];
+
+    // Build the entity mapping for this local entity.
+    $entity_mapping = $this->localEntityMapping($local_entity, $sync);
+    if (!$entity_mapping) {
+      return;
+    }
+
+    // Skip importing the remote entity if we are explicitly told to do so.
+    if ($entity_mapping['action'] === ManagerInterface::ACTION_SKIP) {
+      return;
+    }
+    elseif ($entity_mapping['action'] !== ManagerInterface::ACTION_IMPORT) {
+      throw new \RuntimeException(
+        sprintf(
+          'Unsupported entity mapping action "%s"',
+          $entity_mapping['action']
+        )
+      );
+    }
+
+    // Now, use the remote client to fetch the remote entity for this ID.
+    $remote_entity = $this->clientFactory
+      ->getByClientConfig($entity_mapping['client'])
+      ->importEntity($entity_mapping['entity_id']);
+
+    // Finally, update the entity.
+    $this->createOrUpdate($remote_entity, $sync);
+
+    // Terminate the operation.
+    // Add to the context the local entity that was imported.
+    $this->terminate(
+      Events::LOCAL_ENTITY_TERMINATE,
+      'import_entity',
+      $context + ['local_entity' => $local_entity],
+      $sync
     );
   }
 
@@ -157,7 +255,8 @@ class Manager implements ManagerInterface {
       $id_field = $sync->get('remote_resource.id_field');
       $this->logger->error(
         sprintf(
-          'An error occur while importing the remote entity with ID "%s" as part of the "%s" synchronization and the "%s" operation. The error messages was: %s',
+          'An "%s" exception was thrown while importing the remote entity with ID "%s" as part of the "%s" synchronization and the "%s" operation. The error messages was: %s',
+          get_class($e),
           $remote_entity->{$id_field},
           $sync->get('id'),
           $operation,
@@ -185,7 +284,7 @@ class Manager implements ManagerInterface {
     //    type     : bug
     //    priority : normal
     //    labels   : mapping, validation
-    $entity_mapping = $this->entityMapping($remote_entity, $sync);
+    $entity_mapping = $this->remoteEntityMapping($remote_entity, $sync);
 
     // If the entity mapping is empty we will not be updating or creating a
     // local entity; nothing to do.
@@ -224,7 +323,7 @@ class Manager implements ManagerInterface {
    * @param array $entity_mapping
    *   An associative array containing information about the local entity being
    *   mapped to the given remote entity.
-   *   See \Drupal\entity_sync\Event\EntityMapping::entityMapping.
+   *   See \Drupal\entity_sync\Event\RemoteEntityMapping::entityMapping.
    *
    * @I Support entity creation validation
    *    type     : bug
@@ -244,7 +343,7 @@ class Manager implements ManagerInterface {
     //    type     : task
     //    priority : low
     //    labels   : config
-    if ($sync->get('operations.import_list.create_entities')) {
+    if (!$sync->get('operations.import_list.create_entities')) {
       return;
     }
 
@@ -276,10 +375,14 @@ class Manager implements ManagerInterface {
    * @param array $entity_mapping
    *   An associative array containing information about the local entity being
    *   mapped to the given remote entity.
-   *   See \Drupal\entity_sync\Event\EntityMapping::entityMapping.
+   *   See \Drupal\entity_sync\Event\RemoteEntityMapping::entityMapping.
    *
    * @I Support entity update validation
    *    type     : bug
+   *    priority : normal
+   *    labels   : import, validation
+   * @I Check if the changes have already been imported
+   *    type     : improvement
    *    priority : normal
    *    labels   : import, validation
    */
@@ -354,33 +457,11 @@ class Manager implements ManagerInterface {
     //    type     : bug
     //    priority : low
     //    labels   : import
-    // @I Move updating remote ID and remote changed fields to separate methods
-    //    type     : task
-    //    priority : low
-    //    labels   : refactoring
-    $local_id_field = $sync->get('entity.remote_id_field');
-    if ($local_entity->hasField($local_id_field)) {
-      $remote_id_field = $sync->get('remote_resource.id_field');
-      $local_entity->set(
-        $local_id_field,
-        $remote_entity->{$remote_id_field}
-      );
-    }
+    $this->setRemoteIdField($remote_entity, $local_entity, $sync);
 
     // Update the remote changed field. The remote changed field will be used in
     // `hook_entity_insert` to prevent triggering an export of the local entity.
-    // @I Support non-Unix timestamp formats for the remote changed field
-    //    type     : bug
-    //    priority : normal
-    //    labels   : import
-    $local_changed_field = $sync->get('entity.remote_changed_field');
-    if ($local_entity->hasField($local_changed_field)) {
-      $remote_changed_field = $sync->get('remote_resource.changed_field');
-      $local_entity->set(
-        $local_changed_field,
-        $remote_entity->{$remote_changed_field}
-      );
-    }
+    $this->setRemoteChangedField($remote_entity, $local_entity, $sync);
 
     $local_entity->save();
   }
@@ -403,9 +484,9 @@ class Manager implements ManagerInterface {
   ) {
     // If the field value should be converted and stored by a custom callback,
     // then invoke that.
-    if (isset($field_info['callback'])) {
+    if (isset($field_info['import_callback'])) {
       call_user_func(
-        $field_info['callback'],
+        $field_info['import_callback'],
         $remote_entity,
         $local_entity,
         $field_info
@@ -421,17 +502,17 @@ class Manager implements ManagerInterface {
     //    type     : bug
     //    priority : normal
     //    labels   : error-handling, import
-    elseif (!$local_entity->hasField($field_info['name'])) {
+    elseif (!$local_entity->hasField($field_info['machine_name'])) {
       throw new \RuntimeException(
         sprintf(
           'The non-existing local entity field "%s" was requested to be mapped to a remote field',
-          $field_info['name']
+          $field_info['machine_name']
         )
       );
     }
     else {
       $local_entity->set(
-        $field_info['name'],
+        $field_info['machine_name'],
         $remote_entity->{$field_info['remote_name']}
       );
     }
@@ -457,9 +538,12 @@ class Manager implements ManagerInterface {
    * @return array
    *   The final entity mapping.
    */
-  protected function entityMapping($remote_entity, ImmutableConfig $sync) {
-    $event = new EntityMappingEvent($remote_entity, $sync);
-    $this->eventDispatcher->dispatch(Events::ENTITY_MAPPING, $event);
+  protected function remoteEntityMapping(
+    $remote_entity,
+    ImmutableConfig $sync
+  ) {
+    $event = new RemoteEntityMappingEvent($remote_entity, $sync);
+    $this->eventDispatcher->dispatch(Events::REMOTE_ENTITY_MAPPING, $event);
 
     // Return the final mapping.
     return $event->getEntityMapping();
@@ -504,6 +588,101 @@ class Manager implements ManagerInterface {
   }
 
   /**
+   * Builds and returns the remote ID for the given local entity.
+   *
+   * The local entity mapping defines if and which remote entity will be
+   * imported for the given local entity. The default mapping identifies the
+   * remote entity based on a local entity field containing the remote
+   * entity's ID.
+   *
+   * An event is dispatched that allows subscribers to map the local entity to a
+   * different remote entity, or to decide to not import it at all.
+   *
+   * @param \Drupal\core\Entity\EntityInterface $local_entity
+   *   The local entity.
+   * @param \Drupal\Core\Config\ImmutableConfig $sync
+   *   The configuration object for synchronization that defines the operation
+   *   we are currently executing.
+   *
+   * @return array
+   *   The final entity mapping.
+   */
+  protected function localEntityMapping(
+    EntityInterface $local_entity,
+    ImmutableConfig $sync
+  ) {
+    $event = new LocalEntityMappingEvent(
+      $local_entity,
+      $sync
+    );
+    $this->eventDispatcher->dispatch(Events::LOCAL_ENTITY_MAPPING, $event);
+
+    // Return the final mapping.
+    return $event->getEntityMapping();
+  }
+
+  /**
+   * Builds and returns the filters for importing a remote list of entities.
+   *
+   * An event is dispatched that allows subscribers to alter the filters that
+   * determine which entities will be fetched from the remote resource.
+   *
+   * @param array $filters
+   *   The current filters.
+   * @param array $context
+   *   The context of the operation we are currently executing.
+   * @param \Drupal\Core\Config\ImmutableConfig $sync
+   *   The configuration object for synchronization that defines the operation
+   *   we are currently executing.
+   *
+   * @return array
+   *   The final filters.
+   */
+  protected function remoteListFilters(
+    array $filters,
+    array $context,
+    ImmutableConfig $sync
+  ) {
+    $event = new ListFiltersEvent(
+      $filters,
+      $context,
+      $sync
+    );
+    $this->eventDispatcher->dispatch(Events::REMOTE_LIST_FILTERS, $event);
+
+    // Return the final filters.
+    return $event->getFilters();
+  }
+
+  /**
+   * Dispatches an event when an operation is being terminated.
+   *
+   * @param string $event_name
+   *   The name of the event to dispatch. It must be a name for a
+   *   `TerminateOperationEvent` event.
+   * @param string $operation
+   *   The name of the operation being terminated.
+   * @param array $context
+   *   The context of the operation we are currently executing.
+   * @param \Drupal\Core\Config\ImmutableConfig $sync
+   *   The configuration object for synchronization that defines the operation
+   *   we are currently executing.
+   */
+  protected function terminate(
+    $event_name,
+    $operation,
+    array $context,
+    ImmutableConfig $sync
+  ) {
+    $event = new TerminateOperationEvent(
+      $operation,
+      $context,
+      $sync
+    );
+    $this->eventDispatcher->dispatch($event_name, $event);
+  }
+
+  /**
    * Checks that the given operation is enabled for the given synchronization.
    *
    * @param \Drupal\Core\Config\ImmutableConfig $sync
@@ -532,40 +711,134 @@ class Manager implements ManagerInterface {
    *
    * The callback needs to accept the item as its first argument.
    *
-   * If the items of the iterator are iterators theselves, the callback is
+   * If the items of the iterator are iterators themselves, the callback is
    * applied to the items in the inner iterator.
    *
    * This is used to support paging; the outer iterator contains pages and each
    * page is an iterator that contains the items.
    *
+   * If a limit is provided, applying the callback will simply stop when we
+   * reach the limit; otherwise, all items contained in the iterator(s) will be
+   * processed.
+   *
+   * @I Review and implement logging strategy for `info` and `debug` levels
+   *    type     : feature
+   *    priority : normal
+   *    labels   : logging
+   *
    * @param \Iterator $iterator
    *   The iterator that contains the items.
    * @param callable $callback
    *   The callback to apply to the items.
+   * @param int $limit
+   *   The maximum number of items to apply the callback to, or NULL for no
+   *   limit.
    * @param mixed $args
    *   The arguments to pass to the callback after the item.
    */
   protected function doubleIteratorApply(
     \Iterator $iterator,
     callable $callback,
+    $limit = NULL,
     ...$args
   ) {
+    $counter = 0;
+
     foreach ($iterator as $items) {
+      if ($counter === $limit) {
+        break;
+      }
+
       if (!$items instanceof \Iterator) {
         call_user_func_array(
           $callback,
           array_merge([$items], $args)
         );
+        $counter++;
         continue;
       }
 
       foreach ($items as $item) {
+        if ($counter === $limit) {
+          break 2;
+        }
+
         call_user_func_array(
           $callback,
           array_merge([$item], $args)
         );
+        $counter++;
       }
     }
+  }
+
+  /**
+   * Sets the remote ID field in the local entity.
+   *
+   * @param object $remote_entity
+   *   The remote entity.
+   * @param \Drupal\Core\Entity\EntityInterface $local_entity
+   *   The associated local entity.
+   * @param \Drupal\Core\Config\ImmutableConfig $sync
+   *   The configuration object for synchronization that defines the operation
+   *   we are currently executing.
+   */
+  protected function setRemoteIdField(
+    $remote_entity,
+    EntityInterface $local_entity,
+    ImmutableConfig $sync
+  ) {
+    $local_id_field = $sync->get('entity.remote_id_field');
+    if (!$local_entity->hasField($local_id_field)) {
+      return;
+    }
+
+    $remote_id_field = $sync->get('remote_resource.id_field');
+    $local_entity->set(
+      $local_id_field,
+      $remote_entity->{$remote_id_field}
+    );
+  }
+
+  /**
+   * Sets the remote changed field in the local entity.
+   *
+   * @param object $remote_entity
+   *   The remote entity.
+   * @param \Drupal\Core\Entity\EntityInterface $local_entity
+   *   The associated local entity.
+   * @param \Drupal\Core\Config\ImmutableConfig $sync
+   *   The configuration object for synchronization that defines the operation
+   *   we are currently executing.
+   */
+  protected function setRemoteChangedField(
+    $remote_entity,
+    EntityInterface $local_entity,
+    ImmutableConfig $sync
+  ) {
+    $local_changed_field = $sync->get('entity.remote_changed_field');
+    if (!$local_entity->hasField($local_changed_field)) {
+      return;
+    }
+
+    $field_config = $sync->get('remote_resource.changed_field');
+
+    // Prepare the value based on the configured format.
+    $field_name = $field_config['name'];
+    $field_value = NULL;
+    if ($field_config['format'] === 'timestamp') {
+      $field_value = $remote_entity->{$field_name};
+    }
+    elseif ($field_config['format'] === 'string') {
+      $field_value = strtotime(
+        $remote_entity->{$field_name}
+      );
+    }
+
+    $local_entity->set(
+      $local_changed_field,
+      $field_value
+    );
   }
 
 }

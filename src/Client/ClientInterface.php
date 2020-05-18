@@ -18,16 +18,20 @@ namespace Drupal\entity_sync\Client;
 interface ClientInterface {
 
   /**
-   * Get the list of remote entities to import.
+   * Gets the list of remote entities to import.
    *
    * @param array $filters
    *   An associative array of filters that determine which entities will be
    *   imported. Supported conditions are:
-   *   - fromTime: (Optional) A Unix timestamp that when set, should limit the
-   *     remote entities to those created or updated after or at the given
-   *     timestamp.
-   *   - toTime: (Optional) A Unix timestamp that when set, should limit the
-   *     remote entities to those created or updated before or at the given
+   *   - created_start: (Optional) A Unix timestamp that when set, should limit
+   *     the remote entities to those created after or at the given timestamp.
+   *   - created_end: (Optional) A Unix timestamp that when set, should limit
+   *     the remote entities to those created before or at the given timestamp.
+   *   - changed_start: (Optional) A Unix timestamp that when set, should limit
+   *     the remote entities to those created or updated after or at the given
+   *      timestamp.
+   *   - changed_end: (Optional) A Unix timestamp that when set, should limit
+   *     the remote entities to those created or updated before or at the given
    *     timestamp.
    *
    * @return \Iterator|null
@@ -40,5 +44,16 @@ interface ClientInterface {
    *    labels   : import, operation, memory-consumption
    */
   public function importList(array $filters = []);
+
+  /**
+   * Gets the remote entity with the given primary ID.
+   *
+   * @param int|string $id
+   *   The ID of the entity to get.
+   *
+   * @return object
+   *   The remote entity object.
+   */
+  public function importEntity($id);
 
 }

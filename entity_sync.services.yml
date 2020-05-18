@@ -21,8 +21,18 @@ services:
       - '@event_dispatcher'
       - '@logger.channel.entity_sync'
 
-  entity_sync.import.default_entity_mapping_subscriber:
-    class: Drupal\entity_sync\EventSubscriber\DefaultImportEntityMapping
+  entity_sync.state_manager:
+    class: Drupal\entity_sync\StateManager
+    arguments: ['@keyvalue']
+
+  # Subscribers.
+  entity_sync.import.local_entity_mapping_subscriber:
+    class: Drupal\entity_sync\EventSubscriber\DefaultImportLocalEntityMapping
+    tags:
+      - { name: event_subscriber }
+
+  entity_sync.import.remote_entity_mapping_subscriber:
+    class: Drupal\entity_sync\EventSubscriber\DefaultImportRemoteEntityMapping
     arguments:
       - '@entity_type.manager'
     tags:
@@ -30,5 +40,17 @@ services:
 
   entity_sync.import.default_field_mapping_subscriber:
     class: Drupal\entity_sync\EventSubscriber\DefaultImportFieldMapping
+    tags:
+      - { name: event_subscriber }
+
+  entity_sync.import.managed_remote_list_filters_subscriber:
+    class: Drupal\entity_sync\EventSubscriber\ManagedImportRemoteListFilters
+    arguments: ['@entity_sync.state_manager', '@datetime.time']
+    tags:
+      - { name: event_subscriber }
+
+  entity_sync.import.managed_remote_list_filters_terminate_subscriber:
+    class: Drupal\entity_sync\EventSubscriber\ManagedImportRemoteListTerminate
+    arguments: ['@entity_sync.state_manager', '@datetime.time']
     tags:
       - { name: event_subscriber }
