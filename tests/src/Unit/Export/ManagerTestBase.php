@@ -87,6 +87,24 @@ abstract class ManagerTestBase extends UnitTestCase {
   }
 
   /**
+   * Returns a mocked config factory class, given a sync ID and config.
+   *
+   * @param string $sync_id
+   *   The sync ID.
+   * @param mixed $config
+   *   A YAML converted to a PHP value.
+   *
+   * @return \PHPUnit\Framework\MockObject\MockBuilder
+   *   A MockBuilder object for the ConfigFactory with the desired return
+   *   values.
+   */
+  protected function getConfigFactory($sync_id, $config) {
+    return $this->getConfigFactoryStub([
+      'entity_sync.sync.' . $sync_id => $config
+    ]);
+  }
+
+  /**
    * Mocks the client factory class.
    *
    * @throws \Drupal\entity_sync\Exception\InvalidConfigurationException

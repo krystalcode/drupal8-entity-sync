@@ -53,24 +53,6 @@ class ManagerTestConfig extends ManagerTestBase {
   }
 
   /**
-   * Mocks the config factory class given a sync ID and config.
-   *
-   * @param string $sync_id
-   *   The sync ID.
-   * @param mixed $config
-   *   A YAML converted to a PHP value.
-   *
-   * @return \PHPUnit\Framework\MockObject\MockBuilder
-   *   A MockBuilder object for the ConfigFactory with the desired return
-   *   values.
-   */
-  private function getConfigFactory($sync_id, $config) {
-    return $this->getConfigFactoryStub([
-      'entity_sync.sync.' . $sync_id => $config
-    ]);
-  }
-
-  /**
    * Returns an initialized export manager given a sync_id and config array.
    *
    * @param string $sync_id
