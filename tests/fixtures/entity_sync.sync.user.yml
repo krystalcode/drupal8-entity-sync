@@ -1,30 +1,56 @@
-id: user
-entity:
-  type_id: user
-remote_resource:
-  provider_id: erp
-  name: ERP
-  id_field: userId
-  changed_field:
-    name: lastModified
-    format: string
-  client:
-    type: service
-    service: my_module.entity_sync_client.user
-operations:
-  import_list:
-    status: true
-    create_entities: true
-    label: 'Import Users'
-    url_path: users
-  import_entity:
-    status: true
-    block: true
-    create_entities: false
-    label: 'Import User'
-  export_entity:
-    status: true
-fields:
-  -
-    machine_name: mail
-    remote_name: email
+# Full and valid configuration.
+# Should be used as a starting point for creating all other cases.
+complete:
+  id: user
+  entity:
+    type_id: user
+    remote_id_field: sync_remote_id
+    remote_changed_field: sync_remote_changed
+  remote_resource:
+    provider_id: erp
+    name: User
+    id_field: userId
+    changed_field:
+      name: lastModified
+      format: string
+    client:
+      type: service
+      service: my_module.entity_sync_client.user
+  operations:
+    import_list:
+      status: true
+      create_entities: true
+      label: 'Import users'
+      url_path: user
+  fields:
+    -
+      machine_name: mail
+      remote_name: email
+
+# All operations disabled.
+operations_disabled:
+  id: user
+  entity:
+    type_id: user
+    remote_id_field: sync_remote_id
+    remote_changed_field: sync_remote_changed
+  remote_resource:
+    provider_id: erp
+    name: User
+    id_field: userId
+    changed_field:
+      name: lastModified
+      format: string
+    client:
+      type: service
+      service: my_module.entity_sync_client.user
+  operations:
+    import_list:
+      status: false
+      create_entities: true
+      label: 'Import users'
+      url_path: user
+  fields:
+    -
+      machine_name: mail
+      remote_name: email
