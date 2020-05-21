@@ -107,8 +107,6 @@ class Manager extends SyncManagerBase implements ManagerInterface {
       );
       return;
     }
-
-    return TRUE;
   }
 
 }

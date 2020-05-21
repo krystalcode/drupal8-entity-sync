@@ -22,6 +22,8 @@ complete:
       create_entities: true
       label: 'Import users'
       url_path: user
+    export_entity:
+      status: true
   fields:
     -
       machine_name: mail
@@ -50,6 +52,8 @@ operations_disabled:
       create_entities: true
       label: 'Import users'
       url_path: user
+    export_entity:
+      status: false
   fields:
     -
       machine_name: mail
