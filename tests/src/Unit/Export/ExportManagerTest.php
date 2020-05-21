@@ -10,7 +10,6 @@ use Drupal\Core\Config\ImmutableConfig;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Logger\LoggerChannelInterface;
-use Drupal\Tests\entity_sync\Unit\ManagerTestBase;
 
 use Prophecy\Argument;
 use Symfony\Component\EventDispatcher\EventDispatcher;
