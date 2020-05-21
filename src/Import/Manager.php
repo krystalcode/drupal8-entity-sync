@@ -543,7 +543,7 @@ class Manager implements ManagerInterface {
     ImmutableConfig $sync
   ) {
     $event = new RemoteEntityMappingEvent($remote_entity, $sync);
-    $this->eventDispatcher->dispatch(Events::REMOTE_ENTITY_MAPPING, $event);
+    $this->eventDispatcher->dispatch($event, Events::REMOTE_ENTITY_MAPPING);
 
     // Return the final mapping.
     return $event->getEntityMapping();
@@ -581,7 +581,7 @@ class Manager implements ManagerInterface {
       $local_entity,
       $sync
     );
-    $this->eventDispatcher->dispatch(Events::FIELD_MAPPING, $event);
+    $this->eventDispatcher->dispatch($event, Events::FIELD_MAPPING);
 
     // Return the final mappings.
     return $event->getFieldMapping();
@@ -615,7 +615,7 @@ class Manager implements ManagerInterface {
       $local_entity,
       $sync
     );
-    $this->eventDispatcher->dispatch(Events::LOCAL_ENTITY_MAPPING, $event);
+    $this->eventDispatcher->dispatch($event, Events::LOCAL_ENTITY_MAPPING);
 
     // Return the final mapping.
     return $event->getEntityMapping();
@@ -648,7 +648,7 @@ class Manager implements ManagerInterface {
       $context,
       $sync
     );
-    $this->eventDispatcher->dispatch(Events::REMOTE_LIST_FILTERS, $event);
+    $this->eventDispatcher->dispatch($event, Events::REMOTE_LIST_FILTERS);
 
     // Return the final filters.
     return $event->getFilters();
@@ -679,7 +679,7 @@ class Manager implements ManagerInterface {
       $context,
       $sync
     );
-    $this->eventDispatcher->dispatch($event_name, $event);
+    $this->eventDispatcher->dispatch($event, $event_name);
   }
 
   /**
