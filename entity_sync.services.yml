@@ -26,6 +26,7 @@ services:
     arguments: ['@keyvalue']
 
   # Subscribers.
+  # Import.
   entity_sync.import.local_entity_mapping_subscriber:
     class: Drupal\entity_sync\EventSubscriber\DefaultImportLocalEntityMapping
     tags:
@@ -52,5 +53,11 @@ services:
   entity_sync.import.managed_remote_list_filters_terminate_subscriber:
     class: Drupal\entity_sync\EventSubscriber\ManagedImportRemoteListTerminate
     arguments: ['@entity_sync.state_manager', '@datetime.time']
+    tags:
+      - { name: event_subscriber }
+
+  # Export.
+  entity_sync.export.local_entity_mapping_subscriber:
+    class: Drupal\entity_sync\EventSubscriber\DefaultExportLocalEntityMapping
     tags:
       - { name: event_subscriber }

@@ -3,7 +3,10 @@
 namespace Drupal\Tests\entity_sync\Unit;
 
 use Drupal\entity_sync\Client\ClientFactory;
+use Drupal\entity_sync\Export\Event\Events;
+use Drupal\entity_sync\Export\Event\LocalEntityMappingEvent;
 use Drupal\entity_sync\Export\Manager;
+use Drupal\entity_sync\Export\ManagerInterface;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\ImmutableConfig;
@@ -13,6 +16,7 @@ use Drupal\Core\Logger\LoggerChannelInterface;
 
 use Prophecy\Argument;
 use Symfony\Component\EventDispatcher\EventDispatcher;
+use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 /**
  * @coversDefaultClass \Drupal\entity_sync\Export\Manager
@@ -38,11 +42,39 @@ class ExportManagerTest extends ManagerTestBase {
   }
 
   /**
+   * Data provider for the entity mapping set via events subscribers.
+   *
+   * @I Add tests for invalid entity mapping data
+   *    type     : task
+   *    priority : normal
+   *    labels   : testing
+   */
+  public function eventEntityMappingDataProvider() {
+    return [
+      // No entity mapping.
+      [],
+      // Skip action.
+      [
+        'action' => ManagerInterface::ACTION_SKIP,
+        'client' => 'my_module.entity_sync_client.user',
+        'id' => 1,
+      ],
+      // Invalid action.
+      [
+        'action' => 'unsupported-action',
+        'client' => 'my_module.entity_sync_client.user',
+        'id' => 1,
+      ],
+    ];
+  }
+
+  /**
    * Prepares all possible combinations of data from other providers.
    */
   public function dataProvider() {
     $providers = [
       'syncCaseDataProvider',
+      'eventEntityMappingDataProvider',
     ];
 
     $data = [];
@@ -76,11 +108,16 @@ class ExportManagerTest extends ManagerTestBase {
    *
    * @param string $sync_case
    *   The particular sync case, ie. 'complete', 'operations_disabled', etc.
+   * @param array $event_entity_mapping
+   *   The entity mapping info.
    *
    * @test
    * @dataProvider dataProvider
    */
-  public function testAll(string $sync_case) {
+  public function testAll(
+    string $sync_case,
+    array $event_entity_mapping
+  ) {
     // Mock services required for instantiating the export manager.
     $client_factory = $this->prophesize(ClientFactory::class);
     $entity_type_manager = $this->prophesize(
@@ -92,6 +129,9 @@ class ExportManagerTest extends ManagerTestBase {
 
     // Register event subscribers that will be setting the given values.
     $event_dispatcher = new EventDispatcher();
+    $event_dispatcher->addSubscriber(
+      $this->buildEntityMappingEventSubscriber($event_entity_mapping)
+    );
 
     // In all cases we will be loading the Sync configuration and at the very
     // least checking whether the operation is supported.
@@ -122,11 +162,12 @@ class ExportManagerTest extends ManagerTestBase {
       'local_entity' => $local_entity,
       'sync' => $sync,
       'sync_case' => $sync_case,
+      'event_entity_mapping' => $event_entity_mapping,
     ];
 
     // Add our first case of assertions for the config.
-    $this->branchSupportedOperation($test_context, $operation_status);
     $this->branchUnsupportedOperation($test_context, $operation_status);
+    $this->branchSupportedOperation($test_context, $operation_status);
 
     // Initialize the export manager and call the exportLocalEntity() function.
     $manager = new Manager(
@@ -183,6 +224,98 @@ class ExportManagerTest extends ManagerTestBase {
     $test_context['logger']
       ->error(Argument::any())
       ->shouldNotBeCalled();
+
+    // Continue on with the next set of tests.
+    $this->branchEmptyEntityMapping($test_context);
+    $this->branchSkipAction($test_context);
+    $this->branchUnsupportedAction($test_context);
+  }
+
+  /**
+   * Assert that we return if the entity mapping array is empty.
+   *
+   * @param array $test_context
+   *   The test case context.
+   */
+  private function branchEmptyEntityMapping(array $test_context) {
+    if ($test_context['event_entity_mapping']) {
+      return;
+    }
+
+    // @I Assert that the function doesn't continue on
+    //    type     : task
+    //    priority : normal
+    //    labels   : test
+  }
+
+  /**
+   * Assert that we return if the entity mapping array returned a SKIP action.
+   *
+   * @param array $test_context
+   *   The test case context.
+   */
+  private function branchSkipAction(array $test_context) {
+    $mapping = $test_context['event_entity_mapping'];
+    if (!$mapping) {
+      return;
+    }
+
+    if ($mapping && $mapping['action'] !== ManagerInterface::ACTION_SKIP) {
+      return;
+    }
+
+    // @I Assert that the function doesn't continue on
+    //    type     : task
+    //    priority : normal
+    //    labels   : test
+  }
+
+  /**
+   * Assert that we throw an exception on entity mapping with an illegal action.
+   *
+   * @param array $test_context
+   *   The test case context.
+   */
+  private function branchUnsupportedAction(array $test_context) {
+    $supported_actions = [
+      ManagerInterface::ACTION_SKIP,
+      ManagerInterface::ACTION_EXPORT,
+    ];
+
+    $mapping = $test_context['event_entity_mapping'];
+    if (!$mapping || in_array($mapping['action'], $supported_actions)) {
+      return;
+    }
+
+    // Unsupported actions will result in an exception.
+    $this->expectException(\RuntimeException::class);
+    $this->expectExceptionMessage(
+      'Unsupported entity mapping action "unsupported-action".'
+    );
+  }
+
+  /**
+   * Builds an entity mapping event subscriber on the fly.
+   *
+   * @param array $entity_mapping
+   *   The entity mapping info to set.
+   */
+  private function buildEntityMappingEventSubscriber(array $entity_mapping) {
+    return new class($entity_mapping) implements EventSubscriberInterface {
+      private $entityMapping;
+
+      public function __construct(array $entity_mapping) {
+        $this->entityMapping = $entity_mapping;
+      }
+
+      public static function getSubscribedEvents() {
+        return [Events::LOCAL_ENTITY_MAPPING => 'callback'];
+      }
+
+      public function callback(LocalEntityMappingEvent $event) {
+        $event->setEntityMapping($this->entityMapping);
+      }
+    };
   }
 
 }
