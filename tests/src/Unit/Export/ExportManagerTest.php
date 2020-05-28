@@ -283,15 +283,12 @@ class ExportManagerTest extends ManagerTestBase {
     ];
 
     $mapping = $test_context['event_entity_mapping'];
-    if (!$mapping || in_array($mapping['action'], $supported_actions)) {
+    if (!$mapping || in_array($mapping['action'], $supported_actions, TRUE)) {
       return;
     }
 
     // Unsupported actions will result in an exception.
     $this->expectException(\RuntimeException::class);
-    $this->expectExceptionMessage(
-      'Unsupported entity mapping action "unsupported-action".'
-    );
   }
 
   /**
