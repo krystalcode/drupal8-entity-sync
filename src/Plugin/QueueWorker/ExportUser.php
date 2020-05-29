@@ -3,8 +3,12 @@
  * @file
  * Contains \Drupal\app_user\Plugin\QueueWorker\ExportUpdatedornewusers.
  */
-namespace Drupal\Learning\Plugin\QueueWorker;
+namespace Drupal\entity_sync\Plugin\QueueWorker;
 use Drupal\Core\Queue\QueueWorkerBase;
+/*use Drupal\entity_sync\Import\ManagerInterface;
+use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;*/
+
 /**
  * Processes Tasks for Learning.
  *
