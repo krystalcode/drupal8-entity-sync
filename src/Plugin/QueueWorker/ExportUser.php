@@ -5,7 +5,7 @@
  */
 namespace Drupal\entity_sync\Plugin\QueueWorker;
 use Drupal\Core\Queue\QueueWorkerBase;
-/*use Drupal\entity_sync\Import\ManagerInterface;
+/*use Drupal\entity_sync\Export\ManagerInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;*/
 
@@ -26,10 +26,10 @@ class ExportUser extends QueueWorkerBase {
     /*$mailManager = \Drupal::service('plugin.manager.mail');
     $params = $data;
     $mailManager->mail('learning', 'email_queue', $data['email'], 'en', $params , $send = TRUE);*/
+    \Drupal::logger('testingqueue')->info('In ExportUser');
     $this->manager->exportLocalEntity(
       $data['sync_id'],
-      [],
-      $data['context'] ? ['context' => $data['context']] : []
+      $data['context'],
     );
   }
 }
