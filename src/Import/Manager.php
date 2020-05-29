@@ -9,6 +9,7 @@ use Drupal\entity_sync\Import\Event\FieldMappingEvent;
 use Drupal\entity_sync\Import\Event\ListFiltersEvent;
 use Drupal\entity_sync\Import\Event\LocalEntityMappingEvent;
 use Drupal\entity_sync\Import\Event\RemoteEntityMappingEvent;
+use Drupal\entity_sync\SyncManagerBase;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\ImmutableConfig;
@@ -21,7 +22,7 @@ use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 /**
  * The default import manager.
  */
-class Manager implements ManagerInterface {
+class Manager extends SyncManagerBase implements ManagerInterface {
 
   /**
    * The entity type manager.
@@ -543,7 +544,7 @@ class Manager implements ManagerInterface {
     ImmutableConfig $sync
   ) {
     $event = new RemoteEntityMappingEvent($remote_entity, $sync);
-    $this->eventDispatcher->dispatch(Events::REMOTE_ENTITY_MAPPING, $event);
+    $this->eventDispatcher->dispatch($event, Events::REMOTE_ENTITY_MAPPING);
 
     // Return the final mapping.
     return $event->getEntityMapping();
@@ -581,7 +582,7 @@ class Manager implements ManagerInterface {
       $local_entity,
       $sync
     );
-    $this->eventDispatcher->dispatch(Events::FIELD_MAPPING, $event);
+    $this->eventDispatcher->dispatch($event, Events::FIELD_MAPPING);
 
     // Return the final mappings.
     return $event->getFieldMapping();
@@ -615,7 +616,7 @@ class Manager implements ManagerInterface {
       $local_entity,
       $sync
     );
-    $this->eventDispatcher->dispatch(Events::LOCAL_ENTITY_MAPPING, $event);
+    $this->eventDispatcher->dispatch($event, Events::LOCAL_ENTITY_MAPPING);
 
     // Return the final mapping.
     return $event->getEntityMapping();
@@ -648,7 +649,7 @@ class Manager implements ManagerInterface {
       $context,
       $sync
     );
-    $this->eventDispatcher->dispatch(Events::REMOTE_LIST_FILTERS, $event);
+    $this->eventDispatcher->dispatch($event, Events::REMOTE_LIST_FILTERS);
 
     // Return the final filters.
     return $event->getFilters();
@@ -679,31 +680,7 @@ class Manager implements ManagerInterface {
       $context,
       $sync
     );
-    $this->eventDispatcher->dispatch($event_name, $event);
-  }
-
-  /**
-   * Checks that the given operation is enabled for the given synchronization.
-   *
-   * @param \Drupal\Core\Config\ImmutableConfig $sync
-   *   The configuration object for the synchronization that defines the
-   *   operation we are currently executing.
-   * @param string $operation
-   *   The operation to check.
-   *
-   * @return bool
-   *   TRUE if the operation is enabled and supported, FALSE otherwise.
-   */
-  protected function operationSupported(ImmutableConfig $sync, $operation) {
-    // @I Check that the provider supports the corresponding method as well
-    //    type     : bug
-    //    priority : normal
-    //    labels   : import, operation, validation
-    if (!$sync->get("operations.$operation.status")) {
-      return FALSE;
-    }
-
-    return TRUE;
+    $this->eventDispatcher->dispatch($event, $event_name);
   }
 
   /**
