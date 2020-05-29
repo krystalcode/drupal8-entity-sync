@@ -11,3 +11,12 @@
 function entity_sync_toolbar_alter(&$items) {
   $items['administration']['#attached']['library'][] = 'entity_sync/toolbar';
 }
+
+function entity_sync_entity_update(Drupal\Core\Entity\EntityInterface $entity) {
+  // ...
+  \Drupal::logger('app_user')->notice('Updated a user');
+  echo 'hello';
+  $queue = \Drupal::queue('export_updatedornewusers');
+  $queue->createQueue();
+  $queue->createItem($entity);
+}
