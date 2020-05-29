@@ -9,12 +9,12 @@ use Drupal\Core\Queue\QueueWorkerBase;
  * Processes Tasks for Learning.
  *
  * @QueueWorker(
- *   id = "export_updatedornewusers",
+ *   id = "export_user",
  *   title = @Translation("Export Users saved or created in Drupal to the sync_api"),
  *   cron = {"time" = 60}
  * )
  */
-class ExportUpdatedornewusers extends QueueWorkerBase {
+class ExportUser extends QueueWorkerBase {
   /**
    * {@inheritdoc}
    */
@@ -22,5 +22,10 @@ class ExportUpdatedornewusers extends QueueWorkerBase {
     /*$mailManager = \Drupal::service('plugin.manager.mail');
     $params = $data;
     $mailManager->mail('learning', 'email_queue', $data['email'], 'en', $params , $send = TRUE);*/
+    $this->manager->exportLocalEntity(
+      $data['sync_id'],
+      [],
+      $data['context'] ? ['context' => $data['context']] : []
+    );
   }
 }
