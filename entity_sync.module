@@ -16,7 +16,11 @@ function entity_sync_entity_update(Drupal\Core\Entity\EntityInterface $entity) {
   // ...
   \Drupal::logger('app_user')->notice('Updated a user');
   echo 'hello';
-  $queue = \Drupal::queue('export_updatedornewusers');
+  $queue = \Drupal::queue('export_user');
   $queue->createQueue();
   $queue->createItem($entity);
+  $queue->createItem([
+    'sync_id' => 'user',
+    'context' => $entity,
+  ]);
 }
