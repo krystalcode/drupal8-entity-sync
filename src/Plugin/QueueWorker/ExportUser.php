@@ -9,7 +9,7 @@ use Drupal\Core\Queue\QueueWorkerBase;
  * Processes Tasks for Learning.
  *
  * @QueueWorker(
- *   id = "export_user",
+ *   id = "entity_sync_export_user",
  *   title = @Translation("Export Users saved or created in Drupal to the sync_api"),
  *   cron = {"time" = 60}
  * )
