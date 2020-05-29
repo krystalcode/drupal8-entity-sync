@@ -1,13 +1,12 @@
 <?php
 
-namespace Drupal\Tests\entity_sync\Unit\Export;
+namespace Drupal\Tests\entity_sync\Unit;
 
 use Drupal\entity_sync\Client\ClientFactory;
 use Drupal\entity_sync\Export\Event\Events;
 use Drupal\entity_sync\Export\Event\LocalEntityMappingEvent;
 use Drupal\entity_sync\Export\Manager;
 use Drupal\entity_sync\Export\ManagerInterface;
-use Drupal\Tests\entity_sync\Unit\ManagerTestBase;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\ImmutableConfig;
