@@ -19,6 +19,6 @@ function entity_sync_entity_update(Drupal\Core\Entity\EntityInterface $entity) {
   $queue->createQueue();
   $queue->createItem([
     'sync_id' => 'user',
-    'context' => $entity,
+    'local_entity' => $entity,
   ]);
 }
