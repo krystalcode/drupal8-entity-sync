@@ -13,6 +13,8 @@ use Drupal\KernelTests\KernelTestBase;
  */
 class ExportManagerTest extends KernelTestBase {
 
+  const FIXTURES_FILENAME = 'entity_sync.sync.user.yml';
+
   /**
    * Modules to install.
    *
@@ -22,6 +24,21 @@ class ExportManagerTest extends KernelTestBase {
     'entity_sync',
     'user',
   ];
+
+  /**
+   * {@inheritDoc}
+   */
+  protected function setUp() {
+    parent::setUp();
+
+    $this->installSchema('entity_sync', ['entity_sync']);
+    $sync_user_config = file_get_contents(
+      __DIR__ . '/../../fixtures/' . FIXTURES_FILENAME
+    );
+    $this->config('entity_sync.sync.user')
+      ->set($sync_user_config)
+      ->save();
+  }
 
   /**
    * Test the hook_entity_insert function.
