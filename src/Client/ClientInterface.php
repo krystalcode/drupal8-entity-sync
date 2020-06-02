@@ -56,4 +56,15 @@ interface ClientInterface {
    */
   public function importEntity($id);
 
+  /**
+   * Posts the remote entity with the given primary ID.
+   *
+   * @param int|string $id
+   *   The ID of the entity to get.
+   *
+   * @return object
+   *   The remote entity object.
+   */
+  public function exportEntity($id);
+
 }
