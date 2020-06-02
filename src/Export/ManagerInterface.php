@@ -15,6 +15,16 @@ use Drupal\Core\Entity\EntityInterface;
 interface ManagerInterface {
 
   /**
+   * Export the local entity.
+   */
+  const ACTION_EXPORT = 0;
+
+  /**
+   * Do nothing as a response to a local entity update.
+   */
+  const ACTION_SKIP = 3;
+
+  /**
    * Exports a local entity to the remote resource.
    *
    * @param string $sync_id

@@ -3,9 +3,12 @@
 namespace Drupal\entity_sync\Export;
 
 use Drupal\entity_sync\Client\ClientFactory;
+use Drupal\entity_sync\Export\Event\Events;
+use Drupal\entity_sync\Export\Event\LocalEntityMappingEvent;
 use Drupal\entity_sync\SyncManagerBase;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Config\ImmutableConfig;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Logger\LoggerChannelInterface;
@@ -107,6 +110,58 @@ class Manager extends SyncManagerBase implements ManagerInterface {
       );
       return;
     }
+
+    // Build the entity mapping for this local entity.
+    $entity_mapping = $this->localEntityMapping($local_entity, $sync);
+    if (!$entity_mapping) {
+      return;
+    }
+
+    // Skip exporting the remote entity if we are explicitly told to do so.
+    if ($entity_mapping['action'] === ManagerInterface::ACTION_SKIP) {
+      return;
+    }
+    elseif ($entity_mapping['action'] !== ManagerInterface::ACTION_EXPORT) {
+      throw new \RuntimeException(
+        sprintf(
+          'Unsupported entity mapping action "%s".',
+          $entity_mapping['action']
+        )
+      );
+    }
+  }
+
+  /**
+   * Builds and returns the remote ID for the given local entity.
+   *
+   * The local entity mapping defines if and which remote entity this local
+   * entity will be exported to. The default mapping identifies the remote
+   * entity based on a local entity field containing the remote entity's ID.
+   *
+   * An event is dispatched that allows subscribers to map the local entity to a
+   * different remote entity, or to decide to not export it at all.
+   *
+   * @param \Drupal\core\Entity\EntityInterface $local_entity
+   *   The local entity.
+   * @param \Drupal\Core\Config\ImmutableConfig $sync
+   *   The configuration object for synchronization that defines the operation
+   *   we are currently executing.
+   *
+   * @return array
+   *   The final entity mapping.
+   */
+  protected function localEntityMapping(
+    EntityInterface $local_entity,
+    ImmutableConfig $sync
+  ) {
+    $event = new LocalEntityMappingEvent(
+      $local_entity,
+      $sync
+    );
+    $this->eventDispatcher->dispatch($event, Events::LOCAL_ENTITY_MAPPING);
+
+    // Return the final mapping.
+    return $event->getEntityMapping();
   }
 
 }
