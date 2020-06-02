@@ -129,6 +129,11 @@ class Manager extends SyncManagerBase implements ManagerInterface {
         )
       );
     }
+
+    // Now, use the remote client to fetch the remote entity for this ID.
+    $remote_entity = $this->clientFactory
+      ->getByClientConfig($entity_mapping['client'])
+      ->exportEntity($entity_mapping['entity_id']);
     // TODO:  Add exportEntity() function to app_sync module
     // TODO:  Add fieldMapping() and exportEntity() call to exportLocalEntity() function in Export manager of entity_sync module
     // TODO:  Make the necessary changes to the FieldMappingEvent class for export in entity_sync in src/Export/Event
