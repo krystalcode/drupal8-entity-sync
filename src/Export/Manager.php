@@ -129,6 +129,14 @@ class Manager extends SyncManagerBase implements ManagerInterface {
         )
       );
     }
+    // TODO:  Add exportEntity() function to app_sync module
+    // TODO:  Add fieldMapping() and exportEntity() call to exportLocalEntity() function in Export manager of entity_sync module
+    // TODO:  Make the necessary changes to the FieldMappingEvent class for export in entity_sync in src/Export/Event
+    // TODO:  Make a DefaultExportFieldMapping event subscriber in entity_sync in src/EventSubscriber*/
+
+    // TODO:  make the field mapping call
+    // TODO:  do the actual call to the function with the guzzle call (look in import manager)
+
   }
 
   /**
@@ -163,5 +171,44 @@ class Manager extends SyncManagerBase implements ManagerInterface {
     // Return the final mapping.
     return $event->getEntityMapping();
   }
+
+  /**
+   * Builds and returns the field mapping for the given entities.
+   *
+   * The field mapping defines which local entity fields will be updated with
+   * which values contained in the given remote entity. The default mapping is
+   * defined in the synchronization to which the operation we are currently
+   * executing belongs.
+   *
+   * An event is dispatched that allows subscribers to alter the default field
+   * mapping.
+   *
+   * @param object $remote_entity
+   *   The remote entity.
+   * @param \Drupal\core\Entity\EntityInterface $local_entity
+   *   The local entity.
+   * @param \Drupal\Core\Config\ImmutableConfig $sync
+   *   The configuration object for synchronization that defines the operation
+   *   we are currently executing.
+   *
+   * @return array
+   *   The final field mapping.
+   */
+  protected function fieldMapping(
+    $remote_entity,
+    EntityInterface $local_entity,
+    ImmutableConfig $sync
+  ) {
+    $event = new FieldMappingEvent(
+      $remote_entity,
+      $local_entity,
+      $sync
+    );
+    $this->eventDispatcher->dispatch($event, Events::FIELD_MAPPING);
+
+    // Return the final mappings.
+    return $event->getFieldMapping();
+  }
+
 
 }

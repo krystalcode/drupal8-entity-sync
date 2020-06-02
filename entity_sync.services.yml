@@ -21,6 +21,15 @@ services:
       - '@event_dispatcher'
       - '@logger.channel.entity_sync'
 
+  entity_sync.export.manager:
+    class: Drupal\entity_sync\Export\Manager
+    arguments:
+      - '@entity_sync.client.factory'
+      - '@config.factory'
+      - '@entity_type.manager'
+      - '@event_dispatcher'
+      - '@logger.channel.entity_sync'
+
   entity_sync.state_manager:
     class: Drupal\entity_sync\StateManager
     arguments: ['@keyvalue']
