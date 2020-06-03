@@ -130,6 +130,14 @@ class Manager extends SyncManagerBase implements ManagerInterface {
       );
     }
 
+    // TODO:  We need to call the field mapping fieldMapping () function here just like we're doing with the entity mapping.
+    $field_mapping = $this->fieldMapping(
+      EntityInterface $local_entity,
+    ImmutableConfig $sync
+    );
+    $the_remote_entity = constructEntityObject($local_entity, $field_mapping);
+
+
     // Now, use the remote client to fetch the remote entity for this ID.
     $remote_entity = $this->clientFactory
       ->getByClientConfig($entity_mapping['client'])
@@ -142,6 +150,21 @@ class Manager extends SyncManagerBase implements ManagerInterface {
     // TODO:  make the field mapping call
     // TODO:  do the actual call to the function with the guzzle call (look in import manager)
 
+  }
+
+  /**
+   * Construct the entity object that we're going to send to the remote.
+   *
+   * @param $local_entity
+   * @param $field_mapping
+   */
+  public function constructEntityObject($local_entity, $field_mapping) {
+    $remote_entity = new \stdClass();
+    foreach ($field_mapping as $field_info) {
+      $remote_entity->{$field_info['remote_name']} = $local_entity->{$field_info['machine_name']}->value;
+    }
+
+    return $remote_entity;
   }
 
   /**
@@ -188,8 +211,6 @@ class Manager extends SyncManagerBase implements ManagerInterface {
    * An event is dispatched that allows subscribers to alter the default field
    * mapping.
    *
-   * @param object $remote_entity
-   *   The remote entity.
    * @param \Drupal\core\Entity\EntityInterface $local_entity
    *   The local entity.
    * @param \Drupal\Core\Config\ImmutableConfig $sync
@@ -200,12 +221,10 @@ class Manager extends SyncManagerBase implements ManagerInterface {
    *   The final field mapping.
    */
   protected function fieldMapping(
-    $remote_entity,
     EntityInterface $local_entity,
     ImmutableConfig $sync
   ) {
     $event = new FieldMappingEvent(
-      $remote_entity,
       $local_entity,
       $sync
     );

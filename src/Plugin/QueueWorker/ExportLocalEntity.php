@@ -10,11 +10,11 @@ use Drupal\Core\Queue\QueueWorkerBase;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
- * Queue worker for importing a list of entities.
+ * Queue worker for exporting a list of entities.
  *
  * @QueueWorker(
- *  id = "entity_sync_export_user",
- *  title = @Translation("Export User"),
+ *  id = "entity_sync_export_local_entity",
+ *  title = @Translation("Export local sentity"),
  *  cron = {"time" = 60}
  * )
  */
@@ -22,14 +22,14 @@ class ExportEntity extends QueueWorkerBase implements
   ContainerFactoryPluginInterface {
 
   /**
-   * The Entity Sync import manager service.
+   * The Entity Sync export manager service.
    *
    * @var \Drupal\entity_sync\Export\ManagerInterface
    */
   protected $manager;
 
   /**
-   * Constructs a new ImportList instance.
+   * Constructs a new export instance.
    *
    * @param array $configuration
    *   A configuration array containing information about the plugin instance.
@@ -38,7 +38,7 @@ class ExportEntity extends QueueWorkerBase implements
    * @param mixed $plugin_definition
    *   The plugin implementation definition.
    * @param \Drupal\entity_sync\Export\ManagerInterface $manager
-   *   The Entity Sync import manager service.
+   *   The Entity Sync export manager service.
    */
   public function __construct(
     array $configuration,
@@ -71,10 +71,10 @@ class ExportEntity extends QueueWorkerBase implements
   /**
    * {@inheritdoc}
    *
-   * @I Add an option to be notified when the import is run
+   * @I Add an option to be notified when the export is run
    *    type     : feature
    *    priority : normal
-   *    labels   : import, list
+   *    labels   : export, entity
    */
   public function processItem($data) {
     $this->manager->exportLocalEntity(

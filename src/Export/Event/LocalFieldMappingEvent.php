@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\entity_sync\Export\Event;
+namespace Drupal\entity_sync\Import\Event;
 
 use Drupal\Core\Config\ImmutableConfig;
 use Drupal\Core\Entity\EntityInterface;
@@ -8,34 +8,27 @@ use Drupal\Core\Entity\EntityInterface;
 use Symfony\Component\EventDispatcher\Event;
 
 /**
- * Defines the export local entity mapping event.
+ * Defines the import field mapping event.
  *
- * Allows subscribers to define which remote entity a local entity should be
- * mapped to.
+ * Allows subscribers to define which local entity fields the remote entity
+ * fields should be mapped to.
  */
-class LocalEntityMappingEvent extends Event {
+class LocalFieldMappingEvent extends Event {
 
   /**
-   * The entity mapping for the local entity being mapped.
+   * The field mapping for the entities being mapped.
    *
-   * The mapping is an associative array that defines which remote entity the
-   * local entity should be mapped to. Supported array elements:
-   * - action: The action to be taken. Possible values are:
-   *   - ManagerInterface::ACTION_SKIP: Do not export the entity.
-   *   - ManagerInterface::ACTION_EXPORT: Export the remote entity.
-   *   See \Drupal\entity_sync\Export\ManagerInterface.
-   * - client: An associative array that contains the details of the client that
-   *   will be used to fetch the remote entity. Supported elements are:
-   *   - type: The type of the client; currently supported type is `service`.
-   *   - service: The Drupal service that provides the client.
-   * - id: The ID of the entity that will be exported.
+   * The mapping is an associative array that defines which local entity fields
+   * the remote entity fields should be mapped to. Supported array elements are
+   * those defined in the `entity_sync.field` configuration.
+   * See `config/schema/entity_sync.schema.yml`.
    *
    * @var array
    */
-  protected $entityMapping = [];
+  protected $fieldMapping = [];
 
   /**
-   * The local entity.
+   * The associated local entity.
    *
    * @var \Drupal\Core\Entity\EntityInterface
    */
@@ -49,10 +42,10 @@ class LocalEntityMappingEvent extends Event {
   protected $sync;
 
   /**
-   * Constructs a new LocalEntityMappingEvent object.
+   * Constructs a new FieldMappingEvent object.
    *
    * @param \Drupal\Core\Entity\EntityInterface $local_entity
-   *   The local entity that's being mapped.
+   *   The associated local entity.
    * @param \Drupal\Core\Config\ImmutableConfig $sync
    *   The configuration object for synchronization that defines the operation
    *   we are currently executing.
@@ -66,23 +59,23 @@ class LocalEntityMappingEvent extends Event {
   }
 
   /**
-   * Gets the entity mapping array.
+   * Gets the field mapping array.
    *
    * @return array
-   *   The entity mapping array.
+   *   The field mapping array.
    */
-  public function getEntityMapping() {
-    return $this->entityMapping;
+  public function getFieldMapping() {
+    return $this->fieldMapping;
   }
 
   /**
-   * Sets the entity mapping.
+   * Sets the field mapping.
    *
-   * @param array $entity_mapping
-   *   The entity mapping array.
+   * @param array $field_mapping
+   *   The field mapping array.
    */
-  public function setEntityMapping(array $entity_mapping) {
-    $this->entityMapping = $entity_mapping;
+  public function setFieldMapping(array $field_mapping) {
+    $this->fieldMapping = $field_mapping;
   }
 
   /**
