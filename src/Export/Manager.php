@@ -130,25 +130,21 @@ class Manager extends SyncManagerBase implements ManagerInterface {
       );
     }
 
-    // TODO:  We need to call the field mapping fieldMapping () function here just like we're doing with the entity mapping.
     $field_mapping = $this->fieldMapping(
       EntityInterface $local_entity,
     ImmutableConfig $sync
     );
-    $the_remote_entity = constructEntityObject($local_entity, $field_mapping);
+
+    if(!$field_mapping) {
+      return;
+    }
+    $remote_entity = constructEntityObject($local_entity, $field_mapping);
 
 
     // Now, use the remote client to fetch the remote entity for this ID.
     $remote_entity = $this->clientFactory
       ->getByClientConfig($entity_mapping['client'])
-      ->exportEntity($entity_mapping['entity_id']);
-    // TODO:  Add exportEntity() function to app_sync module
-    // TODO:  Add fieldMapping() and exportEntity() call to exportLocalEntity() function in Export manager of entity_sync module
-    // TODO:  Make the necessary changes to the FieldMappingEvent class for export in entity_sync in src/Export/Event
-    // TODO:  Make a DefaultExportFieldMapping event subscriber in entity_sync in src/EventSubscriber*/
-
-    // TODO:  make the field mapping call
-    // TODO:  do the actual call to the function with the guzzle call (look in import manager)
+      ->exportEntity($remote_entity, $entity_mapping['entity_id']);
 
   }
 
