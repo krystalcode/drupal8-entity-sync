@@ -130,10 +130,7 @@ class Manager extends SyncManagerBase implements ManagerInterface {
       );
     }
 
-    $field_mapping = $this->fieldMapping(
-      EntityInterface $local_entity,
-    ImmutableConfig $sync
-    );
+    $field_mapping = $this->fieldMapping(EntityInterface $local_entity, ImmutableConfig $sync);
 
     if(!$field_mapping) {
       return;

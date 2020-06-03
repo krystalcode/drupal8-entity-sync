@@ -18,7 +18,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  *  cron = {"time" = 60}
  * )
  */
-class ExportEntity extends QueueWorkerBase implements
+class ExportLocalEntity extends QueueWorkerBase implements
   ContainerFactoryPluginInterface {
 
   /**
