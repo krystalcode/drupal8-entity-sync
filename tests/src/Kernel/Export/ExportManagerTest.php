@@ -4,16 +4,25 @@ namespace Drupal\Tests\entity_sync\Kernel\Export;
 
 use Drupal\user\Entity\User;
 
-use Drupal\KernelTests\KernelTestBase;
+use Drupal\KernelTests\Core\Entity\EntityKernelTestBase;
+
+use Symfony\Component\Yaml\Yaml;
 
 /**
  * Tests the export functionality.
  *
  * @group entity_sync
  */
-class ExportManagerTest extends KernelTestBase {
+class ExportManagerTest extends EntityKernelTestBase {
 
   const FIXTURES_FILENAME = 'entity_sync.sync.user.yml';
+
+  /**
+   * This test creates simple config on the fly breaking schema checking.
+   *
+   * @var bool
+   */
+  protected $strictConfigSchema = FALSE;
 
   /**
    * Modules to install.
@@ -22,7 +31,6 @@ class ExportManagerTest extends KernelTestBase {
    */
   public static $modules = [
     'entity_sync',
-    'user',
   ];
 
   /**
@@ -31,12 +39,12 @@ class ExportManagerTest extends KernelTestBase {
   protected function setUp() {
     parent::setUp();
 
-    $this->installSchema('entity_sync', ['entity_sync']);
+    $this->config('entity_sync');
     $sync_user_config = file_get_contents(
-      __DIR__ . '/../../fixtures/' . FIXTURES_FILENAME
+      __DIR__ . '/../../../fixtures/' . self::FIXTURES_FILENAME
     );
     $this->config('entity_sync.sync.user')
-      ->set($sync_user_config)
+      ->setData(Yaml::parse($sync_user_config))
       ->save();
   }
 
@@ -45,12 +53,12 @@ class ExportManagerTest extends KernelTestBase {
    */
   public function testExportLocalEntityQueueOnEntityInsert() {
     // Test that on insertion of a new entity, a queue item is created.
-    $queue_name = 'entity_sync_export_local_entity';
     $user = User::create([
       'name' => 'test',
       'mail' => 'test@test.com',
     ]);
-    $user = $user->save();
+    $user->save();
+    $queue_name = 'entity_sync_export_local_entity';
     $this->assertEqual(\Drupal::queue($queue_name)->numberOfItems(), 1);
   }
 
@@ -59,18 +67,21 @@ class ExportManagerTest extends KernelTestBase {
    */
   public function testExportLocalEntityQueueOnEntityUpdate() {
     // Test that on insertion of a new entity, a queue item is created.
-    $queue_name = 'entity_sync_export_local_entity';
     $user = User::create([
       'name' => 'test',
       'mail' => 'test@test.com',
     ]);
-    $user = $user->save();
-    $this->assertEqual(\Drupal::queue($queue_name)->numberOfItems(), 1);
+    $user->save();
 
     // Test that on an entity update, another queue item is created.
+    $queue_name = 'entity_sync_export_local_entity';
+    $queue = \Drupal::queue($queue_name);
+    // The initial create, will produce 1 item in the queue.
+    $this->assertEqual($queue->numberOfItems(), 1);
     $user->set('name', 'test2');
     $user->save();
-    $this->assertEqual(\Drupal::queue($queue_name)->numberOfItems(), 2);
+    // The update should produce a second item in the queue.
+    $this->assertEqual($queue->numberOfItems(), 2);
   }
 
 }
