@@ -140,15 +140,13 @@ class Manager extends SyncManagerBase implements ManagerInterface {
     // Now, construct an object with the values to pass to the remote.
     $remote_entity = $this->constructEntityObject(
       $local_entity,
-      $field_mapping,
-      $sync
+      $field_mapping
     );
 
     // Now, use the client to export out the entity with values to the remote.
     $response = $this->clientFactory
       ->getByClientConfig($entity_mapping['client'])
       ->exportEntity($remote_entity, $entity_mapping['id']);
-
 
     // @TODO: Finally, update the local entity, ie. save the remote ID, etc.
 
@@ -162,16 +160,13 @@ class Manager extends SyncManagerBase implements ManagerInterface {
    *   The local entity.
    * @param array $field_mapping
    *   The field mapping array.
-   * @param \Drupal\Core\Config\ImmutableConfig $sync
-   *   The configuration object for synchronization that defines the operation.
    *
    * @return object
    *   An \stdClass object with the values to pass to the remote.
    */
   public function constructEntityObject(
     EntityInterface $local_entity,
-    array $field_mapping,
-    ImmutableConfig $sync
+    array $field_mapping
   ) {
     $remote_entity = new \stdClass();
 
