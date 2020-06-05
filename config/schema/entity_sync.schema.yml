@@ -212,6 +212,27 @@ entity_sync.operation.import_entity:
           type: string
           label: 'The frequency in which the operation should run via cron'
 
+entity_sync.operation.export_entity:
+  type: mapping
+  label: 'The configuration for the Export Entity operation'
+  mapping:
+    status:
+      type: boolean
+      label: 'Whether the operation is enabled or not'
+    label:
+      type: string
+      label: 'The human-friendly label describing the operation'
+    cron:
+      type: mapping
+      label: 'Configuration for operations that have related cron tasks'
+      mapping:
+        status:
+          type: boolean
+          label: ''
+        frequency:
+          type: string
+          label: 'The frequency in which the operation should run via cron'
+
 # Field mapping configuration determines which entity field will be mapped with
 # which remote resource field/property and how.
 entity_sync.field:
