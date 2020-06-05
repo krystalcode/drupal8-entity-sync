@@ -148,6 +148,11 @@ class Manager extends SyncManagerBase implements ManagerInterface {
     $response = $this->clientFactory
       ->getByClientConfig($entity_mapping['client'])
       ->exportEntity($remote_entity, $entity_mapping['id']);
+
+
+    // @TODO: Finally, update the local entity, ie. save the remote ID, etc.
+
+    // @TODO: Terminate the event.
   }
 
   /**
