@@ -1,5 +1,7 @@
 <?php
 
+use Drupal\Core\Entity\EntityInterface;
+
 /**
  * @file
  * Defines hooks and common functionality for the Entity Synchronization module.
@@ -12,13 +14,62 @@ function entity_sync_toolbar_alter(&$items) {
   $items['administration']['#attached']['library'][] = 'entity_sync/toolbar';
 }
 
-function entity_sync_entity_update(Drupal\Core\Entity\EntityInterface $entity) {
-  // ...
-  \Drupal::logger('app_user')->notice('Added an entity to the queue for export');
-  $queue = \Drupal::queue('entity_sync_export_local_entity');
-  $queue->createQueue();
-  $queue->createItem([
-    'sync_id' => 'user',
-    'local_entity' => $entity,
-  ]);
+/**
+ * Implements hook_entity_insert().
+ */
+function entity_sync_entity_insert(EntityInterface $entity) {
+  __entity_sync_add_entity_to_export_queue($entity);
+}
+
+/**
+ * Implements hook_entity_update().
+ */
+function entity_sync_entity_update(EntityInterface $entity) {
+  __entity_sync_add_entity_to_export_queue($entity);
+}
+
+/**
+ * Adds an entity with the export_entity operation to the export queue.
+ *
+ * Loads the entity_sync.sync.ENTITY_TYPE__BUNDLE config and checks if the
+ * config has a 'export_entity' operation. If so, we queue it for export.
+ *
+ * @param \Drupal\Core\Entity\EntityInterface $entity
+ *   The entity that was just created/updated.
+ */
+function __entity_sync_add_entity_to_export_queue(EntityInterface $entity) {
+  $entity_type_id = $entity->getEntityTypeId();
+  $bundle = $entity->bundle();
+
+  // Load the config and check if it supports the export_entity operation.
+  $config_name = 'entity_sync.sync.' . $entity_type_id;
+  // If the entity has bundles, append the bundle name to the config name
+  // as well.
+  // @I Review whether we can determine this a more reliable way
+  //    type     : bug
+  //    priority : normal
+  //    labels   : export
+  if ($entity_type_id !== $bundle) {
+    $config_name .=  '__' . $bundle;
+  }
+  $config = \Drupal::configFactory()->get($config_name)->get();
+
+  if (!$config) {
+    return;
+  }
+
+  $supported_operations = $config['operations'];
+  if (isset($supported_operations['export_entity'])
+    && $supported_operations['export_entity']['status']
+  ) {
+    $queue = \Drupal::queue('entity_sync_export_local_entity');
+    $queue->createItem([
+      'sync_id' => $config->get('id'),
+      'entity' => $entity,
+      'context' => [
+        'entity_type_id' => $entity->getEntityTypeId(),
+        'state_manager' => 'entity_sync',
+      ],
+    ]);
+  }
 }
