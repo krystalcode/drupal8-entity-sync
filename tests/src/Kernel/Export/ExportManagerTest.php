@@ -18,13 +18,6 @@ class ExportManagerTest extends EntityKernelTestBase {
   const FIXTURES_FILENAME = 'entity_sync.sync.user.yml';
 
   /**
-   * This test creates simple config on the fly breaking schema checking.
-   *
-   * @var bool
-   */
-  protected $strictConfigSchema = FALSE;
-
-  /**
    * Modules to install.
    *
    * @var array
@@ -40,11 +33,12 @@ class ExportManagerTest extends EntityKernelTestBase {
     parent::setUp();
 
     $this->config('entity_sync');
-    $sync_user_config = file_get_contents(
+    $sync_user_config = Yaml::parse(file_get_contents(
       __DIR__ . '/../../../fixtures/' . self::FIXTURES_FILENAME
-    );
+    ));
+    $config = $sync_user_config['complete'];
     $this->config('entity_sync.sync.user')
-      ->setData(Yaml::parse($sync_user_config))
+      ->setData($config)
       ->save();
   }
 
