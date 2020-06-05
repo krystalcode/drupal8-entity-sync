@@ -10,14 +10,14 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 /**
  * Builds the default field mapping for export operations.
  */
-class DefaultExportFieldMapping implements EventSubscriberInterface {
+class DefaultExportLocalFieldMapping implements EventSubscriberInterface {
 
   /**
    * {@inheritdoc}
    */
   public static function getSubscribedEvents() {
     $events = [
-      Events::FIELD_MAPPING => ['buildFieldMapping', 0],
+      Events::LOCAL_FIELD_MAPPING => ['buildFieldMapping', 0],
     ];
     return $events;
   }

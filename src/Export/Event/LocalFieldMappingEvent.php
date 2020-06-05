@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\entity_sync\Import\Event;
+namespace Drupal\entity_sync\Export\Event;
 
 use Drupal\Core\Config\ImmutableConfig;
 use Drupal\Core\Entity\EntityInterface;

@@ -59,12 +59,14 @@ interface ClientInterface {
   /**
    * Posts the remote entity with the given primary ID.
    *
+   * @param \stdClass $entity
+   *   The entity with values that should be passed to the remote.
    * @param int|string $id
-   *   The ID of the entity to get.
+   *   The ID of the entity on the remote if this is an existing entity.
    *
    * @return object
-   *   The remote entity object.
+   *   The parsed response.
    */
-  public function exportEntity($id);
+  public function exportEntity(\stdClass $entity, $id = NULL);
 
 }

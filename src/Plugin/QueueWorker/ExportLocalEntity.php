@@ -79,7 +79,8 @@ class ExportLocalEntity extends QueueWorkerBase implements
   public function processItem($data) {
     $this->manager->exportLocalEntity(
       $data['sync_id'],
-      $data['local_entity']
+      $data['entity'],
+      $data['context']
     );
   }
 

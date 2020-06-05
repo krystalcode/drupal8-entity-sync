@@ -5,6 +5,7 @@ namespace Drupal\entity_sync\Export;
 use Drupal\entity_sync\Client\ClientFactory;
 use Drupal\entity_sync\Export\Event\Events;
 use Drupal\entity_sync\Export\Event\LocalEntityMappingEvent;
+use Drupal\entity_sync\Export\Event\LocalFieldMappingEvent;
 use Drupal\entity_sync\SyncManagerBase;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
@@ -130,31 +131,78 @@ class Manager extends SyncManagerBase implements ManagerInterface {
       );
     }
 
+    // Build the field maping for this local entity.
     $field_mapping = $this->fieldMapping($local_entity, $sync);
-
-    if(!$field_mapping) {
+    if (!$field_mapping) {
       return;
     }
-    $remote_entity = constructEntityObject($local_entity, $field_mapping);
 
+    // Now, construct an object with the values to pass to the remote.
+    $remote_entity = $this->constructEntityObject(
+      $local_entity,
+      $field_mapping,
+      $sync
+    );
 
-    // Now, use the remote client to fetch the remote entity for this ID.
-    $remote_entity = $this->clientFactory
+    // Now, use the client to export out the entity with values to the remote.
+    $response = $this->clientFactory
       ->getByClientConfig($entity_mapping['client'])
-      ->exportEntity($remote_entity, $entity_mapping['entity_id']);
-
+      ->exportEntity($remote_entity, $entity_mapping['id']);
   }
 
   /**
    * Construct the entity object that we're going to send to the remote.
    *
-   * @param $local_entity
-   * @param $field_mapping
+   * @param \Drupal\core\Entity\EntityInterface $local_entity
+   *   The local entity.
+   * @param array $field_mapping
+   *   The field mapping array.
+   * @param \Drupal\Core\Config\ImmutableConfig $sync
+   *   The configuration object for synchronization that defines the operation.
+   *
+   * @return object
+   *   An \stdClass object with the values to pass to the remote.
    */
-  public function constructEntityObject($local_entity, $field_mapping) {
+  public function constructEntityObject(
+    EntityInterface $local_entity,
+    array $field_mapping,
+    ImmutableConfig $sync
+  ) {
     $remote_entity = new \stdClass();
+
+    // Go through all the fields of the local entity and map them to the remote.
     foreach ($field_mapping as $field_info) {
-      $remote_entity->{$field_info['remote_name']} = $local_entity->{$field_info['machine_name']}->value;
+      // If the field value should be converted and stored by a custom callback,
+      // then invoke that.
+      if (isset($field_info['export_callback'])) {
+        call_user_func(
+          $field_info['export_callback'],
+          $remote_entity,
+          $local_entity,
+          $field_info
+        );
+      }
+      // Else, we assume direct copy of the local field value into the remote
+      // field.
+      // @I Add more details about the field mapping in the exception message
+      //    type     : task
+      //    priority : low
+      //    labels   : error-handling, export
+      // @I Handle fields like the 'status' field
+      //    type     : bug
+      //    priority : normal
+      //    labels   : error-handling, export
+      elseif (!$local_entity->hasField($field_info['machine_name'])) {
+        throw new \RuntimeException(
+          sprintf(
+            'The non-existing local entity field "%s" was requested to be mapped to a remote field.',
+            $field_info['machine_name']
+          )
+        );
+      }
+      else {
+        $remote_entity->{$field_info['remote_name']} = $local_entity->{$field_info['machine_name']}->value;
+      }
     }
 
     return $remote_entity;
@@ -217,15 +265,14 @@ class Manager extends SyncManagerBase implements ManagerInterface {
     EntityInterface $local_entity,
     ImmutableConfig $sync
   ) {
-    $event = new FieldMappingEvent(
+    $event = new LocalFieldMappingEvent(
       $local_entity,
       $sync
     );
-    $this->eventDispatcher->dispatch($event, Events::FIELD_MAPPING);
+    $this->eventDispatcher->dispatch($event, Events::LOCAL_FIELD_MAPPING);
 
     // Return the final mappings.
     return $event->getFieldMapping();
   }
-
 
 }
