@@ -5,6 +5,7 @@ namespace Drupal\Tests\entity_sync\Unit;
 use Drupal\entity_sync\Client\ClientFactory;
 use Drupal\entity_sync\Export\Event\Events;
 use Drupal\entity_sync\Export\Event\LocalEntityMappingEvent;
+use Drupal\entity_sync\Export\Event\LocalFieldMappingEvent;
 use Drupal\entity_sync\Export\Manager;
 use Drupal\entity_sync\Export\ManagerInterface;
 
@@ -69,12 +70,33 @@ class ExportManagerTest extends ManagerTestBase {
   }
 
   /**
+   * Data provider for the field mapping set via events subscribers.
+   *
+   * @I Add tests for invalid field mapping data
+   *    type     : task
+   *    priority : normal
+   *    labels   : testing
+   */
+  public function eventFieldMappingDataProvider() {
+    return [
+      // No fields.
+      [],
+      // Some fields.
+      [
+        'machine_name' => 'mail',
+        'remote_name' => 'email',
+      ],
+    ];
+  }
+
+  /**
    * Prepares all possible combinations of data from other providers.
    */
   public function dataProvider() {
     $providers = [
       'syncCaseDataProvider',
       'eventEntityMappingDataProvider',
+      'eventFieldMappingDataProvider',
     ];
 
     $data = [];
@@ -116,7 +138,8 @@ class ExportManagerTest extends ManagerTestBase {
    */
   public function testAll(
     string $sync_case,
-    array $event_entity_mapping
+    array $event_entity_mapping,
+    $event_field_mapping
   ) {
     // Mock services required for instantiating the export manager.
     $client_factory = $this->prophesize(ClientFactory::class);
@@ -131,6 +154,9 @@ class ExportManagerTest extends ManagerTestBase {
     $event_dispatcher = new EventDispatcher();
     $event_dispatcher->addSubscriber(
       $this->buildEntityMappingEventSubscriber($event_entity_mapping)
+    );
+    $event_dispatcher->addSubscriber(
+      $this->buildFieldMappingEventSubscriber($event_field_mapping)
     );
 
     // In all cases we will be loading the Sync configuration and at the very
@@ -163,6 +189,7 @@ class ExportManagerTest extends ManagerTestBase {
       'sync' => $sync,
       'sync_case' => $sync_case,
       'event_entity_mapping' => $event_entity_mapping,
+      'event_field_mapping' => $event_field_mapping,
     ];
 
     // Add our first case of assertions for the config.
@@ -229,6 +256,7 @@ class ExportManagerTest extends ManagerTestBase {
     $this->branchEmptyEntityMapping($test_context);
     $this->branchSkipAction($test_context);
     $this->branchUnsupportedAction($test_context);
+    $this->branchSupportedAction($test_context);
   }
 
   /**
@@ -242,10 +270,9 @@ class ExportManagerTest extends ManagerTestBase {
       return;
     }
 
-    // @I Assert that the function doesn't continue on
-    //    type     : task
-    //    priority : normal
-    //    labels   : test
+    $test_context['client_factory']
+      ->getByClientConfig(Argument::any())
+      ->shouldNotBeCalled();
   }
 
   /**
@@ -264,10 +291,9 @@ class ExportManagerTest extends ManagerTestBase {
       return;
     }
 
-    // @I Assert that the function doesn't continue on
-    //    type     : task
-    //    priority : normal
-    //    labels   : test
+    $test_context['client_factory']
+      ->getByClientConfig(Argument::any())
+      ->shouldNotBeCalled();
   }
 
   /**
@@ -292,6 +318,67 @@ class ExportManagerTest extends ManagerTestBase {
   }
 
   /**
+   * Assert that we throw an exception on entity mapping with an illegal action.
+   *
+   * @param array $test_context
+   *   The test case context.
+   */
+  private function branchSupportedAction(array $test_context) {
+    $mapping = $test_context['event_entity_mapping'];
+    if (!$mapping) {
+      return;
+    }
+
+    if ($mapping['action'] === ManagerInterface::ACTION_SKIP) {
+      return;
+    }
+
+    $supported_actions = [
+      ManagerInterface::ACTION_SKIP,
+      ManagerInterface::ACTION_EXPORT,
+    ];
+    if (!in_array($mapping['action'], $supported_actions, TRUE)) {
+      return;
+    }
+
+    // Continue on with the next set of tests.
+    $this->branchEmptyFieldMapping($test_context);
+    $this->branchFieldMapping($test_context);
+  }
+
+  /**
+   * Assert that we return if the field mapping array is empty.
+   *
+   * @param array $test_context
+   *   The test case context.
+   */
+  private function branchEmptyFieldMapping(array $test_context) {
+    if ($test_context['event_field_mapping']) {
+      return;
+    }
+
+    $test_context['client_factory']
+      ->getByClientConfig(Argument::any())
+      ->shouldNotBeCalled();
+  }
+
+  /**
+   * Assert that we continue on if we the field mapping is NOT empty.
+   *
+   * @param array $test_context
+   *   The test case context.
+   */
+  private function branchFieldMapping(array $test_context) {
+    if (!$test_context['event_field_mapping']) {
+      return;
+    }
+
+    $test_context['client_factory']
+      ->getByClientConfig(Argument::any())
+      ->shouldBeCalledTimes(1);
+  }
+
+  /**
    * Builds an entity mapping event subscriber on the fly.
    *
    * @param array $entity_mapping
@@ -311,6 +398,30 @@ class ExportManagerTest extends ManagerTestBase {
 
       public function callback(LocalEntityMappingEvent $event) {
         $event->setEntityMapping($this->entityMapping);
+      }
+    };
+  }
+
+  /**
+   * Builds a field mapping event subscriber on the fly.
+   *
+   * @param array $field_mapping
+   *   The field mapping info to set.
+   */
+  private function buildFieldMappingEventSubscriber(array $field_mapping) {
+    return new class($field_mapping) implements EventSubscriberInterface {
+      private $fieldMapping;
+
+      public function __construct(array $field_mapping) {
+        $this->fieldMapping = $field_mapping;
+      }
+
+      public static function getSubscribedEvents() {
+        return [Events::LOCAL_FIELD_MAPPING => 'callback'];
+      }
+
+      public function callback(LocalFieldMappingEvent $event) {
+        $event->setFieldMapping($this->fieldMapping);
       }
     };
   }
