@@ -64,7 +64,7 @@ function __entity_sync_add_entity_to_export_queue(EntityInterface $entity) {
   ) {
     $queue = \Drupal::queue('entity_sync_export_local_entity');
     $queue->createItem([
-      'sync_id' => $config->get('id'),
+      'sync_id' => $config['id'],
       'entity' => $entity,
       'context' => [
         'entity_type_id' => $entity->getEntityTypeId(),
