@@ -14,7 +14,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  *
  * @QueueWorker(
  *  id = "entity_sync_export_local_entity",
- *  title = @Translation("Export local sentity"),
+ *  title = @Translation("Export local entity"),
  *  cron = {"time" = 60}
  * )
  */
