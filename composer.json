@@ -24,5 +24,14 @@
   "require": {
     "drupal/core": "^8.8 | ^9",
     "drupal/ultimate_cron": "^2.0@alpha"
+  },
+  "require-dev": {
+    "symfony/yaml": "^2.0.0|^3.0.0|^4.0.0|^5.0.0",
+    "php-mock/php-mock-phpunit": "dev-master"
+  },
+  "patches": {
+    "phpspec/prophecy": {
+        "Increment a call times prediction's count": "https://www.drupal.org/files/issues/2020-06-07/phpspec-prophecy.call-times-prediction-add-count-pr473.patch"
+    }
   }
 }

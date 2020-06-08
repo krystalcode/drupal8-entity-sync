@@ -19,6 +19,13 @@ services:
       - '@config.factory'
       - '@entity_type.manager'
       - '@event_dispatcher'
+      - '@entity_sync.import.field_manager'
+      - '@logger.channel.entity_sync'
+
+  entity_sync.import.field_manager:
+    class: Drupal\entity_sync\Import\FieldManager
+    arguments:
+      - '@event_dispatcher'
       - '@logger.channel.entity_sync'
 
   entity_sync.state_manager:

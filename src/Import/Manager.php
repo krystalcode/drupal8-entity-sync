@@ -5,7 +5,6 @@ namespace Drupal\entity_sync\Import;
 use Drupal\entity_sync\Client\ClientFactory;
 use Drupal\entity_sync\Event\TerminateOperationEvent;
 use Drupal\entity_sync\Import\Event\Events;
-use Drupal\entity_sync\Import\Event\FieldMappingEvent;
 use Drupal\entity_sync\Import\Event\ListFiltersEvent;
 use Drupal\entity_sync\Import\Event\LocalEntityMappingEvent;
 use Drupal\entity_sync\Import\Event\RemoteEntityMappingEvent;
@@ -24,6 +23,20 @@ use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 class Manager implements ManagerInterface {
 
   /**
+   * The client factory.
+   *
+   * @var \Drupal\entity_sync\Client\ClientFactory
+   */
+  protected $clientFactory;
+
+  /**
+   * The config factory.
+   *
+   * @var \Drupal\Core\Config\ConfigFactoryInterface
+   */
+  protected $configFactory;
+
+  /**
    * The entity type manager.
    *
    * @var \Drupal\Core\Entity\EntityTypeManagerInterface
@@ -38,18 +51,11 @@ class Manager implements ManagerInterface {
   protected $eventDispatcher;
 
   /**
-   * The client factory.
+   * The Entity Sync import field manager.
    *
-   * @var \Drupal\entity_sync\Client\ClientFactory
+   * @var \Drupal\entity_sync\Import\FieldManagerInterface
    */
-  protected $clientFactory;
-
-  /**
-   * The config factory.
-   *
-   * @var \Drupal\Core\Config\ConfigFactoryInterface
-   */
-  protected $configFactory;
+  protected $fieldManager;
 
   /**
    * The logger service.
@@ -69,20 +75,26 @@ class Manager implements ManagerInterface {
    *   The entity type manager.
    * @param \Symfony\Component\EventDispatcher\EventDispatcherInterface $event_dispatcher
    *   The event dispatcher.
+   * @param \Drupal\entity_sync\Import\FieldManagerInterface $field_manager
+   *   The Entity Sync import field manager.
    * @param \Drupal\Core\Logger\LoggerChannelInterface $logger
    *   The logger to pass to the client.
+   *
+   * @I Use \Psr\Log\LoggerInterface
    */
   public function __construct(
     ClientFactory $client_factory,
     ConfigFactoryInterface $config_factory,
     EntityTypeManagerInterface $entity_type_manager,
     EventDispatcherInterface $event_dispatcher,
+    FieldManagerInterface $field_manager,
     LoggerChannelInterface $logger
   ) {
     $this->logger = $logger;
     $this->eventDispatcher = $event_dispatcher;
     $this->configFactory = $config_factory;
     $this->entityTypeManager = $entity_type_manager;
+    $this->fieldManager = $field_manager;
     $this->clientFactory = $client_factory;
   }
 
@@ -435,87 +447,15 @@ class Manager implements ManagerInterface {
     EntityInterface $local_entity,
     ImmutableConfig $sync
   ) {
-    // Build the field mapping for the fields that will be imported.
-    // @I Validate the final field mapping
-    //    type     : bug
+    // @I Pass context to the field manager
+    //    type     : improvement
     //    priority : normal
-    //    labels   : mapping, validation
-    $field_mapping = $this->fieldMapping($remote_entity, $local_entity, $sync);
+    //    labels   : field, import
+    $this->fieldManager->import($remote_entity, $local_entity, $sync);
 
-    // If the field mapping is empty we will not be updating any fields in the
-    // local entity; nothing to do.
-    if (!$field_mapping) {
-      return;
-    }
-
-    foreach ($field_mapping as $field_info) {
-      $this->doImportField($remote_entity, $local_entity, $field_info);
-    }
-
-    // Update the remote ID field.
-    // @I Support not updating the remote ID field
-    //    type     : bug
-    //    priority : low
-    //    labels   : import
-    $this->setRemoteIdField($remote_entity, $local_entity, $sync);
-
-    // Update the remote changed field. The remote changed field will be used in
-    // `hook_entity_insert` to prevent triggering an export of the local entity.
-    $this->setRemoteChangedField($remote_entity, $local_entity, $sync);
-
+    // If no errors occurred (the field manager would throw an exception),
+    // proceed with saving the entity.
     $local_entity->save();
-  }
-
-  /**
-   * Performs the actual import of a remote field to a local field.
-   *
-   * @param object $remote_entity
-   *   The remote entity.
-   * @param \Drupal\Core\Entity\EntityInterface $local_entity
-   *   The associated local entity.
-   * @param array $field_info
-   *   The field info.
-   *   See \Drupal\entity_sync\Event\FieldMapping::fieldMapping.
-   */
-  protected function doImportField(
-    $remote_entity,
-    EntityInterface $local_entity,
-    array $field_info
-  ) {
-    // If the field value should be converted and stored by a custom callback,
-    // then invoke that.
-    if (isset($field_info['import_callback'])) {
-      call_user_func(
-        $field_info['import_callback'],
-        $remote_entity,
-        $local_entity,
-        $field_info
-      );
-    }
-    // Else, we assume direct copy of the remote field value into the local
-    // field.
-    // @I Add more details about the field mapping in the exception message
-    //    type     : task
-    //    priority : low
-    //    labels   : error-handling, import
-    // @I Handle fields like the 'status' field
-    //    type     : bug
-    //    priority : normal
-    //    labels   : error-handling, import
-    elseif (!$local_entity->hasField($field_info['machine_name'])) {
-      throw new \RuntimeException(
-        sprintf(
-          'The non-existing local entity field "%s" was requested to be mapped to a remote field',
-          $field_info['machine_name']
-        )
-      );
-    }
-    else {
-      $local_entity->set(
-        $field_info['machine_name'],
-        $remote_entity->{$field_info['remote_name']}
-      );
-    }
   }
 
   /**
@@ -547,44 +487,6 @@ class Manager implements ManagerInterface {
 
     // Return the final mapping.
     return $event->getEntityMapping();
-  }
-
-  /**
-   * Builds and returns the field mapping for the given entities.
-   *
-   * The field mapping defines which local entity fields will be updated with
-   * which values contained in the given remote entity. The default mapping is
-   * defined in the synchronization to which the operation we are currently
-   * executing belongs.
-   *
-   * An event is dispatched that allows subscribers to alter the default field
-   * mapping.
-   *
-   * @param object $remote_entity
-   *   The remote entity.
-   * @param \Drupal\core\Entity\EntityInterface $local_entity
-   *   The local entity.
-   * @param \Drupal\Core\Config\ImmutableConfig $sync
-   *   The configuration object for synchronization that defines the operation
-   *   we are currently executing.
-   *
-   * @return array
-   *   The final field mapping.
-   */
-  protected function fieldMapping(
-    $remote_entity,
-    EntityInterface $local_entity,
-    ImmutableConfig $sync
-  ) {
-    $event = new FieldMappingEvent(
-      $remote_entity,
-      $local_entity,
-      $sync
-    );
-    $this->eventDispatcher->dispatch(Events::FIELD_MAPPING, $event);
-
-    // Return the final mappings.
-    return $event->getFieldMapping();
   }
 
   /**
@@ -770,75 +672,6 @@ class Manager implements ManagerInterface {
         $counter++;
       }
     }
-  }
-
-  /**
-   * Sets the remote ID field in the local entity.
-   *
-   * @param object $remote_entity
-   *   The remote entity.
-   * @param \Drupal\Core\Entity\EntityInterface $local_entity
-   *   The associated local entity.
-   * @param \Drupal\Core\Config\ImmutableConfig $sync
-   *   The configuration object for synchronization that defines the operation
-   *   we are currently executing.
-   */
-  protected function setRemoteIdField(
-    $remote_entity,
-    EntityInterface $local_entity,
-    ImmutableConfig $sync
-  ) {
-    $local_id_field = $sync->get('entity.remote_id_field');
-    if (!$local_entity->hasField($local_id_field)) {
-      return;
-    }
-
-    $remote_id_field = $sync->get('remote_resource.id_field');
-    $local_entity->set(
-      $local_id_field,
-      $remote_entity->{$remote_id_field}
-    );
-  }
-
-  /**
-   * Sets the remote changed field in the local entity.
-   *
-   * @param object $remote_entity
-   *   The remote entity.
-   * @param \Drupal\Core\Entity\EntityInterface $local_entity
-   *   The associated local entity.
-   * @param \Drupal\Core\Config\ImmutableConfig $sync
-   *   The configuration object for synchronization that defines the operation
-   *   we are currently executing.
-   */
-  protected function setRemoteChangedField(
-    $remote_entity,
-    EntityInterface $local_entity,
-    ImmutableConfig $sync
-  ) {
-    $local_changed_field = $sync->get('entity.remote_changed_field');
-    if (!$local_entity->hasField($local_changed_field)) {
-      return;
-    }
-
-    $field_config = $sync->get('remote_resource.changed_field');
-
-    // Prepare the value based on the configured format.
-    $field_name = $field_config['name'];
-    $field_value = NULL;
-    if ($field_config['format'] === 'timestamp') {
-      $field_value = $remote_entity->{$field_name};
-    }
-    elseif ($field_config['format'] === 'string') {
-      $field_value = strtotime(
-        $remote_entity->{$field_name}
-      );
-    }
-
-    $local_entity->set(
-      $local_changed_field,
-      $field_value
-    );
   }
 
 }

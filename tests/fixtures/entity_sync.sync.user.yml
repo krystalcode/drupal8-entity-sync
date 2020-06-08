@@ -1,0 +1,57 @@
+# Full and valid configuration.
+# Should be used as a starting point for creating all other cases.
+complete:
+  id: user
+  entity:
+    type_id: user
+    remote_id_field: sync_remote_id
+    remote_changed_field: sync_remote_changed
+  remote_resource:
+    provider_id: erp
+    name: User
+    id_field: userId
+    changed_field:
+      name: lastModified
+      format: timestamp
+    client:
+      type: service
+      service: my_module.entity_sync_client.user
+  operations:
+    import_list:
+      status: true
+      create_entities: true
+      label: 'Import users'
+      url_path: user
+  fields:
+    -
+      machine_name: mail
+      remote_name: email
+
+# Full and valid configuration - string format for the remote changed field.
+complete__remoted_changed_field__string:
+  id: user
+  entity:
+    type_id: user
+    remote_id_field: sync_remote_id
+    remote_changed_field: sync_remote_changed
+  remote_resource:
+    provider_id: erp
+    name: User
+    id_field: userId
+    changed_field:
+      name: lastModified
+      format: string
+    client:
+      type: service
+      service: my_module.entity_sync_client.user
+  operations:
+    import_list:
+      status: true
+      create_entities: true
+      label: 'Import users'
+      url_path: user
+  fields:
+    -
+      machine_name: mail
+      remote_name: email
+
