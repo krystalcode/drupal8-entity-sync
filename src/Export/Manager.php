@@ -132,7 +132,7 @@ class Manager extends SyncManagerBase implements ManagerInterface {
     }
 
     // Build the field maping for this local entity.
-    $field_mapping = $this->fieldMapping($local_entity, $sync);
+    $field_mapping = $this->localFieldMapping($local_entity, $sync);
     if (!$field_mapping) {
       return;
     }
@@ -261,7 +261,7 @@ class Manager extends SyncManagerBase implements ManagerInterface {
    * @return array
    *   The final field mapping.
    */
-  protected function fieldMapping(
+  protected function localFieldMapping(
     EntityInterface $local_entity,
     ImmutableConfig $sync
   ) {
