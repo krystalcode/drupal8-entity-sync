@@ -2,7 +2,7 @@
 
 namespace Drupal\entity_sync\Import;
 
-use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\ContentEntityInterface;
 
 /**
  * Defines the interface for the import manager.
@@ -140,7 +140,7 @@ interface ManagerInterface {
    *
    * @param string $sync_id
    *   The ID of the entity sync.
-   * @param \Drupal\Core\Entity\EntityInterface $local_entity
+   * @param \Drupal\Core\Entity\ContentEntityInterface $local_entity
    *   The local entity.
    * @param array $options
    *   An associative array of options that determine various aspects of the
@@ -161,7 +161,7 @@ interface ManagerInterface {
    */
   public function importLocalEntity(
     $sync_id,
-    EntityInterface $local_entity,
+    ContentEntityInterface $local_entity,
     array $options = []
   );
 

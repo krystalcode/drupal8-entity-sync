@@ -4,6 +4,7 @@ namespace Drupal\entity_sync\Import;
 
 use Drupal\entity_sync\Client\ClientFactory;
 use Drupal\entity_sync\Event\TerminateOperationEvent;
+use Drupal\entity_sync\Exception\EntityImportException;
 use Drupal\entity_sync\Import\Event\Events;
 use Drupal\entity_sync\Import\Event\ListFiltersEvent;
 use Drupal\entity_sync\Import\Event\LocalEntityMappingEvent;
@@ -11,7 +12,7 @@ use Drupal\entity_sync\Import\Event\RemoteEntityMappingEvent;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\ImmutableConfig;
-use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Logger\LoggerChannelInterface;
 
@@ -19,6 +20,11 @@ use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 /**
  * The default import manager.
+ *
+ * @I Rename to EntityManager
+ *    type     : task
+ *    priority : low
+ *    labels   : coding-standards
  */
 class Manager implements ManagerInterface {
 
@@ -151,6 +157,8 @@ class Manager implements ManagerInterface {
       return;
     }
 
+    // Go through each entity and create or update the corresponding local
+    // entity.
     $this->doubleIteratorApply(
       $entities,
       [$this, 'tryCreateOrUpdate'],
@@ -173,7 +181,7 @@ class Manager implements ManagerInterface {
    */
   public function importLocalEntity(
     $sync_id,
-    EntityInterface $local_entity,
+    ContentEntityInterface $local_entity,
     array $options = []
   ) {
     // Load the sync.
@@ -267,9 +275,9 @@ class Manager implements ManagerInterface {
       $id_field = $sync->get('remote_resource.id_field');
       $this->logger->error(
         sprintf(
-          'An "%s" exception was thrown while importing the remote entity with ID "%s" as part of the "%s" synchronization and the "%s" operation. The error messages was: %s',
+          'An "%s" exception was thrown while importing the remote entity with ID "%s" as part of the "%s" synchronization and the "%s" operation. The error message was: %s',
           get_class($e),
-          $remote_entity->{$id_field},
+          $remote_entity->{$id_field} ?? '',
           $sync->get('id'),
           $operation,
           $e->getMessage()
@@ -291,11 +299,19 @@ class Manager implements ManagerInterface {
    *   we are currently executing.
    */
   protected function createOrUpdate($remote_entity, ImmutableConfig $sync) {
+    // The remote entity is expected in object format. We don't enforce that in
+    // the function declaration because we want to throw an
+    // `EntityImportException` exception.
+    if (!is_object($remote_entity)) {
+      throw new EntityImportException(
+        sprintf(
+          'Expecting the remote entity to be an object, %s given.',
+          gettype($remote_entity)
+        )
+      );
+    }
+
     // Build the entity mapping for this remote entity.
-    // @I Validate the final entity mapping
-    //    type     : bug
-    //    priority : normal
-    //    labels   : mapping, validation
     $entity_mapping = $this->remoteEntityMapping($remote_entity, $sync);
 
     // If the entity mapping is empty we will not be updating or creating a
@@ -343,7 +359,7 @@ class Manager implements ManagerInterface {
    *    labels   : import, validation
    */
   protected function create(
-    $remote_entity,
+    object $remote_entity,
     ImmutableConfig $sync,
     array $entity_mapping
   ) {
@@ -399,7 +415,7 @@ class Manager implements ManagerInterface {
    *    labels   : import, validation
    */
   protected function update(
-    $remote_entity,
+    object $remote_entity,
     ImmutableConfig $sync,
     array $entity_mapping
   ) {
@@ -422,8 +438,8 @@ class Manager implements ManagerInterface {
       throw new \RuntimeException(
         sprintf(
           'A non-existing local entity of type "%s" and ID "%s" was requested to be mapped to a remote entity.',
-          $entity_mapping['type_id'],
-          $local_entity->id()
+          $entity_mapping['entity_type_id'],
+          $entity_mapping['id']
         )
       );
     }
@@ -436,15 +452,15 @@ class Manager implements ManagerInterface {
    *
    * @param object $remote_entity
    *   The remote entity.
-   * @param \Drupal\Core\Entity\EntityInterface $local_entity
+   * @param \Drupal\Core\Entity\ContentEntityInterface $local_entity
    *   The associated local entity.
    * @param \Drupal\Core\Config\ImmutableConfig $sync
    *   The configuration object for synchronization that defines the operation
    *   we are currently executing.
    */
   protected function doImportEntity(
-    $remote_entity,
-    EntityInterface $local_entity,
+    object $remote_entity,
+    ContentEntityInterface $local_entity,
     ImmutableConfig $sync
   ) {
     // @I Pass context to the field manager
@@ -455,6 +471,11 @@ class Manager implements ManagerInterface {
 
     // If no errors occurred (the field manager would throw an exception),
     // proceed with saving the entity.
+    //
+    // @I Provide a mechanism to track whether an entity has changed
+    //     type     : improvement
+    //     priority : normal
+    //     labels   : entity, import
     $local_entity->save();
   }
 
@@ -477,9 +498,14 @@ class Manager implements ManagerInterface {
    *
    * @return array
    *   The final entity mapping.
+   *
+   * @I Validate the final entity mapping
+   *    type     : bug
+   *    priority : normal
+   *    labels   : import, mapping, validation
    */
   protected function remoteEntityMapping(
-    $remote_entity,
+    object $remote_entity,
     ImmutableConfig $sync
   ) {
     $event = new RemoteEntityMappingEvent($remote_entity, $sync);
@@ -500,7 +526,7 @@ class Manager implements ManagerInterface {
    * An event is dispatched that allows subscribers to map the local entity to a
    * different remote entity, or to decide to not import it at all.
    *
-   * @param \Drupal\core\Entity\EntityInterface $local_entity
+   * @param \Drupal\core\Entity\ContentEntityInterface $local_entity
    *   The local entity.
    * @param \Drupal\Core\Config\ImmutableConfig $sync
    *   The configuration object for synchronization that defines the operation
@@ -508,9 +534,14 @@ class Manager implements ManagerInterface {
    *
    * @return array
    *   The final entity mapping.
+   *
+   * @I Validate the final local entity mapping
+   *    type     : bug
+   *    priority : normal
+   *    labels   : import, mapping, validation
    */
   protected function localEntityMapping(
-    EntityInterface $local_entity,
+    ContentEntityInterface $local_entity,
     ImmutableConfig $sync
   ) {
     $event = new LocalEntityMappingEvent(
@@ -623,11 +654,6 @@ class Manager implements ManagerInterface {
    * reach the limit; otherwise, all items contained in the iterator(s) will be
    * processed.
    *
-   * @I Review and implement logging strategy for `info` and `debug` levels
-   *    type     : feature
-   *    priority : normal
-   *    labels   : logging
-   *
    * @param \Iterator $iterator
    *   The iterator that contains the items.
    * @param callable $callback
@@ -637,6 +663,15 @@ class Manager implements ManagerInterface {
    *   limit.
    * @param mixed $args
    *   The arguments to pass to the callback after the item.
+   *
+   * @I Review and implement logging strategy for `info` and `debug` levels
+   *    type     : feature
+   *    priority : normal
+   *    labels   : logging
+   * @I Write unit tests for the `doubleIteratorApply` function
+   *    type     : task
+   *    priority : high
+   *    labels   : testing
    */
   protected function doubleIteratorApply(
     \Iterator $iterator,
