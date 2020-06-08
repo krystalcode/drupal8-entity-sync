@@ -5,6 +5,7 @@ namespace Drupal\entity_sync\EventSubscriber;
 use Drupal\entity_sync\Export\Event\Events;
 use Drupal\entity_sync\Export\Event\FieldMappingEvent;
 
+use Drupal\entity_sync\Export\Event\LocalFieldMappingEvent;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 /**
@@ -28,10 +29,10 @@ class DefaultExportLocalFieldMapping implements EventSubscriberInterface {
    * The default field mapping is defined in the synchronization configuration
    * object.
    *
-   * @param \Drupal\entity_sync\Export\Event\FieldMappingEvent $event
+   * @param \Drupal\entity_sync\Export\Event\LocalFieldMappingEvent $event
    *   The field mapping event.
    */
-  public function buildFieldMapping(FieldMappingEvent $event) {
+  public function buildFieldMapping(LocalFieldMappingEvent $event) {
     $sync = $event->getSync();
     $field_mapping = $sync->get('fields');
     if (!$field_mapping) {
