@@ -66,7 +66,7 @@ class EntityManagerTest extends UnitTestCase {
    * in order to test the different scenarios of what happens for each data
    * combination. All branching functions start with the `branch` prefix.
    *
-   * @test
+   * @covers ::importRemoteList
    * @dataProvider dataProvider
    */
   public function testImportRemoteList(
