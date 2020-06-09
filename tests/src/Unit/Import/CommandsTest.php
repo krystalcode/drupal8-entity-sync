@@ -116,7 +116,7 @@ class CommandsTest extends UnitTestCase {
    * @covers ::importRemoteList
    * @dataProvider dataProvider
    */
-  public function test(
+  public function testImportRemoteList(
     $sync_id,
     $command_options,
     $import_filters,
