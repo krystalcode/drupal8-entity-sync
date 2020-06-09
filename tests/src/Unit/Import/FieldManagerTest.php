@@ -88,7 +88,7 @@ class FieldManagerTest extends UnitTestCase {
    * in order to test the different scenarios of what happens for each data
    * combination. All branching functions start with the `branch` prefix.
    *
-   * @test
+   * @covers ::import
    * @dataProvider dataProvider
    */
   public function testImport(
