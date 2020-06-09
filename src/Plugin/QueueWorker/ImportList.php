@@ -71,17 +71,58 @@ class ImportList extends QueueWorkerBase implements
   /**
    * {@inheritdoc}
    *
+   * Data should be an associative array with the following elements:
+   * - sync_id: The ID of the synchronization that defines the import operation
+   *   to run.
+   * - filters: (Optional) An array of filters to pass to the import entity
+   *   manager.
+   * - options: (Optional) An array of options to pass to the import entity
+   *   manager.
+   *
+   * @see \Drupal\entity_sync\Improt\Manager::importRemoteList()
+   *
    * @I Add an option to be notified when the import is run
    *    type     : feature
    *    priority : normal
    *    labels   : import, list
    */
   public function processItem($data) {
+    $this->validateData($data);
+
     $this->manager->importRemoteList(
       $data['sync_id'],
-      [],
-      $data['context'] ? ['context' => $data['context']] : []
+      $data['filters'] ?? [],
+      $data['options'] ?? []
     );
+  }
+
+  /**
+   * Validates that the data passed to the queue item are valid.
+   *
+   * We do not validate that the data array items are of the correct types; that
+   * is the responsibility of the import entity manager.
+   *
+   * @param mixed $data
+   *   The data.
+   *
+   * @throws \InvalidArgumentException
+   *   When the data are invalid.
+   */
+  protected function validateData($data) {
+    if (!is_array($data)) {
+      throw new \InvalidArgumentException(
+        sprintf(
+          'Queue item data should be an array, %s given.',
+          gettype($data)
+        )
+      );
+    }
+
+    if (empty($data['sync_id'])) {
+      throw new \InvalidArgumentException(
+        'The ID of the synchronization that defines the import must be given.'
+      );
+    }
   }
 
 }
