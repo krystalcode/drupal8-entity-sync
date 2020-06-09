@@ -84,6 +84,11 @@ interface ManagerInterface {
    *     imported, while setting a limit will result in importing to stop when
    *     that limit is reached - which might happen before importing all
    *     incoming entities.
+   *   - client: An associative array of options to be passed to the
+   *     client. Supported options are:
+   *     - parameters: (Optional) Additional parameters; it is up to the client
+   *       to determine how these parameters will be used. An example is to
+   *       include query parameters that will be added to the request.
    *
    * @I Support overriding synchronization via options
    *    type     : feature

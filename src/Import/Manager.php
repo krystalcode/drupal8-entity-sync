@@ -148,11 +148,15 @@ class Manager implements ManagerInterface {
     //    labels   : context, import, operation
     $context = $options['context'] ?? [];
 
-    // Build the filters for fetching the list of entities.
+    // Build the filters and the options that will be passed to the client for
+    // fetching the list of entities.
     $filters = $this->remoteListFilters($filters, $context, $sync);
+    $client_options = $options['client'] ?? [];
 
     // Now, use the remote client to fetch the list of entities.
-    $entities = $this->clientFactory->get($sync_id)->importList($filters);
+    $entities = $this->clientFactory
+      ->get($sync_id)
+      ->importList($filters, $client_options);
     if (!$entities) {
       return;
     }

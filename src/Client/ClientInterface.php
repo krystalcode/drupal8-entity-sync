@@ -33,6 +33,11 @@ interface ClientInterface {
    *   - changed_end: (Optional) A Unix timestamp that when set, should limit
    *     the remote entities to those created or updated before or at the given
    *     timestamp.
+   * @param array $options
+   *   An associative array of options. Supported options are:
+   *   - parameters: (Optional) Additional parameters; it is up to the client to
+   *     determine how these parameters will be used. An example is to include
+   *     query parameters that will be added to the request.
    *
    * @return \Iterator|null
    *   An iterator containing the entities to import, or NULL if there are no
@@ -43,7 +48,7 @@ interface ClientInterface {
    *    priority : high
    *    labels   : import, operation, memory-consumption
    */
-  public function importList(array $filters = []);
+  public function importList(array $filters = [], array $options = []);
 
   /**
    * Gets the remote entity with the given primary ID.

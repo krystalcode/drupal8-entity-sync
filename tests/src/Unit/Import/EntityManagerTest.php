@@ -145,7 +145,11 @@ class EntityManagerTest extends UnitTestCase {
       $field_manager->reveal(),
       $logger->reveal()
     );
-    $manager->importRemoteList($this->getSyncId($sync_case), $filters, []);
+    $manager->importRemoteList(
+      $this->getSyncId($sync_case),
+      $filters,
+      $options
+    );
   }
 
   /**
@@ -187,7 +191,7 @@ class EntityManagerTest extends UnitTestCase {
    *    type     : task
    *    priority : normal
    *    labels   : testing
-   * @I Test that the options are passed to the event subscribers
+   * @I Test that the context is passed to the event subscribers
    *    type     : task
    *    priority : normal
    *    labels   : testing
@@ -196,10 +200,11 @@ class EntityManagerTest extends UnitTestCase {
     return [
       // No options.
       [],
-      // Some options. We will be testing whether the options is passed to the
-      // events so it doesn't matter what they are.
+      // Options containing client options. We will just be testing whether the
+      // client options are passed to the client so it doesn't matter what they
+      // are.
       [
-        'context' => ['state_manager' => 'entity_sync'],
+        'client' => ['parameters' => ['key1' => 'value1', 'key2' => 'value2']],
       ],
     ];
   }
@@ -378,7 +383,10 @@ class EntityManagerTest extends UnitTestCase {
     // We expect to call the client and fetch the entities from the remote.
     $client = $this->prophesize(ClientInterface::class);
     $client
-      ->importList($test_context['event_filters'])
+      ->importList(
+        $test_context['event_filters'],
+        $test_context['options']['client'] ?? []
+      )
       ->willReturn($test_context['remote_entities'])
       ->shouldBeCalledTimes(1);
     $test_context['client_factory']
