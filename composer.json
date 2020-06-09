@@ -30,6 +30,11 @@
     "php-mock/php-mock-phpunit": "dev-master"
   },
   "extra": {
+    "drush": {
+      "services": {
+        "drush.services.yml": "^10"
+      }
+    },
     "patches": {
       "phpspec/prophecy": {
           "Increment a call times prediction's count": "https://www.drupal.org/files/issues/2020-06-07/phpspec-prophecy.call-times-prediction-add-count-pr473.patch"

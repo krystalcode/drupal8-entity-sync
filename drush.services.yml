@@ -1,0 +1,6 @@
+services:
+  entity_sync.commands.import:
+    class: \Drupal\entity_sync\Commands\Import
+    arguments: ['@entity_sync.import.manager']
+    tags:
+      - { name: drush.command }

@@ -676,6 +676,10 @@ class Manager implements ManagerInterface {
    *    type     : task
    *    priority : high
    *    labels   : testing
+   * @I Write test for limiting the number of entities to import
+   *    type     : task
+   *    priority : normal
+   *    labels   : testing
    */
   protected function doubleIteratorApply(
     \Iterator $iterator,
