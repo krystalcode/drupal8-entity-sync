@@ -54,12 +54,11 @@ class Import extends DrushCommands {
    *   Import a list of remote entities defined in the `import_list` operation
    *   of the `my_sync_id` synchronization, passing custom parameters to the
    *   client that will be fetching the entities from the remote resource.
-   * @usage drush entity-sync:import-remote-list "my_sync_id" --changed-start="2020-05-22T00:00:00Z" --changed-end="2020-05-27T23:59:59Z"
+   * @usage drush entity-sync:import-remote-list "my_sync_id" --changed-start="1590105600000" --changed-end="1590623999000"
    *   Import a list of remote entities defined in the `import_list` operation
    *   of the `my_sync_id` synchronization; limit the entities to be imported to
-   *   those changed between the given times. The times need to be given in the
-   *   format expected by the client that will be fetching the entities from the
-   *   remote resource.
+   *   those changed between the given times. The times need to be given in Unix
+   *   timestamp format, as expected by the import entity manager.
    *
    * @command entity-sync:import-remote-list
    *
@@ -68,6 +67,10 @@ class Import extends DrushCommands {
    * @I Add created start/end filters when supported
    *    type     : improvement
    *    priority : low
+   *    labels   : drush
+   * @I Support passing state manager context
+   *    type     : improvement
+   *    priority : normal
    *    labels   : drush
    */
   public function importRemoteList(
