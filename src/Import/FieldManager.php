@@ -5,6 +5,7 @@ namespace Drupal\entity_sync\Import;
 use Drupal\entity_sync\Exception\FieldImportException;
 use Drupal\entity_sync\Import\Event\Events;
 use Drupal\entity_sync\Import\Event\FieldMappingEvent;
+use Drupal\entity_sync\Utility\DateTime;
 
 use Drupal\Core\Config\ImmutableConfig;
 use Drupal\Core\Entity\ContentEntityInterface;
@@ -327,7 +328,7 @@ class FieldManager implements FieldManagerInterface {
     $field_value = NULL;
     if ($field_config['format'] === 'timestamp') {
       $field_value = $remote_entity->{$field_name};
-      if (!$this->isTimestamp($field_value)) {
+      if (!DateTime::isTimestamp($field_value)) {
         throw new \RuntimeException(
           sprintf(
             'The remote entity field "%s" that was requested to be mapped to the remote entity changed field on the local entity was expected to be in Unix timestamp format, "%s" given.',
@@ -464,37 +465,6 @@ class FieldManager implements FieldManagerInterface {
       $sync,
       $throwable
     );
-  }
-
-  /**
-   * Checks whether the given value is a Unix timestamp.
-   *
-   * A Unix timestamp is essentially any positive integer.
-   *
-   * @param int|string $value
-   *   The value to check.
-   *
-   * @return bool
-   *   Whether the value is a Unix timestamp.
-   *
-   * @I Move timestamp validation to a utility class and test
-   *    type     : task
-   *    priority : low
-   *    labels   : refactoring, testing
-   */
-  private function isTimestamp($value) {
-    // If the value is a positive integer, it is a valid timestamp.
-    if (is_int($value) && $value >= 0) {
-      return TRUE;
-    }
-
-    // If the value is or can be converted to a string, all of its characters
-    // should be numeric.
-    if (ctype_digit((string) $value)) {
-      return TRUE;
-    }
-
-    return FALSE;
   }
 
 }

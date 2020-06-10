@@ -45,18 +45,76 @@ class StateManager implements StateManagerInterface {
     );
     $value = $store->get($operation, []);
 
-    return $value['last_run'] ?? NULL;
+    return $value['last_run'] ?? [];
   }
 
   /**
    * {@inheritdoc}
    */
-  public function setLastRun($sync_id, $operation, $last_run) {
+  public function setLastRun(
+    $sync_id,
+    $operation,
+    $run_time,
+    $start_time = NULL,
+    $end_time = NULL
+  ) {
     $store = $this->keyValueFactory->get(
       $this->getCollectionName($sync_id)
     );
     $value = $store->get($operation, []);
-    $value['last_run'] = $last_run;
+    $value['last_run'] = [
+      'run_time' => $run_time,
+      'start_time' => $start_time,
+      'end_time' => $end_time,
+    ];
+
+    $store->set($operation, $value);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getCurrentRun($sync_id, $operation) {
+    $store = $this->keyValueFactory->get(
+      $this->getCollectionName($sync_id)
+    );
+    $value = $store->get($operation, []);
+
+    return $value['current_run'] ?? [];
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setCurrentRun(
+    $sync_id,
+    $operation,
+    $run_time,
+    $start_time = NULL,
+    $end_time = NULL
+  ) {
+    $store = $this->keyValueFactory->get(
+      $this->getCollectionName($sync_id)
+    );
+    $value = $store->get($operation, []);
+    $value['current_run'] = [
+      'run_time' => $run_time,
+      'start_time' => $start_time,
+      'end_time' => $end_time,
+    ];
+
+    $store->set($operation, $value);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function unsetCurrentRun($sync_id, $operation) {
+    $store = $this->keyValueFactory->get(
+      $this->getCollectionName($sync_id)
+    );
+    $value = $store->get($operation, []);
+    $value['current_run'] = [];
 
     $store->set($operation, $value);
   }

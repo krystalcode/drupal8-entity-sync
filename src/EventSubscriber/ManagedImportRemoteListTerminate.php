@@ -59,7 +59,7 @@ class ManagedImportRemoteListTerminate implements EventSubscriberInterface {
   }
 
   /**
-   * Sets the last run time when a remote list import is terminating.
+   * Sets the last run's state when a remote list import is terminating.
    *
    * @param \Drupal\entity_sync\Import\Event\TerminateOperationEvent $event
    *   The terminate operation event.
@@ -68,18 +68,24 @@ class ManagedImportRemoteListTerminate implements EventSubscriberInterface {
     $context = $event->getContext();
 
     // Only proceed if the context indicates that the import is managed.
-    if (!isset($context['state_manager'])) {
+    if (!isset($context['state']['manager'])) {
       return;
     }
-    if ($context['state_manager'] !== 'entity_sync') {
+    if ($context['state']['manager'] !== 'entity_sync') {
       return;
     }
+
+    $sync_id = $event->getSync()->get('id');
+    $current_run = $this->stateManager->getCurrentRun($sync_id, 'import_list');
 
     $this->stateManager->setLastRun(
       $event->getSync()->get('id'),
       $event->getOperation(),
-      $this->time->getRequestTime()
+      $this->time->getRequestTime(),
+      $current_run['start_time'] ?? NULL,
+      $current_run['end_time'] ?? NULL
     );
+    $this->stateManager->unsetCurrentRun($sync_id, 'import_list');
   }
 
 }
