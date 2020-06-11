@@ -21,6 +21,11 @@ namespace Drupal\entity_sync;
  *               remote list operations. Review the design so that it allows to
  *               be used by other operations in the future allowing the
  *               operations to store custom data.
+ *
+ * @I Move the state manager to the `\Drupal\entity_sync\State` namespace
+ *    type     : task
+ *    priority : low
+ *    labels   : structure
  */
 interface StateManagerInterface {
 
@@ -86,6 +91,16 @@ interface StateManagerInterface {
     $start_time = NULL,
     $end_time = NULL
   );
+
+  /**
+   * Unsets the state of the last run of the operation.
+   *
+   * @param string $sync_id
+   *   The ID of the entity synchronization that the operation belongs to.
+   * @param string $operation
+   *   The name of the the operation.
+   */
+  public function unsetLastRun($sync_id, $operation);
 
   /**
    * Gets the state of the current run of the operation.

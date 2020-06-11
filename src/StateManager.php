@@ -74,6 +74,19 @@ class StateManager implements StateManagerInterface {
   /**
    * {@inheritdoc}
    */
+  public function unsetLastRun($sync_id, $operation) {
+    $store = $this->keyValueFactory->get(
+      $this->getCollectionName($sync_id)
+    );
+    $value = $store->get($operation, []);
+    $value['last_run'] = [];
+
+    $store->set($operation, $value);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function getCurrentRun($sync_id, $operation) {
     $store = $this->keyValueFactory->get(
       $this->getCollectionName($sync_id)

@@ -4,3 +4,9 @@ services:
     arguments: ['@entity_sync.import.manager']
     tags:
       - { name: drush.command }
+
+  entity_sync.commands.state:
+    class: \Drupal\entity_sync\Commands\State
+    arguments: ['@entity_sync.state_manager']
+    tags:
+      - { name: drush.command }
