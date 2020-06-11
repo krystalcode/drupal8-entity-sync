@@ -16,6 +16,7 @@ use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\ImmutableConfig;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityStorageInterface;
+use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Logger\LoggerChannelInterface;
 use Drupal\Tests\UnitTestCase;
@@ -261,10 +262,21 @@ class EntityManagerTest extends UnitTestCase {
         'id' => 1,
       ],
       // Create action.
+      // Entity that is not bundleable.
       [
         'action' => ManagerInterface::ACTION_CREATE,
         'entity_type_id' => 'user',
-        'entity_bundle' => 'user',
+      ],
+      // Entity that is bundleable and a bundle is provided.
+      [
+        'action' => ManagerInterface::ACTION_CREATE,
+        'entity_type_id' => 'node',
+        'entity_bundle' => 'article',
+      ],
+      // Entity that is bundleable and a bundle is NOT provided.
+      [
+        'action' => ManagerInterface::ACTION_CREATE,
+        'entity_type_id' => 'node',
       ],
       // Update action.
       [
@@ -572,26 +584,95 @@ class EntityManagerTest extends UnitTestCase {
       return;
     }
 
+    $entity_type = $this->prophesize(EntityTypeInterface::class);
+
+    $this->branchCreateNonBundleableEntityType($test_context, $entity_type);
+    $this->branchCreateBundleableEntityType($test_context, $entity_type);
+
+    $test_context['entity_type_manager']
+      ->getDefinition($test_context['event_entity_mapping']['entity_type_id'])
+      ->willReturn($entity_type->reveal())
+      ->shouldBeCalledTimes($test_context['remote_entities_count']);
+  }
+
+  /**
+   * Create a new local entity of non-bundleable type.
+   */
+  private function branchCreateNonBundleableEntityType(
+    array $test_context,
+    $entity_type
+  ) {
+    // We use `user` as a non-bundleable entity type.
+    if ($test_context['event_entity_mapping']['entity_type_id'] !== 'user') {
+      return;
+    }
+
+    $entity_type
+      ->getBundleEntityType()
+      ->willReturn(FALSE)
+      ->shouldBeCalledTimes($test_context['remote_entities_count']);
+
+    $this->branchCreateSuccess($test_context, []);
+  }
+
+  /**
+   * Create a new local entity of bundleable type.
+   */
+  private function branchCreateBundleableEntityType(
+    array $test_context,
+    $entity_type
+  ) {
+    // We use `node` as a non-bundleable entity type.
+    if ($test_context['event_entity_mapping']['entity_type_id'] !== 'node') {
+      return;
+    }
+
+    $entity_type
+      ->getBundleEntityType()
+      ->willReturn(TRUE)
+      ->shouldBeCalledTimes($test_context['remote_entities_count']);
+
+    // The entity is bundleable; if the entity mapping has not provided a bundle
+    // we cannot create the entity and we expect an exception to be thrown that
+    // will be caught and logged.
+    if (empty($test_context['event_entity_mapping']['entity_bundle'])) {
+      $test_context['entity_type_manager']
+        ->getStorage(Argument::any())
+        ->shouldNotBeCalled();
+      $this->expectLoggerError($test_context);
+      return;
+    }
+
+    $entity_type
+      ->getKey('bundle')
+      ->willReturn('type')
+      ->shouldBeCalledTimes($test_context['remote_entities_count']);
+    $this->branchCreateSuccess(
+      $test_context,
+      ['type' => $test_context['event_entity_mapping']['entity_bundle']]
+    );
+  }
+
+  /**
+   * Create entity is successful, whether of bundleable of non-bundleable type.
+   */
+  private function branchCreateSuccess(
+    array $test_context,
+    array $create_values
+  ) {
     // We override the local entity from the data provider that is meant to be
     // for the `update` action only. For the `create` action we always need a
     // new entity created by the storage.
     $local_entity = $this->prophesize(ContentEntityInterface::class);
     $test_context['local_entity'] = $local_entity;
 
-    // @I Test for creating entity without a bundle defined
-    //    type     : task
-    //    priority : normal
-    //    labels   : testing
-    //
     // For the purposes of the tests, we either create or update all remote
     // entities. We therefore expect the number of times that the `create`
     // method will be called to be equal with the number of remote entities.
     // See comments on the `branchCreateDisabled` method.
     $entity_storage = $this->prophesize(EntityStorageInterface::class);
     $entity_storage
-      ->create(
-        ['type' => $test_context['event_entity_mapping']['entity_bundle']]
-      )
+      ->create($create_values)
       ->willReturn($local_entity)
       ->shouldBeCalledTimes($test_context['remote_entities_count']);
     $entity_storage

@@ -379,19 +379,32 @@ class Manager implements ManagerInterface {
       return;
     }
 
-    // @I Support creation of local entities of types that do not have bundles
-    //    type     : bug
-    //    priority : normal
-    //    labels   : import
-    // @I Load the bundle property from the entity keys
-    //    type     : bug
-    //    priority : normal
-    //    labels   : import
+    $create_values = [];
+
+    // If the entity type has bundles, we need to be provided the bundle that
+    // will be used to create the entity.
+    $entity_type = $this->entityTypeManager
+      ->getDefinition($entity_mapping['entity_type_id']);
+
+    $is_bundleable = $entity_type->getBundleEntityType() ? TRUE : FALSE;
+    if ($is_bundleable && empty($entity_mapping['entity_bundle'])) {
+      throw new EntityImportException(
+        sprintf(
+          'A bundle needs to be provided for creating an entity of type "%s".',
+          $entity_mapping['entity_type_id']
+        )
+      );
+    }
+
+    if ($is_bundleable) {
+      $create_values = [
+        $entity_type->getKey('bundle') => $entity_mapping['entity_bundle'],
+      ];
+    }
+
     $local_entity = $this->entityTypeManager
       ->getStorage($entity_mapping['entity_type_id'])
-      ->create([
-        'type' => $entity_mapping['entity_bundle'],
-      ]);
+      ->create($create_values);
 
     $this->doImportEntity($remote_entity, $local_entity, $sync);
   }
