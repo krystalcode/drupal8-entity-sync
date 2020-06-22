@@ -92,3 +92,10 @@ services:
     class: Drupal\entity_sync\EventSubscriber\DefaultExportFieldMapping
     tags:
       - { name: event_subscriber }
+
+  entity_sync.export.default_export_local_entity_terminate_subscriber:
+    class: Drupal\entity_sync\EventSubscriber\DefaultExportLocalEntityTerminate
+    arguments:
+      - '@entity_sync.export.field_manager'
+    tags:
+      - { name: event_subscriber }

@@ -75,4 +75,16 @@ interface ClientInterface {
    */
   public function update($id, array $fields);
 
+  /**
+   * Create a new remote entity for a given local entity.
+   *
+   * @param array $fields
+   *   An associative array containing the fields that will be created, keyed by
+   *   the field name and containing the field value.
+   *
+   * @return object
+   *   The parsed response.
+   */
+  public function create(array $fields);
+
 }
