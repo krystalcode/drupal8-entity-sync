@@ -1,8 +1,15 @@
 <?php
 
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\ContentEntityInterface;
+
 /**
  * @file
  * Defines hooks and common functionality for the Entity Synchronization module.
+ */
+
+/**
+ * Hooks.
  */
 
 /**
@@ -10,4 +17,68 @@
  */
 function entity_sync_toolbar_alter(&$items) {
   $items['administration']['#attached']['library'][] = 'entity_sync/toolbar';
+}
+
+/**
+ * Implements hook_entity_update().
+ */
+function entity_sync_entity_update(EntityInterface $entity) {
+  entity_sync_export_local_entity_all_syncs($entity);
+}
+
+/**
+ * Internal API.
+ */
+
+/**
+ * Exports the given entity as defined by any synchronization configuration.
+ *
+ * We detect which synchronizations define an enabled export operation for the
+ * given entity type and we run them.
+ *
+ * @param \Drupal\Core\Entity\ContentEntityInterface $entity
+ *   The entity to export. Right now we only support content entities.
+ *
+ * @I Move to a `exportLocalEntityAllSyncs` method in the export entity manager
+ *    type     : task
+ *    priority : normal
+ *    labels   : export, structure
+ *    notes    : Important so we can better write unit tests.
+ */
+function entity_sync_export_local_entity_all_syncs(
+  ContentEntityInterface $entity
+) {
+  $entity_type_id = $entity->getEntityTypeId();
+
+  // @I Support caching syncs per entity type
+  //    type     : improvement
+  //    priority : normal
+  //    labels   : export, performance
+  // @I Move config-related logic to a `Config/SyncManager` service
+  //    type     : task
+  //    priority : normal
+  //    labels   : export, structure
+  $config_factory = \Drupal::service('config.factory');
+  $config_names = $config_factory->listAll('entity_sync.sync.');
+  if (!$config_names) {
+    return;
+  }
+
+  $manager = \Drupal::service('entity_sync.export.entity_manager');
+
+  foreach ($config_names as $config_name) {
+    $sync = $config_factory->get($config_name);
+    if ($sync->get('entity.type_id') !== $entity_type_id) {
+      continue;
+    }
+    if ($sync->get('operations.export_entity.status') === FALSE) {
+      continue;
+    }
+
+    // @I Support queuing local entity exports
+    //    type     : improvement
+    //    priority : normal
+    //    labels   : export, performance
+    $manager->exportLocalEntity($sync->get('id'), $entity);
+  }
 }

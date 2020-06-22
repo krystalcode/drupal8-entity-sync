@@ -3,12 +3,12 @@
 namespace Drupal\entity_sync\Import;
 
 use Drupal\entity_sync\Client\ClientFactory;
-use Drupal\entity_sync\Event\TerminateOperationEvent;
 use Drupal\entity_sync\Exception\EntityImportException;
 use Drupal\entity_sync\Import\Event\Events;
 use Drupal\entity_sync\Import\Event\ListFiltersEvent;
 use Drupal\entity_sync\Import\Event\LocalEntityMappingEvent;
 use Drupal\entity_sync\Import\Event\RemoteEntityMappingEvent;
+use Drupal\entity_sync\EntityManagerBase;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\ImmutableConfig;
@@ -26,7 +26,7 @@ use Symfony\Component\EventDispatcher\EventDispatcherInterface;
  *    priority : low
  *    labels   : coding-standards
  */
-class Manager implements ManagerInterface {
+class Manager extends EntityManagerBase implements ManagerInterface {
 
   /**
    * The client factory.
@@ -602,58 +602,6 @@ class Manager implements ManagerInterface {
 
     // Return the final filters.
     return $event->getFilters();
-  }
-
-  /**
-   * Dispatches an event when an operation is being terminated.
-   *
-   * @param string $event_name
-   *   The name of the event to dispatch. It must be a name for a
-   *   `TerminateOperationEvent` event.
-   * @param string $operation
-   *   The name of the operation being terminated.
-   * @param array $context
-   *   The context of the operation we are currently executing.
-   * @param \Drupal\Core\Config\ImmutableConfig $sync
-   *   The configuration object for synchronization that defines the operation
-   *   we are currently executing.
-   */
-  protected function terminate(
-    $event_name,
-    $operation,
-    array $context,
-    ImmutableConfig $sync
-  ) {
-    $event = new TerminateOperationEvent(
-      $operation,
-      $context,
-      $sync
-    );
-    $this->eventDispatcher->dispatch($event_name, $event);
-  }
-
-  /**
-   * Checks that the given operation is enabled for the given synchronization.
-   *
-   * @param \Drupal\Core\Config\ImmutableConfig $sync
-   *   The configuration object for the synchronization that defines the
-   *   operation we are currently executing.
-   * @param string $operation
-   *   The operation to check.
-   *
-   * @return bool
-   *   TRUE if the operation is enabled and supported, FALSE otherwise.
-   */
-  protected function operationSupported(ImmutableConfig $sync, $operation) {
-    // @I Check that the provider supports the corresponding method as well
-    //    type     : bug
-    //    priority : normal
-    //    labels   : import, operation, validation
-    if (!$sync->get("operations.$operation.status")) {
-      return FALSE;
-    }
-
-    return TRUE;
   }
 
   /**

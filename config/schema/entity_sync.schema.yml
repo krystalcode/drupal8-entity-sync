@@ -212,6 +212,29 @@ entity_sync.operation.import_entity:
           type: string
           label: 'The frequency in which the operation should run via cron'
 
+# @I Support enabling/disabling exporting new entities
+#    type     : improvement
+#    priority : normal
+#    labels   : config, export
+# @I Support enabling/disabling exporting a list of entities
+#    type     : feature
+#    priority : normal
+#    labels   : export
+# @I Setting/option for exporting entities mode i.e. with/without queueing
+#    type     : improvement
+#    priority : normal
+#    labels   : config, export
+entity_sync.operation.export_entity:
+  type: mapping
+  label: 'The configuration for the Export Entity operation'
+  mapping:
+    status:
+      type: boolean
+      label: 'Whether the operation is enabled or not'
+    label:
+      type: string
+      label: 'The human-friendly label describing the operation'
+
 # Field mapping configuration determines which entity field will be mapped with
 # which remote resource field/property and how.
 entity_sync.field:
@@ -224,12 +247,29 @@ entity_sync.field:
     remote_name:
       type: string
       label: 'The name of the corresponding field in the remote resource'
-    # If no import/export callbacks are defined a direct copy of the value will
-    # be done. Callbacks would usually need to be defined for complex field
-    # types where a direct copy is not applicable.
-    import_callback:
-      type: string
-      label: 'A custom callback used to map the remote resource field value to the entity field value'
-    export_callback:
-      type: string
-      label: 'A custom callback used to map the entity field value to the remote resource field value'
+    import:
+      type: mapping
+      label: 'The configuration for importing an entity field'
+      mapping:
+        status:
+          type: boolean
+          label: 'Whether the field should be imported'
+        # If no import callback is defined a direct copy of the value will be
+        # done. Callbacks would usually need to be defined for complex field
+        # types where a direct copy is not applicable.
+        callback:
+          type: string
+          label: 'A custom callback used to map the remote resource field value to the entity field value'
+    export:
+      type: mapping
+      label: 'The configuration for exporting an entity field'
+      mapping:
+        status:
+          type: boolean
+          label: 'Whether the field should be exported'
+        # If no export callback is defined a direct copy of the value will be
+        # done. Callbacks would usually need to be defined for complex field
+        # types where a direct copy is not applicable.
+        callback:
+          type: string
+          label: 'A custom callback used to map the entity field value to the remote resource field value'

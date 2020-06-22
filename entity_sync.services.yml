@@ -12,6 +12,12 @@ services:
     calls:
       - [setContainer, ['@service_container']]
 
+  entity_sync.state_manager:
+    class: Drupal\entity_sync\StateManager
+    arguments: ['@keyvalue']
+
+  # Import.
+  # Managers.
   entity_sync.import.manager:
     class: Drupal\entity_sync\Import\Manager
     arguments:
@@ -27,10 +33,6 @@ services:
     arguments:
       - '@event_dispatcher'
       - '@logger.channel.entity_sync'
-
-  entity_sync.state_manager:
-    class: Drupal\entity_sync\StateManager
-    arguments: ['@keyvalue']
 
   # Subscribers.
   entity_sync.import.local_entity_mapping_subscriber:
@@ -59,5 +61,34 @@ services:
   entity_sync.import.managed_remote_list_filters_terminate_subscriber:
     class: Drupal\entity_sync\EventSubscriber\ManagedImportRemoteListTerminate
     arguments: ['@entity_sync.state_manager', '@datetime.time']
+    tags:
+      - { name: event_subscriber }
+
+  # Export.
+  # Managers.
+  entity_sync.export.entity_manager:
+    class: Drupal\entity_sync\Export\EntityManager
+    arguments:
+      - '@entity_sync.client.factory'
+      - '@config.factory'
+      - '@entity_type.manager'
+      - '@event_dispatcher'
+      - '@entity_sync.export.field_manager'
+      - '@logger.channel.entity_sync'
+
+  entity_sync.export.field_manager:
+    class: Drupal\entity_sync\Export\FieldManager
+    arguments:
+      - '@event_dispatcher'
+      - '@logger.channel.entity_sync'
+
+  # Subscribers.
+  entity_sync.export.local_entity_mapping_subscriber:
+    class: Drupal\entity_sync\EventSubscriber\DefaultExportLocalEntityMapping
+    tags:
+      - { name: event_subscriber }
+
+  entity_sync.export.default_field_mapping_subscriber:
+    class: Drupal\entity_sync\EventSubscriber\DefaultExportFieldMapping
     tags:
       - { name: event_subscriber }

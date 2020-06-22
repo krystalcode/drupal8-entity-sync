@@ -61,4 +61,18 @@ interface ClientInterface {
    */
   public function importEntity($id);
 
+  /**
+   * Updates the remote entity with the given primary ID.
+   *
+   * @param int|string $id
+   *   The ID of the remote entity that will be updated.
+   * @param array $fields
+   *   An associative array containing the fields that will be updated, keyed by
+   *   the field name and containing the field value.
+   *
+   * @return object
+   *   The parsed response.
+   */
+  public function update($id, array $fields);
+
 }
