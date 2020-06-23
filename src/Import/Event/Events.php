@@ -48,7 +48,7 @@ final class Events {
    *
    * @Event
    *
-   * @see \Drupal\entity_sync\Import\Event\TerminateOperationEvent
+   * @see \Drupal\entity_sync\Event\TerminateOperationEvent
    */
   const REMOTE_LIST_TERMINATE = 'entity_sync.import.remote_list_terminate';
 
@@ -57,7 +57,7 @@ final class Events {
    *
    * @Event
    *
-   * @see \Drupal\entity_sync\Import\Event\TerminateOperationEvent
+   * @see \Drupal\entity_sync\Event\TerminateOperationEvent
    */
   const LOCAL_ENTITY_TERMINATE = 'entity_sync.import.local_entity_terminate';
 

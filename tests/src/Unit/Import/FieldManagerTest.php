@@ -2,12 +2,13 @@
 
 namespace Drupal\Tests\entity_sync\Unit\Import;
 
+use Drupal\entity_sync\Config\ManagerInterface as ConfigManagerInterface;
 use Drupal\entity_sync\Exception\FieldImportException;
 use Drupal\entity_sync\Import\FieldManager;
 use Drupal\entity_sync\Import\Event\Events;
 use Drupal\entity_sync\Import\Event\FieldMappingEvent;
 
-
+use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Config\ImmutableConfig;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Tests\entity_sync\TestTrait\DataProviderTrait;
@@ -47,7 +48,7 @@ class FieldManagerTest extends UnitTestCase {
    * @I Consider moving remote changed field values to fixtures
    *    type     : task
    *    priority : low
-   *    labels   : testing
+   *    labels   : import, testing
    */
   private $remoteChangedFieldValues = [
     'timestamp_int' => 1010101010,
@@ -62,7 +63,7 @@ class FieldManagerTest extends UnitTestCase {
    * @I Add option data provider and related tests
    *    type     : task
    *    priority : low
-   *    labels   : testing
+   *    labels   : import, testing
    */
   public function dataProvider() {
     $providers = [
@@ -103,6 +104,7 @@ class FieldManagerTest extends UnitTestCase {
   ) {
     // Mock services required for instantiating the import manager.
     $logger = $this->prophesize(LoggerInterface::class);
+    $config_manager = $this->prophesize(ConfigManagerInterface::class);
 
     $event_dispatcher = $this->buildEventDispatcher($event_field_mapping);
 
@@ -118,6 +120,7 @@ class FieldManagerTest extends UnitTestCase {
     // to branching methods.
     $test_context = [
       'logger' => $logger,
+      'config_manager' => $config_manager,
       'sync' => $sync,
       'sync_case' => $sync_case,
       'event_field_mapping' => $event_field_mapping,
@@ -142,6 +145,7 @@ class FieldManagerTest extends UnitTestCase {
 
     // Run!
     $manager = new FieldManager(
+      $config_manager->reveal(),
       $event_dispatcher,
       $logger->reveal()
     );
@@ -197,7 +201,30 @@ class FieldManagerTest extends UnitTestCase {
           // The callback method does not need to actually exist; we will just
           // be testing that the `call_user_func` function is called with the
           // right arguments.
-          'import_callback' => '\Drupal\Tests\entity_sync\Unit\Import/FieldManagerTest::fieldCallback',
+          'import' => [
+            'callback' => '\Drupal\Tests\entity_sync\Unit\Import\FieldManagerTest::fieldCallback',
+          ],
+        ],
+      ],
+      // A field that is configured to not be imported.
+      [
+        [
+          'machine_name' => 'mail',
+          'remote_name' => 'email',
+          'import' => [
+            'status' => FALSE,
+          ],
+        ],
+        [
+          'machine_name' => 'name',
+          'remote_name' => 'name',
+          // The callback method does not need to actually exist; we will just
+          // be testing that the `call_user_func` function is called with the
+          // right arguments.
+          'import' => [
+            'status' => FALSE,
+            'callback' => '\Drupal\Tests\entity_sync\Unit\Import\FieldManagerTest::fieldCallback',
+          ],
         ],
       ],
     ];
@@ -373,7 +400,10 @@ class FieldManagerTest extends UnitTestCase {
     $errors = FALSE;
 
     foreach ($test_context['event_field_mapping'] as $field_info) {
+      $this->expectFieldMappingMerge($test_context, $field_info);
+
       try {
+        $this->branchFieldMappingDisabled($test_context, $field_info);
         $this->branchFieldMappingWithCallback($test_context, $field_info);
         $this->branchFieldMappingWithoutCallback($test_context, $field_info);
       }
@@ -388,13 +418,51 @@ class FieldManagerTest extends UnitTestCase {
   }
 
   /**
+   * The field mapping is disabled.
+   */
+  private function branchFieldMappingDisabled(
+    array $test_context,
+    array $field_info
+  ) {
+    if (($field_info['import']['status'] ?? TRUE) !== FALSE) {
+      return;
+    }
+
+    // We expect to not proceed with getting the value of this field neither
+    // from the entity nor via calling a callback.
+    $test_context['local_entity']
+      ->set($field_info['machine_name'], Argument::any())
+      ->shouldNotBeCalled();
+
+    if (($field_info['import']['callback'] ?? FALSE) === FALSE) {
+      return;
+    }
+
+    $call_user_func = $this->getFunctionMock(
+      '\Drupal\entity_sync\Import',
+      'call_user_func'
+    );
+    $call_user_func
+      ->expects($this->never())
+      ->with(
+        $this->equalTo($field_info['import']['callback']),
+        $this->any(),
+        $this->any(),
+        $this->equalTo($field_info)
+      );
+  }
+
+  /**
    * The field mapping is done by a callback.
    */
   private function branchFieldMappingWithCallback(
     array $test_context,
     array $field_info
   ) {
-    if (!isset($field_info['import_callback'])) {
+    if (($field_info['import']['status'] ?? TRUE) !== TRUE) {
+      return;
+    }
+    if (($field_info['import']['callback'] ?? FALSE) === FALSE) {
       return;
     }
 
@@ -451,7 +519,10 @@ class FieldManagerTest extends UnitTestCase {
     array $test_context,
     array $field_info
   ) {
-    if (isset($field_info['import_callback'])) {
+    if (($field_info['import']['status'] ?? TRUE) !== TRUE) {
+      return;
+    }
+    if (($field_info['import']['callback'] ?? FALSE) !== FALSE) {
       return;
     }
 
@@ -1131,6 +1202,26 @@ class FieldManagerTest extends UnitTestCase {
   }
 
   /**
+   * Mocks the method call for merging in the default import field mapping.
+   */
+  private function expectFieldMappingMerge($test_context, array $field_info) {
+    $merged_field_info = NestedArray::mergeDeep(
+      [
+        'import' => [
+          'status' => TRUE,
+          'callback' => FALSE,
+        ],
+      ],
+      $field_info
+    );
+
+    $test_context['config_manager']
+      ->mergeImportFieldMappingDefaults($field_info)
+      ->willReturn($merged_field_info)
+      ->shouldBeCalledTimes(1);
+  }
+
+  /**
    * Mock `call_user_func`.
    *
    * @I Use `php-mock/php-mock-prophecy` for mocking global functions
@@ -1144,11 +1235,23 @@ class FieldManagerTest extends UnitTestCase {
       'call_user_func'
     );
 
+    // Expect the field mapping defaults to be set if the corresponding values
+    // are not set.
+    if (!isset($field_info['import'])) {
+      $field_info['import'] = [];
+    }
+    if (!isset($field_info['import']['status'])) {
+      $field_info['import']['status'] = TRUE;
+    }
+    if (!isset($field_info['import']['callback'])) {
+      $field_info['import']['callback'] = FALSE;
+    }
+
     $local_entity = $test_context['local_entity'];
     return $call_user_func
       ->expects($this->once())
       ->with(
-        $this->equalTo($field_info['import_callback']),
+        $this->equalTo($field_info['import']['callback']),
         $this->identicalTo($test_context['remote_entity']),
         // The `identicalTo` parameter matcher seems to fail when the parameters
         // are mock objects. We write a custom callback that compares the

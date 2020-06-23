@@ -2,11 +2,11 @@
 
 namespace Drupal\entity_sync\Export;
 
+use Drupal\entity_sync\Config\ManagerInterface as ConfigManagerInterface;
 use Drupal\entity_sync\Exception\FieldExportException;
 use Drupal\entity_sync\Export\Event\Events;
 use Drupal\entity_sync\Export\Event\FieldMappingEvent;
 
-use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Config\ImmutableConfig;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Field\FieldItemInterface;
@@ -18,6 +18,13 @@ use Symfony\Component\EventDispatcher\EventDispatcherInterface;
  * The default field manager.
  */
 class FieldManager implements FieldManagerInterface {
+
+  /**
+   * The Entity Sync configuration manager.
+   *
+   * @var \Drupal\entity_sync\Config\ManagerInterface
+   */
+  protected $configManager;
 
   /**
    * The event dispatcher.
@@ -36,29 +43,21 @@ class FieldManager implements FieldManagerInterface {
   /**
    * Constructs a new FieldManager instance.
    *
+   * @param \Drupal\entity_sync\Config\ManagerInterface $config_manager
+   *   The Entity Sync configuration manager.
    * @param \Symfony\Component\EventDispatcher\EventDispatcherInterface $event_dispatcher
    *   The event dispatcher.
    * @param \Psr\Log\LoggerInterface $logger
    *   The logger.
    */
   public function __construct(
+    ConfigManagerInterface $config_manager,
     EventDispatcherInterface $event_dispatcher,
     LoggerInterface $logger
   ) {
+    $this->configManager = $config_manager;
     $this->eventDispatcher = $event_dispatcher;
     $this->logger = $logger;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function mappingDefaults() {
-    return [
-      'export' => [
-        'status' => TRUE,
-        'callback' => FALSE,
-      ],
-    ];
   }
 
   /**
@@ -209,10 +208,8 @@ class FieldManager implements FieldManagerInterface {
     $fields = [];
 
     foreach ($field_mapping as $field_info) {
-      $field_info = NestedArray::mergeDeep(
-        $this->mappingDefaults(),
-        $field_info
-      );
+      $field_info = $this->configManager
+        ->mergeExportFieldMappingDefaults($field_info);
       if (!$field_info['export']['status']) {
         continue;
       }

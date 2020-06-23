@@ -8,9 +8,9 @@ use Drupal\Core\Entity\EntityInterface;
 use Symfony\Component\EventDispatcher\Event;
 
 /**
- * Defines the import field mapping event.
+ * Defines the export field mapping event.
  *
- * Allows subscribers to define which local entity fields the remote entity
+ * Allows subscribers to define which remote entity fields the local entity
  * fields should be mapped to.
  */
 class FieldMappingEvent extends Event {
@@ -18,8 +18,8 @@ class FieldMappingEvent extends Event {
   /**
    * The field mapping for the entities being mapped.
    *
-   * The mapping is an associative array that defines which local entity fields
-   * the remote entity fields should be mapped to. Supported array elements are
+   * The mapping is an associative array that defines which remote entity fields
+   * the local entity fields should be mapped to. Supported array elements are
    * those defined in the `entity_sync.field` configuration.
    * See `config/schema/entity_sync.schema.yml`.
    *
@@ -28,14 +28,14 @@ class FieldMappingEvent extends Event {
   protected $fieldMapping = [];
 
   /**
-   * The associated local entity.
+   * The local entity.
    *
    * @var \Drupal\Core\Entity\EntityInterface
    */
   protected $localEntity;
 
   /**
-   * The remote entity ID.
+   * The ID of the associated remote entity, or NULL if we are creating one.
    *
    * @var int|string|null
    */
@@ -52,7 +52,7 @@ class FieldMappingEvent extends Event {
    * Constructs a new FieldMappingEvent object.
    *
    * @param \Drupal\Core\Entity\EntityInterface $local_entity
-   *   The associated local entity.
+   *   The local entity.
    * @param int|string|null $remote_entity_id
    *   The ID of the remote entity that will be updated, or NULL if we are
    *   creating a new one.

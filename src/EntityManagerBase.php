@@ -6,7 +6,7 @@ use Drupal\entity_sync\Event\TerminateOperationEvent;
 use Drupal\Core\Config\ImmutableConfig;
 
 /**
- * Base manager class for the import/export operations.
+ * Base class for the import/export entity managers.
  */
 class EntityManagerBase {
 
@@ -26,7 +26,7 @@ class EntityManagerBase {
     // @I Check that the provider supports the corresponding method as well
     //    type     : bug
     //    priority : normal
-    //    labels   : import, operation, validation
+    //    labels   : operation, validation
     if (!$sync->get("operations.$operation.status")) {
       return FALSE;
     }

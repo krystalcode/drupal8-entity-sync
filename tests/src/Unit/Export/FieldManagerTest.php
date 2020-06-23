@@ -2,10 +2,12 @@
 
 namespace Drupal\Tests\entity_sync\Unit\Export;
 
+use Drupal\entity_sync\Config\ManagerInterface as ConfigManagerInterface;
 use Drupal\entity_sync\Exception\FieldExportException;
 use Drupal\entity_sync\Export\Event\Events;
 use Drupal\entity_sync\Export\Event\FieldMappingEvent;
 
+use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Config\ImmutableConfig;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
@@ -107,6 +109,7 @@ class FieldManagerTest extends UnitTestCase {
   ) {
     // Mock services required for instantiating the export manager.
     $logger = $this->prophesize(LoggerInterface::class);
+    $config_manager = $this->prophesize(ConfigManagerInterface::class);
 
     $event_dispatcher = $this->buildEventDispatcher($event_field_mapping);
 
@@ -122,6 +125,7 @@ class FieldManagerTest extends UnitTestCase {
     // to branching methods.
     $test_context = [
       'logger' => $logger,
+      'config_manager' => $config_manager,
       'sync' => $sync,
       'sync_case' => $sync_case,
       'event_field_mapping' => $event_field_mapping,
@@ -144,6 +148,7 @@ class FieldManagerTest extends UnitTestCase {
 
     // Run!
     $manager = new FieldManager(
+      $config_manager->reveal(),
       $event_dispatcher,
       $logger->reveal()
     );
@@ -373,6 +378,8 @@ class FieldManagerTest extends UnitTestCase {
     $errors = FALSE;
 
     foreach ($test_context['event_field_mapping'] as $field_info) {
+      $this->expectFieldMappingMerge($test_context, $field_info);
+
       try {
         $this->branchFieldMappingDisabled($test_context, $field_info);
         $this->branchFieldMappingWithCallback($test_context, $field_info);
@@ -802,6 +809,27 @@ class FieldManagerTest extends UnitTestCase {
     $field
       ->getFieldDefinition()
       ->willReturn($field_definition->reveal())
+      ->shouldBeCalledTimes(1);
+  }
+
+  /**
+   * Mocks the method call for merging in the default export field mapping.
+   */
+  private function expectFieldMappingMerge($test_context, array $field_info) {
+    unset($field_info['test']);
+    $merged_field_info = NestedArray::mergeDeep(
+      [
+        'export' => [
+          'status' => TRUE,
+          'callback' => FALSE,
+        ],
+      ],
+      $field_info
+    );
+
+    $test_context['config_manager']
+      ->mergeExportFieldMappingDefaults($field_info)
+      ->willReturn($merged_field_info)
       ->shouldBeCalledTimes(1);
   }
 
