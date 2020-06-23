@@ -83,11 +83,6 @@ class ExportLocalEntity extends QueueWorkerBase implements
 
   /**
    * {@inheritdoc}
-   *
-   * @I Add an option to be notified when the export is run
-   *    type     : feature
-   *    priority : normal
-   *    labels   : export, entity
    */
   public function processItem($data) {
     // Load the entity.
