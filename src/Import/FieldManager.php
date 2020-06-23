@@ -2,6 +2,7 @@
 
 namespace Drupal\entity_sync\Import;
 
+use Drupal\entity_sync\Config\ManagerInterface as ConfigManagerInterface;
 use Drupal\entity_sync\Exception\FieldImportException;
 use Drupal\entity_sync\Import\Event\Events;
 use Drupal\entity_sync\Import\Event\FieldMappingEvent;
@@ -17,6 +18,13 @@ use Symfony\Component\EventDispatcher\EventDispatcherInterface;
  * The default field manager.
  */
 class FieldManager implements FieldManagerInterface {
+
+  /**
+   * The Entity Sync configuration manager.
+   *
+   * @var \Drupal\entity_sync\Config\ManagerInterface
+   */
+  protected $configManager;
 
   /**
    * The event dispatcher.
@@ -35,15 +43,19 @@ class FieldManager implements FieldManagerInterface {
   /**
    * Constructs a new FieldManager instance.
    *
+   * @param \Drupal\entity_sync\Config\ManagerInterface $config_manager
+   *   The Entity Sync configuration manager.
    * @param \Symfony\Component\EventDispatcher\EventDispatcherInterface $event_dispatcher
    *   The event dispatcher.
    * @param \Psr\Log\LoggerInterface $logger
    *   The logger.
    */
   public function __construct(
+    ConfigManagerInterface $config_manager,
     EventDispatcherInterface $event_dispatcher,
     LoggerInterface $logger
   ) {
+    $this->configManager = $config_manager;
     $this->eventDispatcher = $event_dispatcher;
     $this->logger = $logger;
   }
@@ -70,7 +82,87 @@ class FieldManager implements FieldManagerInterface {
       return;
     }
 
+    $this->doImport(
+      $remote_entity,
+      $local_entity,
+      $sync,
+      $field_mapping
+    );
+  }
+
+  /**
+   * Builds and returns the field mapping for the given entities.
+   *
+   * The field mapping defines which local entity fields will be updated with
+   * which values contained in the given remote entity. The default mapping is
+   * defined in the synchronization to which the operation we are currently
+   * executing belongs.
+   *
+   * An event is dispatched that allows subscribers to alter the default field
+   * mapping.
+   *
+   * @param object $remote_entity
+   *   The remote entity.
+   * @param \Drupal\core\Entity\ContentEntityInterface $local_entity
+   *   The local entity.
+   * @param \Drupal\Core\Config\ImmutableConfig $sync
+   *   The configuration object for synchronization that defines the operation
+   *   we are currently executing.
+   *
+   * @return array
+   *   The final field mapping.
+   *
+   * @I Validate the final field mapping
+   *    type     : bug
+   *    priority : normal
+   *    labels   : import, mapping, validation
+   */
+  protected function fieldMapping(
+    object $remote_entity,
+    ContentEntityInterface $local_entity,
+    ImmutableConfig $sync
+  ) {
+    $event = new FieldMappingEvent(
+      $remote_entity,
+      $local_entity,
+      $sync
+    );
+    $this->eventDispatcher->dispatch(Events::FIELD_MAPPING, $event);
+
+    // Return the final mappings.
+    return $event->getFieldMapping();
+  }
+
+  /**
+   * Does the actual import of the fields for the given entities.
+   *
+   * @param object $remote_entity
+   *   The remote entity.
+   * @param \Drupal\Core\Entity\ContentEntityInterface $local_entity
+   *   The associated local entity.
+   * @param \Drupal\Core\Config\ImmutableConfig $sync
+   *   The configuration object for synchronization that defines the operation
+   *   we are currently executing.
+   * @param array $field_mapping
+   *   The field mapping.
+   *   See \Drupal\entity_sync\Import\Event\FieldMapping::fieldMapping.
+   *
+   * @throws \Drupal\entity_sync\Exception\FieldImportException
+   *   When an error occurs while importing a field.
+   */
+  protected function doImport(
+    object $remote_entity,
+    ContentEntityInterface $local_entity,
+    ImmutableConfig $sync,
+    array $field_mapping
+  ) {
     foreach ($field_mapping as $field_info) {
+      $field_info = $this->configManager
+        ->mergeImportFieldMappingDefaults($field_info);
+      if (!$field_info['import']['status']) {
+        continue;
+      }
+
       try {
         $this->doImportField($remote_entity, $local_entity, $field_info, $sync);
       }
@@ -121,49 +213,6 @@ class FieldManager implements FieldManagerInterface {
   }
 
   /**
-   * Builds and returns the field mapping for the given entities.
-   *
-   * The field mapping defines which local entity fields will be updated with
-   * which values contained in the given remote entity. The default mapping is
-   * defined in the synchronization to which the operation we are currently
-   * executing belongs.
-   *
-   * An event is dispatched that allows subscribers to alter the default field
-   * mapping.
-   *
-   * @param object $remote_entity
-   *   The remote entity.
-   * @param \Drupal\core\Entity\ContentEntityInterface $local_entity
-   *   The local entity.
-   * @param \Drupal\Core\Config\ImmutableConfig $sync
-   *   The configuration object for synchronization that defines the operation
-   *   we are currently executing.
-   *
-   * @return array
-   *   The final field mapping.
-   *
-   * @I Validate the final field mapping
-   *    type     : bug
-   *    priority : normal
-   *    labels   : import, mapping, validation
-   */
-  protected function fieldMapping(
-    object $remote_entity,
-    ContentEntityInterface $local_entity,
-    ImmutableConfig $sync
-  ) {
-    $event = new FieldMappingEvent(
-      $remote_entity,
-      $local_entity,
-      $sync
-    );
-    $this->eventDispatcher->dispatch(Events::FIELD_MAPPING, $event);
-
-    // Return the final mappings.
-    return $event->getFieldMapping();
-  }
-
-  /**
    * Performs the actual import of a remote field to a local field.
    *
    * @param object $remote_entity
@@ -172,7 +221,7 @@ class FieldManager implements FieldManagerInterface {
    *   The associated local entity.
    * @param array $field_info
    *   The field info.
-   *   See \Drupal\entity_sync\Event\FieldMapping::fieldMapping.
+   *   See \Drupal\entity_sync\Import\Event\FieldMapping::fieldMapping.
    * @param \Drupal\Core\Config\ImmutableConfig $sync
    *   The configuration object for synchronization that defines the operation
    *   we are currently executing.
@@ -185,9 +234,9 @@ class FieldManager implements FieldManagerInterface {
   ) {
     // If the field value should be converted and stored by a custom callback,
     // then invoke that.
-    if (isset($field_info['import_callback'])) {
+    if (($field_info['import']['callback'] ?? FALSE) !== FALSE) {
       call_user_func(
-        $field_info['import_callback'],
+        $field_info['import']['callback'],
         $remote_entity,
         $local_entity,
         $field_info
@@ -369,7 +418,7 @@ class FieldManager implements FieldManagerInterface {
    *   The associated local entity.
    * @param array $field_info
    *   The field info.
-   *   See \Drupal\entity_sync\Event\FieldMapping::fieldMapping.
+   *   See \Drupal\entity_sync\Import\Event\FieldMapping::fieldMapping.
    * @param \Drupal\Core\Config\ImmutableConfig $sync
    *   The configuration object for synchronization that defines the operation
    *   we are currently executing.

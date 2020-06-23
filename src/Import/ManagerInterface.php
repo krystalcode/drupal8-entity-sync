@@ -141,7 +141,7 @@ interface ManagerInterface {
    *
    * Importing remote entities that do not have local entities associated with
    * them will result in new local entities being created, subject to the
-   * synchronization configuration..
+   * synchronization configuration.
    *
    * @param string $sync_id
    *   The ID of the entity sync.
@@ -153,6 +153,9 @@ interface ManagerInterface {
    *   define the interface. Known options that will be supported are the import
    *   mode and whether to create local entities for incoming remote entities
    *   that do not have local associations yet.
+   *
+   * @throws \Drupal\entity_sync\Exception\FieldImportException
+   *   When an error occurs while importing a field.
    *
    * @I Implement import modes
    *    type     : feature
