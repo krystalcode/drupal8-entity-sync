@@ -3,7 +3,6 @@
 use Drupal\entity_sync\Exception\InvalidConfigurationException;
 
 use Drupal\Core\Entity\EntityInterface;
-use Drupal\Core\Entity\ContentEntityInterface;
 
 /**
  * @file
@@ -45,7 +44,7 @@ function entity_sync_entity_update(EntityInterface $entity) {
  * We detect which synchronizations define an enabled export operation for the
  * given entity type and we run them.
  *
- * @param \Drupal\Core\Entity\ContentEntityInterface $entity
+ * @param \Drupal\Core\Entity\EntityInterface $entity
  *   The entity to export. Right now we only support content entities.
  * @param string $op
  *   The type of operation we're performing on the entity, ie. create/update.
@@ -57,7 +56,7 @@ function entity_sync_entity_update(EntityInterface $entity) {
  *    notes    : Important so we can better write unit tests.
  */
 function entity_sync_export_local_entity_all_syncs(
-  ContentEntityInterface $entity,
+  EntityInterface $entity,
   $op = 'update'
 ) {
   $entity_type_id = $entity->getEntityTypeId();
