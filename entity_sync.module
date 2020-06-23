@@ -81,15 +81,19 @@ function entity_sync_export_local_entity_all_syncs(
     if ($sync->get('entity.type_id') !== $entity_type_id) {
       continue;
     }
-    if ($sync->get('operations.export_entity.status') === FALSE) {
+
+    // Get the export entity operation settings for this sync type.
+    $export_entity_operation = $sync->get('operations.export_entity');
+    $export_entity_operation = \Drupal::service('entity_sync.config_manager')
+        ->mergeExportEntityOperationDefaults($export_entity_operation);
+    if ($export_entity_operation['status'] === FALSE) {
       continue;
     }
 
     // If the config wants to queue the export, do so. Otherwise, perform the
     // export immediately.
-    $sync_queue_key = "operations.export_entity.{$op}_entities.queue";
     // Export the local entity immediately.
-    if ($sync->get($sync_queue_key) === FALSE) {
+    if ($export_entity_operation["{$op}_entities"]['queue'] === FALSE) {
       // If a new entity is being exported, throw an error because, currently,
       // immediate exports of new entities are not supported.
       if ($op === 'create') {

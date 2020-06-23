@@ -12,6 +12,16 @@ class Manager implements ManagerInterface {
   /**
    * {@inheritdoc}
    */
+  public function mergeExportEntityOperationDefaults(array $config) {
+    return NestedArray::mergeDeep(
+      $this->exportEntityOperationDefaults(),
+      $config
+    );
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function mergeFieldMappingDefaults(array $config) {
     return NestedArray::mergeDeep(
       $this->fieldMappingDefaults(),
@@ -37,6 +47,23 @@ class Manager implements ManagerInterface {
       $this->importFieldMappingDefaults(),
       $config
     );
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function exportEntityOperationDefaults() {
+    return [
+      'status' => TRUE,
+      'create_entities' => [
+        'status' => TRUE,
+        'queue' => TRUE,
+      ],
+      'update_entities' => [
+        'status' => TRUE,
+        'queue' => TRUE,
+      ],
+    ];
   }
 
   /**
