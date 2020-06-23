@@ -22,6 +22,9 @@ complete:
       create_entities: true
       label: 'Import users'
       url_path: user
+    export_entity:
+      status: true
+      label: 'Export user'
   fields:
     -
       machine_name: mail
@@ -50,6 +53,9 @@ complete__remoted_changed_field__string:
       create_entities: true
       label: 'Import users'
       url_path: user
+    export_entity:
+      status: true
+      label: 'Export user'
   fields:
     -
       machine_name: mail
@@ -78,6 +84,9 @@ operations_disabled:
       create_entities: true
       label: 'Import users'
       url_path: user
+    export_entity:
+      status: false
+      label: 'Export user'
   fields:
     -
       machine_name: mail
