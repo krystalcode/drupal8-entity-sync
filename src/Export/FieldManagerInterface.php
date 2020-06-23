@@ -20,28 +20,6 @@ use Drupal\Core\Entity\ContentEntityInterface;
 interface FieldManagerInterface {
 
   /**
-<<<<<<< HEAD
-   * Provides the defaults settings for field mapping.
-   *
-   * The field mapping settings are loaded by the synchronization
-   * configuration. Event subscribers can alter those settings. To make it
-   * easier to configure the field mapping settings and not have to define every
-   * single setting available for every field, we merge the given settings with
-   * the defaults provided by this method.
-   *
-   * @return array
-   *   An associative array with the defaults.
-   *
-   * @I Provide configuration for defining the default field mapping settings
-   *    type     : improvement
-   *    priority : low
-   *    labels   : config, export, field
-   */
-  public function mappingDefaults();
-
-  /**
-=======
->>>>>>> 8.x-1.x
    * Prepares the fields that will be exported for the local entity.
    *
    * The fields are handled as an array because we don't really know the format
