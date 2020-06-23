@@ -36,7 +36,7 @@ class ManagedExportLocalEntityTerminate implements EventSubscriberInterface {
    */
   public static function getSubscribedEvents() {
     $events = [
-      Events::LOCAL_ENTITY_TERMINATE => ['setRemoteId', 0],
+      Events::LOCAL_ENTITY_TERMINATE => ['updateLocalEntity', 0],
     ];
     return $events;
   }
@@ -44,10 +44,12 @@ class ManagedExportLocalEntityTerminate implements EventSubscriberInterface {
   /**
    * Update the local entity with the newly created remote entity's ID.
    *
+   * Also update the changed timestamp.
+   *
    * @param \Drupal\entity_sync\Event\TerminateOperationsEvent $event
    *   The terminate operation event.
    */
-  public function setRemoteId(TerminateOperationEvent $event) {
+  public function updateLocalEntity(TerminateOperationEvent $event) {
     $context = $event->getContext();
     $data = $event->getData();
 
