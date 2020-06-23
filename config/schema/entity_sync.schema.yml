@@ -232,7 +232,7 @@ entity_sync.operation.export_entity:
       label: 'The human-friendly label describing the operation'
     create_entities:
       type: mapping
-      label: 'Whether remote entities should be created if they don't exist and the export mode'
+      label: "Whether remote entities should be created if they don't exist and the export mode"
       mapping:
         status:
           type: boolean
