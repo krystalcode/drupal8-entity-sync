@@ -91,6 +91,123 @@ class FieldManager implements FieldManagerInterface {
   }
 
   /**
+   * {@inheritDoc}
+   */
+  public function getTimestampFromRemoteChangedField(
+    object $remote_entity,
+    ImmutableConfig $sync
+  ) {
+    $field_value = NULL;
+
+    // Prepare the value based on the configured format.
+    // @I Throw an exception when the changed value isn't in the expected format
+    //    type     : bug
+    //    priority : normal
+    //    labels   : error-handling, import
+    $field_config = $sync->get('remote_resource.changed_field');
+    $field_name = $field_config['name'];
+    if ($field_config['format'] === 'timestamp') {
+      $field_value = $remote_entity->{$field_name};
+      if (!DateTime::isTimestamp($field_value)) {
+        throw new \RuntimeException(
+          sprintf(
+            'The remote entity field "%s" that was requested to be mapped to the remote entity changed field on the local entity was expected to be in Unix timestamp format, "%s" given.',
+            $field_name,
+            $field_value
+          )
+        );
+      }
+    }
+    elseif ($field_config['format'] === 'string') {
+      $field_value = strtotime($remote_entity->{$field_name});
+      if ($field_value === FALSE) {
+        throw new \RuntimeException(
+          sprintf(
+            'The remote entity field "%s" that was requested to be mapped to the remote entity changed field on the local entity was expected to be in textual datetime format supported by PHP\'s `strtotime`, "%s" given.',
+            $field_name,
+            $field_value
+          )
+        );
+      }
+    }
+
+    return $field_value;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  public function setRemoteIdField(
+    object $remote_entity,
+    ContentEntityInterface $local_entity,
+    ImmutableConfig $sync
+  ) {
+    // By default, it is expected that the remote ID field exists on the local
+    // entity  because it is the default way that we detect the entity
+    // mapping. We therefore want developers to intentionally disable that in
+    // the synchronization configuration. Until that is supported, we proceed
+    // and the `\Drupal\Core\Entity\ContentEntityInterface::set()` method throws
+    // an exception.
+    //
+    // Similarly, we throw an exception if the field does not exist on the
+    // remote entity as otherwise something's wrong. When we support disabling
+    // the remote ID field method of entity mapping we will make sure that the
+    // program does not intends to store the remote ID in the first place.
+    //
+    // @I Support disabling the remote ID field method of entity mapping
+    //    type     : feature
+    //    priority : low
+    //    labels   : import, mapping
+    $remote_id_field = $sync->get('remote_resource.id_field');
+    if (!isset($remote_entity->{$remote_id_field})) {
+      throw new \RuntimeException(
+        sprintf(
+          'The non-existing remote entity field "%s" was requested to be mapped to the remote entity ID field on the local entity.',
+          $remote_id_field
+        )
+      );
+    }
+
+    $local_entity->set(
+      $sync->get('entity.remote_id_field'),
+      $remote_entity->{$remote_id_field}
+    );
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  public function setRemoteChangedField(
+    object $remote_entity,
+    ContentEntityInterface $local_entity,
+    ImmutableConfig $sync
+  ) {
+    // By default, it is expected that the remote changed field exists because
+    // it is used for determining whether to block an automatic local entity
+    // export that may be triggered as a result of an import. We therefore want
+    // developers to intentionally disable that in the synchronization
+    // configuration. Until that is supported, we throw an exception.
+    $field_config = $sync->get('remote_resource.changed_field');
+    $field_name = $field_config['name'];
+    if (!isset($remote_entity->{$field_name})) {
+      throw new \RuntimeException(
+        sprintf(
+          'The non-existing remote entity field "%s" was requested to be mapped to the remote entity changed field on the local entity.',
+          $field_name
+        )
+      );
+    }
+
+    $local_entity->set(
+      $sync->get('entity.remote_changed_field'),
+      $this->getTimestampFromRemoteChangedField(
+        $remote_entity,
+        $sync
+      )
+    );
+  }
+
+  /**
    * Builds and returns the field mapping for the given entities.
    *
    * The field mapping defines which local entity fields will be updated with
@@ -287,123 +404,6 @@ class FieldManager implements FieldManagerInterface {
         $remote_entity->{$field_info['remote_name']}
       );
     }
-  }
-
-  /**
-   * Sets the remote ID field in the local entity.
-   *
-   * @param object $remote_entity
-   *   The remote entity.
-   * @param \Drupal\Core\Entity\ContentEntityInterface $local_entity
-   *   The associated local entity.
-   * @param \Drupal\Core\Config\ImmutableConfig $sync
-   *   The configuration object for synchronization that defines the operation
-   *   we are currently executing.
-   */
-  protected function setRemoteIdField(
-    object $remote_entity,
-    ContentEntityInterface $local_entity,
-    ImmutableConfig $sync
-  ) {
-    // By default, it is expected that the remote ID field exists on the local
-    // entity  because it is the default way that we detect the entity
-    // mapping. We therefore want developers to intentionally disable that in
-    // the synchronization configuration. Until that is supported, we proceed
-    // and the `\Drupal\Core\Entity\ContentEntityInterface::set()` method throws
-    // an exception.
-    //
-    // Similarly, we throw an exception if the field does not exist on the
-    // remote entity as otherwise something's wrong. When we support disabling
-    // the remote ID field method of entity mapping we will make sure that the
-    // program does not intends to store the remote ID in the first place.
-    //
-    // @I Support disabling the remote ID field method of entity mapping
-    //    type     : feature
-    //    priority : low
-    //    labels   : import, mapping
-    $remote_id_field = $sync->get('remote_resource.id_field');
-    if (!isset($remote_entity->{$remote_id_field})) {
-      throw new \RuntimeException(
-        sprintf(
-          'The non-existing remote entity field "%s" was requested to be mapped to the remote entity ID field on the local entity.',
-          $remote_id_field
-        )
-      );
-    }
-
-    $local_entity->set(
-      $sync->get('entity.remote_id_field'),
-      $remote_entity->{$remote_id_field}
-    );
-  }
-
-  /**
-   * Sets the remote changed field in the local entity.
-   *
-   * @param object $remote_entity
-   *   The remote entity.
-   * @param \Drupal\Core\Entity\ContentEntityInterface $local_entity
-   *   The associated local entity.
-   * @param \Drupal\Core\Config\ImmutableConfig $sync
-   *   The configuration object for synchronization that defines the operation
-   *   we are currently executing.
-   */
-  protected function setRemoteChangedField(
-    object $remote_entity,
-    ContentEntityInterface $local_entity,
-    ImmutableConfig $sync
-  ) {
-    // By default, it is expected that the remote changed field exists because
-    // it is used for determining whether to block an automatic local entity
-    // export that may be triggered as a result of an import. We therefore want
-    // developers to intentionally disable that in the synchronization
-    // configuration. Until that is supported, we throw an exception.
-    $field_config = $sync->get('remote_resource.changed_field');
-    $field_name = $field_config['name'];
-    if (!isset($remote_entity->{$field_name})) {
-      throw new \RuntimeException(
-        sprintf(
-          'The non-existing remote entity field "%s" was requested to be mapped to the remote entity changed field on the local entity.',
-          $field_name
-        )
-      );
-    }
-
-    // Prepare the value based on the configured format.
-    // @I Throw an exception when the changed value isn't in the expected format
-    //    type     : bug
-    //    priority : normal
-    //    labels   : error-handling, import
-    $field_value = NULL;
-    if ($field_config['format'] === 'timestamp') {
-      $field_value = $remote_entity->{$field_name};
-      if (!DateTime::isTimestamp($field_value)) {
-        throw new \RuntimeException(
-          sprintf(
-            'The remote entity field "%s" that was requested to be mapped to the remote entity changed field on the local entity was expected to be in Unix timestamp format, "%s" given.',
-            $field_name,
-            $field_value
-          )
-        );
-      }
-    }
-    elseif ($field_config['format'] === 'string') {
-      $field_value = strtotime($remote_entity->{$field_name});
-      if ($field_value === FALSE) {
-        throw new \RuntimeException(
-          sprintf(
-            'The remote entity field "%s" that was requested to be mapped to the remote entity changed field on the local entity was expected to be in textual datetime format supported by PHP\'s `strtotime`, "%s" given.',
-            $field_name,
-            $field_value
-          )
-        );
-      }
-    }
-
-    $local_entity->set(
-      $sync->get('entity.remote_changed_field'),
-      $field_value
-    );
   }
 
   /**
