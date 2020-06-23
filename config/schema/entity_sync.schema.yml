@@ -241,6 +241,12 @@ entity_sync.operation.export_entity:
         status:
           type: boolean
           label: ''
+        # Currently, only queued exports are supported when a new entity is
+        # created. So, this value is expected to be TRUE.
+        # @I Handle immediately exporting the entities when they are created
+        #    type     : bug
+        #    priority : normal
+        #    labels   : config, export
         queue:
           type: boolean
           label: 'Whether entities should be created via queue or immediately'
