@@ -24,7 +24,11 @@ class DefaultExportLocalEntityMapping implements EventSubscriberInterface {
   }
 
   /**
+<<<<<<< HEAD
    * Builds the default local entity mapping with the remote.
+=======
+   * Builds the default local entity mapping.
+>>>>>>> 8.x-1.x
    *
    * The default local entity mapping is defined in the synchronization
    * configuration object.

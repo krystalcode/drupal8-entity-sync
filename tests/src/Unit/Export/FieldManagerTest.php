@@ -2,10 +2,18 @@
 
 namespace Drupal\Tests\entity_sync\Unit\Export;
 
+<<<<<<< HEAD
+=======
+use Drupal\entity_sync\Config\ManagerInterface as ConfigManagerInterface;
+>>>>>>> 8.x-1.x
 use Drupal\entity_sync\Exception\FieldExportException;
 use Drupal\entity_sync\Export\Event\Events;
 use Drupal\entity_sync\Export\Event\FieldMappingEvent;
 
+<<<<<<< HEAD
+=======
+use Drupal\Component\Utility\NestedArray;
+>>>>>>> 8.x-1.x
 use Drupal\Core\Config\ImmutableConfig;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
@@ -107,6 +115,10 @@ class FieldManagerTest extends UnitTestCase {
   ) {
     // Mock services required for instantiating the export manager.
     $logger = $this->prophesize(LoggerInterface::class);
+<<<<<<< HEAD
+=======
+    $config_manager = $this->prophesize(ConfigManagerInterface::class);
+>>>>>>> 8.x-1.x
 
     $event_dispatcher = $this->buildEventDispatcher($event_field_mapping);
 
@@ -122,6 +134,10 @@ class FieldManagerTest extends UnitTestCase {
     // to branching methods.
     $test_context = [
       'logger' => $logger,
+<<<<<<< HEAD
+=======
+      'config_manager' => $config_manager,
+>>>>>>> 8.x-1.x
       'sync' => $sync,
       'sync_case' => $sync_case,
       'event_field_mapping' => $event_field_mapping,
@@ -144,6 +160,10 @@ class FieldManagerTest extends UnitTestCase {
 
     // Run!
     $manager = new FieldManager(
+<<<<<<< HEAD
+=======
+      $config_manager->reveal(),
+>>>>>>> 8.x-1.x
       $event_dispatcher,
       $logger->reveal()
     );
@@ -373,6 +393,11 @@ class FieldManagerTest extends UnitTestCase {
     $errors = FALSE;
 
     foreach ($test_context['event_field_mapping'] as $field_info) {
+<<<<<<< HEAD
+=======
+      $this->expectFieldMappingMerge($test_context, $field_info);
+
+>>>>>>> 8.x-1.x
       try {
         $this->branchFieldMappingDisabled($test_context, $field_info);
         $this->branchFieldMappingWithCallback($test_context, $field_info);
@@ -806,6 +831,30 @@ class FieldManagerTest extends UnitTestCase {
   }
 
   /**
+<<<<<<< HEAD
+=======
+   * Mocks the method call for merging in the default export field mapping.
+   */
+  private function expectFieldMappingMerge($test_context, array $field_info) {
+    unset($field_info['test']);
+    $merged_field_info = NestedArray::mergeDeep(
+      [
+        'export' => [
+          'status' => TRUE,
+          'callback' => FALSE,
+        ],
+      ],
+      $field_info
+    );
+
+    $test_context['config_manager']
+      ->mergeExportFieldMappingDefaults($field_info)
+      ->willReturn($merged_field_info)
+      ->shouldBeCalledTimes(1);
+  }
+
+  /**
+>>>>>>> 8.x-1.x
    * Mock `call_user_func`.
    *
    * @I Use `php-mock/php-mock-prophecy` for mocking global functions

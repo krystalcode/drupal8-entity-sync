@@ -20,6 +20,7 @@ use Drupal\Core\Entity\ContentEntityInterface;
 interface FieldManagerInterface {
 
   /**
+<<<<<<< HEAD
    * Provides the defaults settings for field mapping.
    *
    * The field mapping settings are loaded by the synchronization
@@ -39,6 +40,8 @@ interface FieldManagerInterface {
   public function mappingDefaults();
 
   /**
+=======
+>>>>>>> 8.x-1.x
    * Prepares the fields that will be exported for the local entity.
    *
    * The fields are handled as an array because we don't really know the format

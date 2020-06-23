@@ -16,6 +16,9 @@ services:
     class: Drupal\entity_sync\StateManager
     arguments: ['@keyvalue']
 
+  entity_sync.config_manager:
+    class: Drupal\entity_sync\Config\Manager
+
   # Import.
   # Managers.
   entity_sync.import.manager:
@@ -31,6 +34,7 @@ services:
   entity_sync.import.field_manager:
     class: Drupal\entity_sync\Import\FieldManager
     arguments:
+      - '@entity_sync.config_manager'
       - '@event_dispatcher'
       - '@logger.channel.entity_sync'
 
@@ -79,6 +83,7 @@ services:
   entity_sync.export.field_manager:
     class: Drupal\entity_sync\Export\FieldManager
     arguments:
+      - '@entity_sync.config_manager'
       - '@event_dispatcher'
       - '@logger.channel.entity_sync'
 

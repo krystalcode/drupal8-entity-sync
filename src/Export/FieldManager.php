@@ -2,11 +2,18 @@
 
 namespace Drupal\entity_sync\Export;
 
+<<<<<<< HEAD
+=======
+use Drupal\entity_sync\Config\ManagerInterface as ConfigManagerInterface;
+>>>>>>> 8.x-1.x
 use Drupal\entity_sync\Exception\FieldExportException;
 use Drupal\entity_sync\Export\Event\Events;
 use Drupal\entity_sync\Export\Event\FieldMappingEvent;
 
+<<<<<<< HEAD
 use Drupal\Component\Utility\NestedArray;
+=======
+>>>>>>> 8.x-1.x
 use Drupal\Core\Config\ImmutableConfig;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Field\FieldItemInterface;
@@ -20,6 +27,16 @@ use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 class FieldManager implements FieldManagerInterface {
 
   /**
+<<<<<<< HEAD
+=======
+   * The Entity Sync configuration manager.
+   *
+   * @var \Drupal\entity_sync\Config\ManagerInterface
+   */
+  protected $configManager;
+
+  /**
+>>>>>>> 8.x-1.x
    * The event dispatcher.
    *
    * @var \Symfony\Component\EventDispatcher\EventDispatcherInterface
@@ -36,15 +53,28 @@ class FieldManager implements FieldManagerInterface {
   /**
    * Constructs a new FieldManager instance.
    *
+<<<<<<< HEAD
+=======
+   * @param \Drupal\entity_sync\Config\ManagerInterface $config_manager
+   *   The Entity Sync configuration manager.
+>>>>>>> 8.x-1.x
    * @param \Symfony\Component\EventDispatcher\EventDispatcherInterface $event_dispatcher
    *   The event dispatcher.
    * @param \Psr\Log\LoggerInterface $logger
    *   The logger.
    */
   public function __construct(
+<<<<<<< HEAD
     EventDispatcherInterface $event_dispatcher,
     LoggerInterface $logger
   ) {
+=======
+    ConfigManagerInterface $config_manager,
+    EventDispatcherInterface $event_dispatcher,
+    LoggerInterface $logger
+  ) {
+    $this->configManager = $config_manager;
+>>>>>>> 8.x-1.x
     $this->eventDispatcher = $event_dispatcher;
     $this->logger = $logger;
   }
@@ -52,6 +82,7 @@ class FieldManager implements FieldManagerInterface {
   /**
    * {@inheritdoc}
    */
+<<<<<<< HEAD
   public function mappingDefaults() {
     return [
       'export' => [
@@ -64,6 +95,8 @@ class FieldManager implements FieldManagerInterface {
   /**
    * {@inheritdoc}
    */
+=======
+>>>>>>> 8.x-1.x
   public function export(
     ContentEntityInterface $local_entity,
     $remote_entity_id,
@@ -169,10 +202,15 @@ class FieldManager implements FieldManagerInterface {
     $fields = [];
 
     foreach ($field_mapping as $field_info) {
+<<<<<<< HEAD
       $field_info = NestedArray::mergeDeep(
         $this->mappingDefaults(),
         $field_info
       );
+=======
+      $field_info = $this->configManager
+        ->mergeExportFieldMappingDefaults($field_info);
+>>>>>>> 8.x-1.x
       if (!$field_info['export']['status']) {
         continue;
       }
