@@ -12,7 +12,7 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 /**
  * Updates the local entity after the export terminate event.
  */
-class DefaultExportLocalEntityTerminate implements EventSubscriberInterface {
+class ManagedExportLocalEntityTerminate implements EventSubscriberInterface {
 
   /**
    * The Entity Sync export field manager.
@@ -22,7 +22,7 @@ class DefaultExportLocalEntityTerminate implements EventSubscriberInterface {
   protected $fieldManager;
 
   /**
-   * Constructs a new DefaultExportLocalEntityTerminate object.
+   * Constructs a new ManagedExportLocalEntityTerminate object.
    *
    * @param \Drupal\entity_sync\Export\FieldManagerInterface $field_manager
    *   The export field manager manager.
@@ -36,7 +36,7 @@ class DefaultExportLocalEntityTerminate implements EventSubscriberInterface {
    */
   public static function getSubscribedEvents() {
     $events = [
-      Events::LOCAL_ENTITY_TERMINATE => ['updateLocalEntity', 0],
+      Events::LOCAL_ENTITY_TERMINATE => ['setRemoteId', 0],
     ];
     return $events;
   }
@@ -47,7 +47,7 @@ class DefaultExportLocalEntityTerminate implements EventSubscriberInterface {
    * @param \Drupal\entity_sync\Event\TerminateOperationsEvent $event
    *   The terminate operation event.
    */
-  public function updateLocalEntity(TerminateOperationEvent $event) {
+  public function setRemoteId(TerminateOperationEvent $event) {
     $context = $event->getContext();
     $data = $event->getData();
 
