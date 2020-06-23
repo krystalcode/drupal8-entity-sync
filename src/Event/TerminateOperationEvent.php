@@ -34,6 +34,13 @@ class TerminateOperationEvent extends Event {
   protected $sync;
 
   /**
+   * Custom data related to the operation that was executed.
+   *
+   * @var array
+   */
+  protected $data;
+
+  /**
    * Constructs a new OperationTerminated object.
    *
    * @param string $operation
@@ -43,15 +50,19 @@ class TerminateOperationEvent extends Event {
    * @param \Drupal\Core\Config\ImmutableConfig $sync
    *   The configuration object for synchronization that defines the operation
    *   we are currently executing.
+   * @param array $data
+   *   Custom data related to the operation that was executed.
    */
   public function __construct(
     $operation,
     array $context,
-    ImmutableConfig $sync
+    ImmutableConfig $sync,
+    array $data = []
   ) {
     $this->operation = $operation;
     $this->context = $context;
     $this->sync = $sync;
+    $this->data = $data;
   }
 
   /**
@@ -82,6 +93,16 @@ class TerminateOperationEvent extends Event {
    */
   public function getSync() {
     return $this->sync;
+  }
+
+  /**
+   * Gets the custom data.
+   *
+   * @return array
+   *   The custom data associated with the operation.
+   */
+  public function getData() {
+    return $this->data;
   }
 
 }
