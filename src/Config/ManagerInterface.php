@@ -16,6 +16,19 @@ namespace Drupal\entity_sync\Config;
 interface ManagerInterface {
 
   /**
+   * Merges the export entity operation defaults into the given array.
+   *
+   * @param array $config
+   *   An associative array containing the export entity operation default
+   *   information.
+   *
+   * @return array
+   *   An associative array containing the export entity operation information,
+   *   after merging in the defaults.
+   */
+  public function mergeExportEntityOperationDefaults(array $config);
+
+  /**
    * Merges the field mapping defaults into the given field mapping item.
    *
    * @param array $config
@@ -53,6 +66,14 @@ interface ManagerInterface {
    *   field, after merging in the defaults.
    */
   public function mergeImportFieldMappingDefaults(array $config);
+
+  /**
+   * Returns the default export entity operation settings.
+   *
+   * @return array
+   *   An associative array containing the export entity operation defaults.
+   */
+  public function exportEntityOperationDefaults();
 
   /**
    * Returns the default field mapping settings.
