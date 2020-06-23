@@ -94,46 +94,6 @@ class FieldManager implements FieldManagerInterface {
   }
 
   /**
-   * {@inheritDoc}
-   */
-  public function saveRemoteIdField(
-    object $remote_entity,
-    ContentEntityInterface $local_entity,
-    ImmutableConfig $sync
-  ) {
-    // By default, it is expected that the remote ID field exists on the local
-    // entity  because it is the default way that we detect the entity
-    // mapping. We therefore want developers to intentionally disable that in
-    // the synchronization configuration. Until that is supported, we proceed
-    // and the `\Drupal\Core\Entity\ContentEntityInterface::set()` method throws
-    // an exception.
-    //
-    // Similarly, we throw an exception if the field does not exist on the
-    // remote entity as otherwise something's wrong. When we support disabling
-    // the remote ID field method of entity mapping we will make sure that the
-    // program does not intends to store the remote ID in the first place.
-    //
-    // @I Support disabling the remote ID field method of entity mapping
-    //    type     : feature
-    //    priority : low
-    //    labels   : import, mapping
-    $remote_id_field = $sync->get('remote_resource.id_field');
-    if (!isset($remote_entity->{$remote_id_field})) {
-      throw new \RuntimeException(
-        sprintf(
-          'The non-existing remote entity field "%s" was requested to be mapped to the remote entity ID field on the local entity.',
-          $remote_id_field
-        )
-      );
-    }
-
-    $local_entity->set(
-      $sync->get('entity.remote_id_field'),
-      $remote_entity->{$remote_id_field}
-    )->save();
-  }
-
-  /**
    * Builds and returns the field mapping for the given entities.
    *
    * The field mapping defines which remote entity fields will be updated with

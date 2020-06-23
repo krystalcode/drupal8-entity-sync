@@ -44,4 +44,55 @@ interface FieldManagerInterface {
     array $options = []
   );
 
+  /**
+   * Returns the changed field value on the remote entity as a timestamp.
+   *
+   * @param object $remote_entity
+   *   The remote entity.
+   * @param \Drupal\Core\Config\ImmutableConfig $sync
+   *   The configuration object for synchronization that defines the operation
+   *   we are currently executing.
+   *
+   * @return int
+   *   The remote entity changed field value as a timestamp.
+   */
+  public function getTimestampFromRemoteChangedField(
+    object $remote_entity,
+    ImmutableConfig $sync
+  );
+
+  /**
+   * Sets the remote ID field in the local entity.
+   *
+   * @param object $remote_entity
+   *   The remote entity.
+   * @param \Drupal\Core\Entity\ContentEntityInterface $local_entity
+   *   The associated local entity.
+   * @param \Drupal\Core\Config\ImmutableConfig $sync
+   *   The configuration object for synchronization that defines the operation
+   *   we are currently executing.
+   */
+  public function setRemoteIdField(
+    object $remote_entity,
+    ContentEntityInterface $local_entity,
+    ImmutableConfig $sync
+  );
+
+  /**
+   * Sets the remote changed field in the local entity.
+   *
+   * @param object $remote_entity
+   *   The remote entity.
+   * @param \Drupal\Core\Entity\ContentEntityInterface $local_entity
+   *   The associated local entity.
+   * @param \Drupal\Core\Config\ImmutableConfig $sync
+   *   The configuration object for synchronization that defines the operation
+   *   we are currently executing.
+   */
+  public function setRemoteChangedField(
+    object $remote_entity,
+    ContentEntityInterface $local_entity,
+    ImmutableConfig $sync
+  );
+
 }

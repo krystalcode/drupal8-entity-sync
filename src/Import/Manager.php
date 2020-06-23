@@ -426,10 +426,6 @@ class Manager extends EntityManagerBase implements ManagerInterface {
    *    type     : bug
    *    priority : normal
    *    labels   : import, validation
-   * @I Check if the changes have already been imported
-   *    type     : improvement
-   *    priority : normal
-   *    labels   : import, validation
    */
   protected function update(
     object $remote_entity,
@@ -459,6 +455,17 @@ class Manager extends EntityManagerBase implements ManagerInterface {
           $entity_mapping['id']
         )
       );
+    }
+
+    // Do the import ONLY if the incoming changed field timestamp is higher than
+    // the one stored on the local entity.
+    $remote_entity_changed_timestamp = $this
+      ->fieldManager
+      ->getTimestampFromRemoteChangedField($remote_entity, $sync);
+    $local_entity_changed_timestamp = $local_entity
+      ->get($sync->get('entity.remote_changed_field'))->value;
+    if ($remote_entity_changed_timestamp <= $local_entity_changed_timestamp) {
+      return;
     }
 
     $this->doImportEntity($remote_entity, $local_entity, $sync);

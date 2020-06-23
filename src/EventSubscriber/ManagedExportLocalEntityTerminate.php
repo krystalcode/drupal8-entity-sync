@@ -5,7 +5,7 @@ namespace Drupal\entity_sync\EventSubscriber;
 use Drupal\entity_sync\Export\Event\Events;
 use Drupal\entity_sync\Event\TerminateOperationEvent;
 use Drupal\entity_sync\Export\EntityManagerInterface;
-use Drupal\entity_sync\Export\FieldManagerInterface;
+use Drupal\entity_sync\Import\FieldManagerInterface;
 
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
@@ -15,17 +15,17 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 class ManagedExportLocalEntityTerminate implements EventSubscriberInterface {
 
   /**
-   * The Entity Sync export field manager.
+   * The Entity Sync import field manager.
    *
-   * @var \Drupal\entity_sync\Export\FieldManagerInterface
+   * @var \Drupal\entity_sync\Import\FieldManagerInterface
    */
   protected $fieldManager;
 
   /**
    * Constructs a new ManagedExportLocalEntityTerminate object.
    *
-   * @param \Drupal\entity_sync\Export\FieldManagerInterface $field_manager
-   *   The export field manager manager.
+   * @param \Drupal\entity_sync\Import\FieldManagerInterface $field_manager
+   *   The import field manager.
    */
   public function __construct(FieldManagerInterface $field_manager) {
     $this->fieldManager = $$field_manager;
@@ -56,11 +56,19 @@ class ManagedExportLocalEntityTerminate implements EventSubscriberInterface {
       return;
     }
 
-    $this->fieldManager->saveRemoteIdField(
+    // Save the remote ID and remote changed values to the local entity.
+    $local_entity = $context['local_entity'];
+    $this->fieldManager->setRemoteIdField(
       $data['response'],
-      $context['local_entity'],
+      $local_entity,
       $event->getSync()
     );
+    $this->fieldManager->setRemoteChangedField(
+      $data['response'],
+      $local_entity,
+      $event->getSync()
+    );
+    $local_entity->save();
   }
 
 }

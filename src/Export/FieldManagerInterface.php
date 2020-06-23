@@ -57,21 +57,4 @@ interface FieldManagerInterface {
     array $options = []
   );
 
-  /**
-   * Saves the remote ID field in the local entity.
-   *
-   * @param object $remote_entity
-   *   The remote entity.
-   * @param \Drupal\Core\Entity\ContentEntityInterface $local_entity
-   *   The associated local entity.
-   * @param \Drupal\Core\Config\ImmutableConfig $sync
-   *   The configuration object for synchronization that defines the operation
-   *   we are currently executing.
-   */
-  public function saveRemoteIdField(
-    object $remote_entity,
-    ContentEntityInterface $local_entity,
-    ImmutableConfig $sync
-  );
-
 }
