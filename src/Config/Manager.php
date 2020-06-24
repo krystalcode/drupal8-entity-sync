@@ -3,11 +3,119 @@
 namespace Drupal\entity_sync\Config;
 
 use Drupal\Component\Utility\NestedArray;
+use Drupal\Core\Config\ConfigFactoryInterface;
 
 /**
  * Default implementation of the Entity Sync configuration manager.
+ *
+ * @I Rename to `SyncManager` to separate from `ProviderManager`
+ *    type     : task
+ *    priority : low
+ *    labels   : config, structure
  */
 class Manager implements ManagerInterface {
+
+  /**
+   * The config factory.
+   *
+   * @var \Drupal\Core\Config\ConfigFactoryInterface
+   */
+  protected $configFactory;
+
+  /**
+   * Constructs a new Manager instance.
+   *
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
+   *   The configuration factory.
+   */
+  public function __construct(ConfigFactoryInterface $config_factory) {
+    $this->configFactory = $config_factory;
+  }
+
+  /**
+   * {@inheritdoc}
+   *
+   * @I Rewrite the `getSyncs` method so that it is more performant
+   *    type     : task
+   *    priority : low
+   *    labels   : config, performance
+   *    notes    : We use multiple array reduce/filter functions because it is
+   *               easier to follow the logic. However, the function ends up
+   *               being too long and that makes the readability benefits
+   *               questionable so the performance hit is not justified. Review
+   *               implementation.
+   */
+  public function getSyncs(array $filters = []) {
+    $filters = NestedArray::mergeDeep(
+      [
+        'entity' => ['type_id' => NULL],
+        'operation' => [
+          'id' => NULL,
+          'status' => NULL,
+        ],
+      ],
+      $filters
+    );
+
+    $sync_ids = $this->configFactory->listAll('entity_sync.sync.');
+    if (!$sync_ids) {
+      return [];
+    }
+
+    // Load all synchronization configurations from the database.
+    $syncs = array_reduce(
+      $sync_ids,
+      function ($carry, $sync_id) {
+        $sync = $this->configFactory->get($sync_id);
+        $carry[$sync->get('id')] = $sync;
+        return $carry;
+      },
+      []
+    );
+
+    // Filter out any synchronization that do not match the entity type ID
+    // filter, if given.
+    $syncs = array_filter(
+      $syncs,
+      function ($sync) use ($filters) {
+        if (!$filters['entity']['type_id']) {
+          return TRUE;
+        }
+
+        if ($sync->get('entity.type_id') !== $filters['entity']['type_id']) {
+          return FALSE;
+        }
+
+        return TRUE;
+      }
+    );
+
+    // Filter out any synchronization that do not match the operation ID and
+    // status, if given.
+    return array_filter(
+      $syncs,
+      function ($sync) use ($filters) {
+        if (!$filters['operation']['id']) {
+          return TRUE;
+        }
+
+        $operation = $sync->get('operations.' . $filters['operation']['id']);
+        if (!$operation) {
+          return FALSE;
+        }
+
+        if ($filters['operation']['status'] === NULL) {
+          return TRUE;
+        }
+
+        if ($operation['status'] !== $filters['operation']['status']) {
+          return FALSE;
+        }
+
+        return TRUE;
+      }
+    );
+  }
 
   /**
    * {@inheritdoc}

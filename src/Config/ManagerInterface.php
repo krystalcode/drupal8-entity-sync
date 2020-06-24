@@ -16,6 +16,31 @@ namespace Drupal\entity_sync\Config;
 interface ManagerInterface {
 
   /**
+   * Loads and returns all synchronization configuration that match the filters.
+   *
+   * @param array $filters
+   *   An associative array that define how to filter the synchronization
+   *   configurations. Supported filters are:
+   *   - entity: An array with the following possible options:
+   *     - type_id: (string) Return only synchronizations with the given entity
+   *       type ID.
+   *   - operation: An array with the following possible options:
+   *     - id: (string) Return only synchronizations that have the given
+   *       operation defined.
+   *     - status: (bool) Return only synchronizations that have the given
+   *       operation with the given status.
+   *
+   * @return \Drupal\Core\Config\ImmutableConfig[]
+   *   An array containing the synchronization configurations.
+   *
+   * @I Support filtering synchronizations per entity bundle
+   *    type     : improvement
+   *    priority : high
+   *    labels   : config
+   */
+  public function getSyncs(array $filters = []);
+
+  /**
    * Merges the field mapping defaults into the given field mapping item.
    *
    * @param array $config
