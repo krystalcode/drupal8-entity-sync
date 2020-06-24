@@ -79,7 +79,10 @@ class ImportList extends QueueWorkerBase implements
    * - options: (Optional) An array of options to pass to the import entity
    *   manager.
    *
-   * @see \Drupal\entity_sync\Improt\Manager::importRemoteList()
+   * @throws \InvalidArgumentException
+   *   When invalid or inadequate data are passed to the queue worker.
+   *
+   * @see \Drupal\entity_sync\Import\Manager::importRemoteList()
    *
    * @I Add an option to be notified when the import is run
    *    type     : feature

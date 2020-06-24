@@ -212,18 +212,10 @@ entity_sync.operation.import_entity:
           type: string
           label: 'The frequency in which the operation should run via cron'
 
-# @I Support enabling/disabling exporting new entities
-#    type     : improvement
-#    priority : normal
-#    labels   : config, export
 # @I Support enabling/disabling exporting a list of entities
 #    type     : feature
 #    priority : normal
 #    labels   : export
-# @I Setting/option for exporting entities mode i.e. with/without queueing
-#    type     : improvement
-#    priority : normal
-#    labels   : config, export
 entity_sync.operation.export_entity:
   type: mapping
   label: 'The configuration for the Export Entity operation'
@@ -234,6 +226,21 @@ entity_sync.operation.export_entity:
     label:
       type: string
       label: 'The human-friendly label describing the operation'
+    create_entities:
+      type: boolean
+      label: "Whether remote entities should be created if they don't exist"
+    update_entities:
+      type: boolean
+      label: 'Whether remote entities should be updated'
+    # Currently, only queued exports are supported. Settings this to FALSE will
+    # have no effect.
+    # @I Support exporting entities on-the-fly i.e. without queueing the export
+    #    type     : improvement
+    #    priority : normal
+    #    labels   : config, export, queue
+    queue:
+      type: boolean
+      label: 'Whether the export will be queued or executed on-the-fly'
 
 # Field mapping configuration determines which entity field will be mapped with
 # which remote resource field/property and how.
