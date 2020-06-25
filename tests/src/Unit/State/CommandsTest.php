@@ -8,7 +8,10 @@ use Drupal\Tests\UnitTestCase;
 
 /**
  * @coversDefaultClass \Drupal\entity_sync\Commands\State
+ *
+ * @group contrib
  * @group entity_sync
+ * @group unit
  */
 class CommandsTest extends UnitTestCase {
 

@@ -7,7 +7,10 @@ use Drupal\Tests\UnitTestCase;
 
 /**
  * @coversDefaultClass \Drupal\entity_sync\Utility\DateTime
+ *
+ * @group contrib
  * @group entity_sync
+ * @group unit
  */
 class DateTimeTest extends UnitTestCase {
 

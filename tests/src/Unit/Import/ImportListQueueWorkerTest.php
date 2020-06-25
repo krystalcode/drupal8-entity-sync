@@ -10,7 +10,10 @@ use Prophecy\Argument;
 
 /**
  * @coversDefaultClass \Drupal\entity_sync\Plugin\QueueWorker\ImportList
+ *
+ * @group contrib
  * @group entity_sync
+ * @group unit
  */
 class ImportListQueueWorkerTest extends UnitTestCase {
 

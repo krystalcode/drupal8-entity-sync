@@ -33,7 +33,10 @@ require_once __DIR__ . '/../../Exception/TestRuntimeException.php';
 
 /**
  * @coversDefaultClass \Drupal\entity_sync\Import\Manager
+ *
+ * @group contrib
  * @group entity_sync
+ * @group unit
  */
 class EntityManagerTest extends UnitTestCase {
 
