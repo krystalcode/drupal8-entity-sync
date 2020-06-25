@@ -180,10 +180,7 @@ class EntityManager extends EntityManagerBase implements EntityManagerInterface 
       return $data;
     }
     elseif ($entity_mapping['action'] === EntityManagerInterface::ACTION_CREATE) {
-      // @I Implement creating a remote entity when exporting a local entity
-      //    type     : feature
-      //    priority : high
-      //    labels   : export
+      $data['response'] = $this->create($local_entity, $sync, $entity_mapping);
       return $data;
     }
     elseif ($entity_mapping['action'] === EntityManagerInterface::ACTION_UPDATE) {
@@ -198,6 +195,48 @@ class EntityManager extends EntityManagerBase implements EntityManagerInterface 
         )
       );
     }
+  }
+
+  /**
+   * Export the changes from the given local entity to a new remote entity.
+   *
+   * @param \Drupal\Core\Entity\ContentEntityInterface $local_entity
+   *   The local entity.
+   * @param \Drupal\Core\Config\ImmutableConfig $sync
+   *   The configuration object for synchronization that defines the operation
+   *   we are currently executing.
+   * @param array $entity_mapping
+   *   An associative array containing information about the remote entity being
+   *   mapped to the given local entity.
+   *   See \Drupal\entity_sync\Export\Event\LocalEntityMapping::entityMapping.
+   *
+   * @return mixed|null
+   *   The response from the client, or NULL if the operation was not run.
+   */
+  protected function create(
+    ContentEntityInterface $local_entity,
+    ImmutableConfig $sync,
+    array $entity_mapping
+  ) {
+    if (!$sync->get('operations.export_entity.create_entities')) {
+      return;
+    }
+
+    // Prepare the fields to create on the remote object.
+    // @I Pass context to the field manager
+    //    type     : improvement
+    //    priority : normal
+    //    labels   : field, export
+    $remote_fields = $this->fieldManager->export(
+      $local_entity,
+      NULL,
+      $sync
+    );
+
+    // Do the export i.e. call the client.
+    return $this->clientFactory
+      ->getByClientConfig($entity_mapping['client'])
+      ->create($remote_fields);
   }
 
   /**

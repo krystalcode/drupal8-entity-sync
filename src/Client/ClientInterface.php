@@ -62,6 +62,18 @@ interface ClientInterface {
   public function importEntity($id);
 
   /**
+   * Creates a new remote entity for the given local entity fields.
+   *
+   * @param array $fields
+   *   An associative array containing the fields that will be created, keyed by
+   *   the field name and containing the field value.
+   *
+   * @return object
+   *   The parsed response.
+   */
+  public function create(array $fields);
+
+  /**
    * Updates the remote entity with the given primary ID.
    *
    * @param int|string $id

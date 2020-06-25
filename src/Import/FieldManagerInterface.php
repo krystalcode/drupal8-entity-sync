@@ -44,4 +44,43 @@ interface FieldManagerInterface {
     array $options = []
   );
 
+  /**
+   * Sets the remote ID field in the local entity.
+   *
+   * @param object $remote_entity
+   *   The remote entity.
+   * @param \Drupal\Core\Entity\ContentEntityInterface $local_entity
+   *   The associated local entity.
+   * @param \Drupal\Core\Config\ImmutableConfig $sync
+   *   The configuration object for synchronization that defines the operation
+   *   we are currently executing.
+   * @param bool $force
+   *   When TRUE (default) the remote ID value will be set whether it already
+   *   has a value or not. When FALSE, it will be set only if it does not have a
+   *   value yet.
+   */
+  public function setRemoteIdField(
+    object $remote_entity,
+    ContentEntityInterface $local_entity,
+    ImmutableConfig $sync,
+    $force = TRUE
+  );
+
+  /**
+   * Sets the remote changed field in the local entity.
+   *
+   * @param object $remote_entity
+   *   The remote entity.
+   * @param \Drupal\Core\Entity\ContentEntityInterface $local_entity
+   *   The associated local entity.
+   * @param \Drupal\Core\Config\ImmutableConfig $sync
+   *   The configuration object for synchronization that defines the operation
+   *   we are currently executing.
+   */
+  public function setRemoteChangedField(
+    object $remote_entity,
+    ContentEntityInterface $local_entity,
+    ImmutableConfig $sync
+  );
+
 }
