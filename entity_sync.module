@@ -118,6 +118,10 @@ function entity_sync_export_local_entity_all_syncs(
     // earlier than the updated remote changed field then we do not export the
     // entity.
     //
+    // This will also prevent triggering another export as a result of saving
+    // the entity in order to update the remote changed field when we getting
+    // the response from the create/update export operation.
+    //
     // @I Test skipping exports that are triggered by imports
     //    type     : task
     //    priority : high
