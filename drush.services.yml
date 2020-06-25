@@ -1,4 +1,17 @@
 services:
+  # @I Move the commands under the import/export folders
+  #    type     : task
+  #    priority : low
+  #    labels   : structure
+  entity_sync.commands.export:
+    class: \Drupal\entity_sync\Commands\Export
+    arguments:
+      - '@config.factory'
+      - '@entity_type.manager'
+      - '@entity_sync.export.entity_manager'
+    tags:
+      - { name: drush.command }
+
   entity_sync.commands.import:
     class: \Drupal\entity_sync\Commands\Import
     arguments: ['@entity_sync.import.manager']
