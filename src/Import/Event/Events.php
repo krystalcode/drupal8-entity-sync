@@ -44,6 +44,15 @@ final class Events {
   const REMOTE_LIST_FILTERS = 'entity_sync.import.remote_list_filters';
 
   /**
+   * Name of the event fired before importing remote entities is initiated.
+   *
+   * @Event
+   *
+   * @see \Drupal\entity_sync\Event\PreInitiateOperationEvent
+   */
+  const REMOTE_LIST_PRE_INITIATE = 'entity_sync.import.remote_list_pre_initiate';
+
+  /**
    * Name of the event fired when importing remote entities is initiated.
    *
    * @Event

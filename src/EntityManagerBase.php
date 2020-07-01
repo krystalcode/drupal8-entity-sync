@@ -3,6 +3,7 @@
 namespace Drupal\entity_sync;
 
 use Drupal\entity_sync\Event\InitiateOperationEvent;
+use Drupal\entity_sync\Event\PreInitiateOperationEvent;
 use Drupal\entity_sync\Event\TerminateOperationEvent;
 use Drupal\Core\Config\ImmutableConfig;
 
@@ -33,6 +34,49 @@ class EntityManagerBase {
     }
 
     return TRUE;
+  }
+
+  /**
+   * Dispatches an event before an operation is initiated.
+   *
+   * @param string $event_name
+   *   The name of the event to dispatch. It must be a name for a
+   *   `PreInitiateOperationEvent` event.
+   * @param string $operation
+   *   The name of the operation that will be initiated.
+   * @param array $context
+   *   The context of the operation we are currently executing.
+   * @param \Drupal\Core\Config\ImmutableConfig $sync
+   *   The configuration object for synchronization that defines the operation
+   *   we are currently executing.
+   * @param array $data
+   *   Custom data related to the operation.
+   *
+   * @return array
+   *   An array containing the following elements in the given order:
+   *   - A boolean that is TRUE if the operation should be cancelled, FALSE
+   *     otherwise.
+   *   - An array of text messages with the reason(s) that the operation was
+   *     cancelled, if applicable.
+   *
+   * @see \Drupal\entity_sync\Event\PreInitiateOperationEvent::getCancellations()
+   */
+  protected function preInitiate(
+    $event_name,
+    $operation,
+    array $context,
+    ImmutableConfig $sync,
+    array $data = []
+  ) {
+    $event = new PreInitiateOperationEvent(
+      $operation,
+      $context,
+      $sync,
+      $data
+    );
+    $this->eventDispatcher->dispatch($event_name, $event);
+
+    return $event->getCancellations();
   }
 
   /**

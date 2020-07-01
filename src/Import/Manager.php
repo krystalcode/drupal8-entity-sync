@@ -148,6 +148,27 @@ class Manager extends EntityManagerBase implements ManagerInterface {
     //    labels   : context, import, operation
     $context = $options['context'] ?? [];
 
+    // Notify subscribers that the operation is about to be initiated.
+    [$cancel, $messages] = $this->preInitiate(
+      Events::REMOTE_LIST_PRE_INITIATE,
+      'import_list',
+      $context,
+      $sync
+    );
+
+    if ($cancel) {
+      foreach ($messages as $message) {
+        $this->logger->warning(
+          sprintf(
+            'The `import_list` operation for the synchronization with ID "%s" was cancelled with message: %s',
+            $sync_id,
+            $message
+          )
+        );
+      }
+      return;
+    }
+
     // Initiate the operation.
     $this->initiate(
       Events::REMOTE_LIST_INITIATE,
@@ -223,6 +244,27 @@ class Manager extends EntityManagerBase implements ManagerInterface {
     }
 
     $context = $options['context'] ?? [];
+
+    // Notify subscribers that the operation is about to be initiated.
+    [$cancel, $messages] = $this->preInitiate(
+      Events::LOCAL_ENTITY_PRE_INITIATE,
+      'import_entity',
+      $context,
+      $sync
+    );
+
+    if ($cancel) {
+      foreach ($messages as $message) {
+        $this->logger->warning(
+          sprintf(
+            'The `import_entity` operation for the synchronization with ID "%s" was cancelled with message: %s',
+            $sync_id,
+            $message
+          )
+        );
+      }
+      return;
+    }
 
     // Initiate the operation.
     $this->initiate(
