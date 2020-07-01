@@ -128,10 +128,13 @@ function entity_sync_export_local_entity_all_syncs(
     //    labels   : export, testing
     if ($hook === 'update') {
       $field_name = $sync->get('entity.remote_changed_field');
-      $original_changed = $entity->original->get($field_name)->value;
-      $updated_changed = $entity->get($field_name)->value;
-      if ($original_changed < $updated_changed) {
-        continue;
+
+      if ($field_name) {
+        $original_changed = $entity->original->get($field_name)->value;
+        $updated_changed = $entity->get($field_name)->value;
+        if ($original_changed < $updated_changed) {
+          continue;
+        }
       }
     }
 
