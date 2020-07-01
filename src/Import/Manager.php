@@ -148,6 +148,14 @@ class Manager extends EntityManagerBase implements ManagerInterface {
     //    labels   : context, import, operation
     $context = $options['context'] ?? [];
 
+    // Initiate the operation.
+    $this->initiate(
+      Events::REMOTE_LIST_INITIATE,
+      'import_list',
+      $context,
+      $sync
+    );
+
     // Build the filters and the options that will be passed to the client for
     // fetching the list of entities.
     $filters = $this->remoteListFilters($filters, $context, $sync);
@@ -215,6 +223,14 @@ class Manager extends EntityManagerBase implements ManagerInterface {
     }
 
     $context = $options['context'] ?? [];
+
+    // Initiate the operation.
+    $this->initiate(
+      Events::LOCAL_ENTITY_INITIATE,
+      'import_entity',
+      $context,
+      $sync
+    );
 
     // Build the entity mapping for this local entity.
     $entity_mapping = $this->localEntityMapping($local_entity, $sync);

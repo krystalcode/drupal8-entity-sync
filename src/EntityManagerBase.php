@@ -2,6 +2,7 @@
 
 namespace Drupal\entity_sync;
 
+use Drupal\entity_sync\Event\InitiateOperationEvent;
 use Drupal\entity_sync\Event\TerminateOperationEvent;
 use Drupal\Core\Config\ImmutableConfig;
 
@@ -32,6 +33,38 @@ class EntityManagerBase {
     }
 
     return TRUE;
+  }
+
+  /**
+   * Dispatches an event when an operation is being initiated.
+   *
+   * @param string $event_name
+   *   The name of the event to dispatch. It must be a name for a
+   *   `InitiateOperationEvent` event.
+   * @param string $operation
+   *   The name of the operation being initiated.
+   * @param array $context
+   *   The context of the operation we are currently executing.
+   * @param \Drupal\Core\Config\ImmutableConfig $sync
+   *   The configuration object for synchronization that defines the operation
+   *   we are currently executing.
+   * @param array $data
+   *   Custom data related to the operation.
+   */
+  protected function initiate(
+    $event_name,
+    $operation,
+    array $context,
+    ImmutableConfig $sync,
+    array $data = []
+  ) {
+    $event = new InitiateOperationEvent(
+      $operation,
+      $context,
+      $sync,
+      $data
+    );
+    $this->eventDispatcher->dispatch($event_name, $event);
   }
 
   /**
