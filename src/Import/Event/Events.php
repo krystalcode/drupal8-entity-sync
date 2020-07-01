@@ -71,6 +71,15 @@ final class Events {
   const REMOTE_LIST_TERMINATE = 'entity_sync.import.remote_list_terminate';
 
   /**
+   * Name of the event fired before importing a local entity is initiated.
+   *
+   * @Event
+   *
+   * @see \Drupal\entity_sync\Event\PreInitiateOperationEvent
+   */
+  const LOCAL_ENTITY_PRE_INITIATE = 'entity_sync.import.local_entity_pre_initiate';
+
+  /**
    * Name of the event fired when importing a local entity is initiated.
    *
    * @Event
