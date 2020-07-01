@@ -113,7 +113,7 @@ class ExportLocalEntity extends QueueWorkerBase implements
       ->load($data['entity_id']);
 
     if (!$entity) {
-      throw \RuntimeException(
+      throw new \RuntimeException(
         sprintf(
           'No "%s" entity with ID "%s" found to export.',
           $data['entity_type_id'],
