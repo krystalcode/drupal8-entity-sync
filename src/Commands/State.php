@@ -8,9 +8,9 @@ use Drush\Commands\DrushCommands;
 /**
  * Commands related to state management.
  *
- * @I Add commands for locking/unlocking operations
- *    type     : feature
- *    priority : normal
+ * @I Check that the operation is managed in state commands
+ *    type     : bug
+ *    priority : low
  *    labels   : drush, state
  */
 class State extends DrushCommands {
@@ -23,7 +23,7 @@ class State extends DrushCommands {
   protected $stateManager;
 
   /**
-   * Constructs a new Import object.
+   * Constructs a new State object.
    *
    * @param \Drupal\entity_sync\StateManagerInterface $state_manager
    *   The Entity Sync state manager.
@@ -50,6 +50,44 @@ class State extends DrushCommands {
    */
   public function unsetLastRun($sync_id, $operation) {
     $this->stateManager->unsetLastRun($sync_id, $operation);
+  }
+
+  /**
+   * Locks the operation for the given synchronization and operation.
+   *
+   * @param string $sync_id
+   *   The ID of the synchronization.
+   * @param string $operation
+   *   The operation.
+   *
+   * @usage drush entity-sync:state-lock-operation "my_sync_id" "import_list"
+   *   Lock the `import_list` operation of the `my_sync_id` synchronization.
+   *
+   * @command entity-sync:state-lock-operation
+   *
+   * @aliases esync-slo
+   */
+  public function lock($sync_id, $operation) {
+    $this->stateManager->lock($sync_id, $operation);
+  }
+
+  /**
+   * Unlocks the operation for the given synchronization and operation.
+   *
+   * @param string $sync_id
+   *   The ID of the synchronization.
+   * @param string $operation
+   *   The operation.
+   *
+   * @usage drush entity-sync:state-unlock-operation "my_sync_id" "import_list"
+   *   Unlocks the `import_list` operation of the `my_sync_id` synchronization.
+   *
+   * @command entity-sync:state-unlock-operation
+   *
+   * @aliases esync-suo
+   */
+  public function unlock($sync_id, $operation) {
+    $this->stateManager->unlock($sync_id, $operation);
   }
 
 }

@@ -16,7 +16,7 @@ use Drupal\Tests\UnitTestCase;
 class CommandsTest extends UnitTestCase {
 
   /**
-   * Tests the state manager is properly called to unset the state.
+   * Tests that the state manager is properly called to unset the state.
    *
    * @covers ::unsetLastRun
    */
@@ -31,6 +31,42 @@ class CommandsTest extends UnitTestCase {
 
     $command = new Command($state_manager->reveal());
     $command->unsetLastRun($sync_id, $operation);
+  }
+
+  /**
+   * Tests that the state manager is properly called to lock the operation.
+   *
+   * @covers ::lock
+   */
+  public function testLock() {
+    $sync_id = 'user';
+    $operation = 'import_list';
+
+    $state_manager = $this->prophesize(StateManagerInterface::class);
+    $state_manager
+      ->lock($sync_id, $operation)
+      ->shouldBeCalledOnce();
+
+    $command = new Command($state_manager->reveal());
+    $command->lock($sync_id, $operation);
+  }
+
+  /**
+   * Tests that the state manager is properly called to unlock the operation.
+   *
+   * @covers ::unlock
+   */
+  public function testUnlock() {
+    $sync_id = 'user';
+    $operation = 'import_list';
+
+    $state_manager = $this->prophesize(StateManagerInterface::class);
+    $state_manager
+      ->unlock($sync_id, $operation)
+      ->shouldBeCalledOnce();
+
+    $command = new Command($state_manager->reveal());
+    $command->unlock($sync_id, $operation);
   }
 
 }
