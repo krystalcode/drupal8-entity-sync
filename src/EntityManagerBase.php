@@ -39,6 +39,11 @@ class EntityManagerBase {
   /**
    * Dispatches an event before an operation is initiated.
    *
+   * The `PreInitiateOperationEvent` event allows subscribers to set the
+   * operation to be cancelled. This method collects any cancellations, logs
+   * their messages, and returns a boolean indicating whether the operation
+   * should be cancelled or not so that the caller can act accordingly.
+   *
    * @param string $event_name
    *   The name of the event to dispatch. It must be a name for a
    *   `PreInitiateOperationEvent` event.
@@ -52,14 +57,8 @@ class EntityManagerBase {
    * @param array $data
    *   Custom data related to the operation.
    *
-   * @return array
-   *   An array containing the following elements in the given order:
-   *   - A boolean that is TRUE if the operation should be cancelled, FALSE
-   *     otherwise.
-   *   - An array of text messages with the reason(s) that the operation was
-   *     cancelled, if applicable.
-   *
-   * @see \Drupal\entity_sync\Event\PreInitiateOperationEvent::getCancellations()
+   * @return bool
+   *   Whether the operation should be cancelled or not.
    */
   protected function preInitiate(
     $event_name,
@@ -76,7 +75,24 @@ class EntityManagerBase {
     );
     $this->eventDispatcher->dispatch($event_name, $event);
 
-    return $event->getCancellations();
+    $cancel = $messages = NULL;
+    [$cancel, $messages] = $event->getCancellations();
+    if (!$cancel) {
+      return FALSE;
+    }
+
+    foreach ($messages as $message) {
+      $this->logger->warning(
+        sprintf(
+          'The %s operation for the synchronization with ID "%s" was cancelled with message: %s',
+          $operation,
+          $sync->get('id'),
+          $message
+        )
+      );
+    }
+
+    return TRUE;
   }
 
   /**

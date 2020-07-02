@@ -5,6 +5,7 @@ namespace Drupal\Tests\entity_sync\Unit\Import;
 use Drupal\entity_sync\Client\ClientFactory;
 use Drupal\entity_sync\Client\ClientInterface;
 use Drupal\entity_sync\Exception\FieldImportException;
+use Drupal\entity_sync\Event\PreInitiateOperationEvent;
 use Drupal\entity_sync\Import\Event\Events;
 use Drupal\entity_sync\Import\Event\RemoteEntityMappingEvent;
 use Drupal\entity_sync\Import\Event\ListFiltersEvent;
@@ -49,6 +50,7 @@ class EntityManagerTest extends UnitTestCase {
   public function dataProvider() {
     $providers = [
       'syncCaseDataProvider',
+      'cancellationDataProvider',
       'filterDataProvider',
       'optionDataProvider',
       'eventFilterDataProvider',
@@ -75,6 +77,7 @@ class EntityManagerTest extends UnitTestCase {
    */
   public function testImportRemoteList(
     $sync_case,
+    array $event_cancellations,
     array $filters,
     array $options,
     $event_filters,
@@ -93,6 +96,7 @@ class EntityManagerTest extends UnitTestCase {
     $field_manager = $this->prophesize(FieldManagerInterface::class);
 
     $event_dispatcher = $this->buildEventDispatcher(
+      $event_cancellations,
       $event_filters,
       $event_entity_mapping
     );
@@ -124,6 +128,7 @@ class EntityManagerTest extends UnitTestCase {
       'logger' => $logger,
       'sync' => $sync,
       'sync_case' => $sync_case,
+      'event_cancellations' => $event_cancellations,
       'filters' => $filters,
       'options' => $options,
       'event_filters' => $event_filters,
@@ -169,6 +174,21 @@ class EntityManagerTest extends UnitTestCase {
       'complete',
       // Import list operation disabled.
       'operations_disabled',
+    ];
+  }
+
+  /**
+   * Data provider for testing operation cancellations.
+   */
+  private function cancellationDataProvider() {
+    return [
+      // No event subscriber determined that the operation should be cancelled.
+      [],
+      // An event subscriber determined that the operation should be cancelled.
+      ['Cancellation message'],
+      // Multiple event subscribers determined that the operation should be
+      // cancelled.
+      ['Cancellation reason', 'Another cancellation reason'],
     ];
   }
 
@@ -395,7 +415,45 @@ class EntityManagerTest extends UnitTestCase {
       return;
     }
 
+    $this->branchCancel($test_context);
+    $this->branchProceed($test_context);
+  }
+
+  /**
+   * The operation is cancelled by a event subscriber.
+   */
+  private function branchCancel(array $test_context) {
+    if (!$test_context['event_cancellations']) {
+      return;
+    }
+
+    // We expect the logger to log the cancellation messages, and to never
+    // proceed to calling the client and fetch the entities from the remote.
+    $test_context['sync']
+      ->get('id')
+      ->willReturn($this->getSyncId($test_context['sync_case']))
+      ->shouldBeCalledAddTimes(count($test_context['event_cancellations']));
+    $test_context['logger']
+      ->warning(Argument::any())
+      ->shouldBeCalledTimes(count($test_context['event_cancellations']));
+    $test_context['client_factory']
+      ->get(Argument::any())
+      ->shouldNotBeCalled();
+  }
+
+  /**
+   * The operation is NOT cancelled by any event subscriber.
+   */
+  private function branchProceed(array $test_context) {
+    if ($test_context['event_cancellations']) {
+      return;
+    }
+
     // We expect to call the client and fetch the entities from the remote.
+    $test_context['sync']
+      ->get('id')
+      ->willReturn($this->getSyncId($test_context['sync_case']))
+      ->shouldBeCalledAddTimes(1);
     $client = $this->prophesize(ClientInterface::class);
     $client
       ->importList(
@@ -834,6 +892,31 @@ class EntityManagerTest extends UnitTestCase {
   }
 
   /**
+   * Builds the event subscriber for the `REMOTE_LIST_PRE_INITIATE` event.
+   */
+  private function buildCancellationEventSubscriber($cancellations) {
+    return new class($cancellations) implements EventSubscriberInterface {
+
+      private $cancellations;
+
+      public function __construct(array $cancellations) {
+        $this->cancellations = $cancellations;
+      }
+
+      public static function getSubscribedEvents() {
+        return [Events::REMOTE_LIST_PRE_INITIATE => 'callback'];
+      }
+
+      public function callback(PreInitiateOperationEvent $event) {
+        foreach ($this->cancellations as $message) {
+          $event->cancel($message);
+        }
+      }
+
+    };
+  }
+
+  /**
    * Builds the event subscriber for the `REMOTE_LIST_FILTERS` event.
    */
   private function buildFiltersEventSubscriber($filters) {
@@ -886,10 +969,14 @@ class EntityManagerTest extends UnitTestCase {
    * setting the given values.
    */
   private function buildEventDispatcher(
+    array $event_cancellations,
     array $event_filters,
     array $event_entity_mapping
   ) {
     $event_dispatcher = new EventDispatcher();
+    $event_dispatcher->addSubscriber(
+      $this->buildCancellationEventSubscriber($event_cancellations)
+    );
     $event_dispatcher->addSubscriber(
       $this->buildFiltersEventSubscriber($event_filters)
     );
