@@ -176,6 +176,37 @@ entity_sync.operation.import_list:
     url_path:
       type: string
       label: 'The path that will be used in generating URLs related to the operation'
+    # @I Document the `import_list` state manager settings
+    #    type     : task
+    #    priority : normal
+    #    labels   : import, operation, documentation
+    state:
+      type: mapping
+      label: "The configuration for the operation's state"
+      mapping:
+        manager:
+          type: string
+          label: 'The manager of the operation state'
+        lock:
+          type: boolean
+          label: 'Whether to prevent concurrent operations from running'
+        # The `max_interval` and `fallback_start_time` settings are not
+        # currently respected; they take effect only if they are passed through
+        # the context.
+        # @I Respect the time filter settings for the `import_list` operation
+        #    type     : improvement
+        #    priority : normal
+        #    labels   : config, import, operation
+        #    notes    : Implementation should be combined with allowing to
+        #               override any synchronization configuration properties
+        #               that make sense to allow via options, instead of passing
+        #               time filter properties specifically via the context.
+        max_interval:
+          type: integer
+          label: 'For time filter-based managed operations, the maximum time interval in seconds'
+        fallback_start_time:
+          type: integer
+          label: 'For time filter-based managed operations, the fallback start time filter as a Unix timestamp'
 
 entity_sync.operation.import_entity:
   type: mapping

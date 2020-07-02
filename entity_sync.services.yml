@@ -14,7 +14,9 @@ services:
 
   entity_sync.state_manager:
     class: Drupal\entity_sync\StateManager
-    arguments: ['@keyvalue']
+    arguments:
+      - '@config.factory'
+      - '@keyvalue'
 
   entity_sync.config_manager:
     class: Drupal\entity_sync\Config\Manager
@@ -63,9 +65,21 @@ services:
     tags:
       - { name: event_subscriber }
 
-  entity_sync.import.managed_remote_list_filters_terminate_subscriber:
+  entity_sync.import.managed_remote_list_terminate_subscriber:
     class: Drupal\entity_sync\EventSubscriber\ManagedImportRemoteListTerminate
     arguments: ['@entity_sync.state_manager', '@datetime.time']
+    tags:
+      - { name: event_subscriber }
+
+  entity_sync.import.managed_remote_list_lock_subscriber:
+    class: Drupal\entity_sync\EventSubscriber\ManagedImportRemoteListLock
+    arguments: ['@entity_sync.state_manager']
+    tags:
+      - { name: event_subscriber }
+
+  entity_sync.import.managed_remote_list_unlock_subscriber:
+    class: Drupal\entity_sync\EventSubscriber\ManagedImportRemoteListUnlock
+    arguments: ['@entity_sync.state_manager']
     tags:
       - { name: event_subscriber }
 

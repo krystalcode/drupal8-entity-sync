@@ -53,7 +53,8 @@ class ManagedImportRemoteListTerminate implements EventSubscriberInterface {
    */
   public static function getSubscribedEvents() {
     $events = [
-      Events::REMOTE_LIST_TERMINATE => ['setLastRun', 0],
+      // We give it a very low weight so that it is the last subscriber to run.
+      Events::REMOTE_LIST_TERMINATE => ['setLastRun', -1000],
     ];
     return $events;
   }

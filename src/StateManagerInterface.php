@@ -30,6 +30,16 @@ namespace Drupal\entity_sync;
 interface StateManagerInterface {
 
   /**
+   * Indicates that an operation is locked.
+   */
+  const LOCKED = 1;
+
+  /**
+   * Indicates that an operation is unlocked.
+   */
+  const UNLOCKED = 0;
+
+  /**
    * Gets the state of the operation.
    *
    * @param string $sync_id
@@ -44,6 +54,52 @@ interface StateManagerInterface {
    *     format.
    */
   public function get($sync_id, $operation);
+
+  /**
+   * Returns whether the operation is managed.
+   *
+   * @param string $sync_id
+   *   The ID of the entity synchronization that the operation belongs to.
+   * @param string $operation
+   *   The name of the the operation.
+   *
+   * @return bool
+   *   TRUE if the operation is managed, FALSE otherwise.
+   */
+  public function isManaged($sync_id, $operation);
+
+  /**
+   * Returns whether the operation is locked.
+   *
+   * @param string $sync_id
+   *   The ID of the entity synchronization that the operation belongs to.
+   * @param string $operation
+   *   The name of the the operation.
+   *
+   * @return bool
+   *   TRUE if the operation is locked, FALSE otherwise.
+   */
+  public function isLocked($sync_id, $operation);
+
+  /**
+   * Locks the given operation.
+   *
+   * @param string $sync_id
+   *   The ID of the entity synchronization that the operation belongs to.
+   * @param string $operation
+   *   The name of the the operation.
+   */
+  public function lock($sync_id, $operation);
+
+  /**
+   * Unlocks the given operation.
+   *
+   * @param string $sync_id
+   *   The ID of the entity synchronization that the operation belongs to.
+   * @param string $operation
+   *   The name of the the operation.
+   */
+  public function unlock($sync_id, $operation);
 
   /**
    * Gets the state of the last run of the operation.

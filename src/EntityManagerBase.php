@@ -3,6 +3,7 @@
 namespace Drupal\entity_sync;
 
 use Drupal\entity_sync\Event\InitiateOperationEvent;
+use Drupal\entity_sync\Event\PostTerminateOperationEvent;
 use Drupal\entity_sync\Event\PreInitiateOperationEvent;
 use Drupal\entity_sync\Event\TerminateOperationEvent;
 use Drupal\Core\Config\ImmutableConfig;
@@ -151,6 +152,43 @@ class EntityManagerBase {
     array $data = []
   ) {
     $event = new TerminateOperationEvent(
+      $operation,
+      $context,
+      $sync,
+      $data
+    );
+    $this->eventDispatcher->dispatch($event_name, $event);
+  }
+
+  /**
+   * Dispatches an event after an operation terminated.
+   *
+   * @param string $event_name
+   *   The name of the event to dispatch. It must be a name for a
+   *   `PostTerminateOperationEvent` event.
+   * @param string $operation
+   *   The name of the operation that terminated.
+   * @param array $context
+   *   The context of the operation we are currently executing.
+   * @param \Drupal\Core\Config\ImmutableConfig $sync
+   *   The configuration object for synchronization that defines the operation
+   *   we are currently executing.
+   * @param array $data
+   *   Custom data related to the operation.
+   *
+   * @I Inform post-terminate subscribers whether the operation succeeded
+   *    type     : improvement
+   *    priority : normal
+   *    labels   : event, import, operation
+   */
+  protected function postTerminate(
+    $event_name,
+    $operation,
+    array $context,
+    ImmutableConfig $sync,
+    array $data = []
+  ) {
+    $event = new PostTerminateOperationEvent(
       $operation,
       $context,
       $sync,

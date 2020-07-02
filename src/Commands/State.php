@@ -7,6 +7,11 @@ use Drush\Commands\DrushCommands;
 
 /**
  * Commands related to state management.
+ *
+ * @I Add commands for locking/unlocking operations
+ *    type     : feature
+ *    priority : normal
+ *    labels   : drush, state
  */
 class State extends DrushCommands {
 

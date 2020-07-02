@@ -164,7 +164,28 @@ class Manager extends EntityManagerBase implements ManagerInterface {
     }
 
     // Run the operation.
-    $this->doImportRemoteList($sync, $filters, $options, $context);
+    // We do this in a `try/finally` structure so that we can still dispatch the
+    // post-terminate event. Subscribers may still need to run whether the
+    // operation was successfull or not. For example, even if a managed
+    // operation failed we unlock it so that the next one is allowed to run.
+    // At the end, the error/exception is still thrown so that the caller can
+    // handle it as required.
+    // @I Test that post-terminate event is dispatched in case of errors
+    //    type     : task
+    //    priority : normal
+    //    labels   : event, import, testing
+    try {
+      $this->doImportRemoteList($sync, $filters, $options, $context);
+    }
+    finally {
+      // Notify subscribers that the operation has terminated.
+      $this->postTerminate(
+        Events::REMOTE_LIST_POST_TERMINATE,
+        'import_list',
+        $context,
+        $sync
+      );
+    }
   }
 
   /**
@@ -218,49 +239,25 @@ class Manager extends EntityManagerBase implements ManagerInterface {
       return;
     }
 
-    // Initiate the operation.
-    $this->initiate(
-      Events::LOCAL_ENTITY_INITIATE,
-      'import_entity',
-      $context,
-      $sync
-    );
-
-    // Build the entity mapping for this local entity.
-    $entity_mapping = $this->localEntityMapping($local_entity, $sync);
-    if (!$entity_mapping) {
-      return;
+    // Run the operation.
+    // We do this in a `try/finally` structure so that we can still dispatch the
+    // post-terminate event. Subscribers may still need to run whether the
+    // operation was successfull or not. For example, even if a managed
+    // operation failed we unlock it so that the next one is allowed to run.
+    // At the end, the error/exception is still thrown so that the caller can
+    // handle it as required.
+    try {
+      $this->doImportLocalEntity($sync, $local_entity, $options, $context);
     }
-
-    // Skip importing the remote entity if we are explicitly told to do so.
-    if ($entity_mapping['action'] === ManagerInterface::ACTION_SKIP) {
-      return;
-    }
-    elseif ($entity_mapping['action'] !== ManagerInterface::ACTION_IMPORT) {
-      throw new \RuntimeException(
-        sprintf(
-          'Unsupported entity mapping action "%s"',
-          $entity_mapping['action']
-        )
+    finally {
+      // Notify subscribers that the operation has terminated.
+      $this->postTerminate(
+        Events::LOCAL_ENTITY_POST_TERMINATE,
+        'import_entity',
+        $context,
+        $sync
       );
     }
-
-    // Now, use the remote client to fetch the remote entity for this ID.
-    $remote_entity = $this->clientFactory
-      ->getByClientConfig($entity_mapping['client'])
-      ->importEntity($entity_mapping['entity_id']);
-
-    // Finally, update the entity.
-    $this->createOrUpdate($remote_entity, $sync);
-
-    // Terminate the operation.
-    // Add to the context the local entity that was imported.
-    $this->terminate(
-      Events::LOCAL_ENTITY_TERMINATE,
-      'import_entity',
-      $context + ['local_entity' => $local_entity],
-      $sync
-    );
   }
 
   /**
@@ -324,6 +321,74 @@ class Manager extends EntityManagerBase implements ManagerInterface {
       Events::REMOTE_LIST_TERMINATE,
       'import_list',
       $context,
+      $sync
+    );
+  }
+
+  /**
+   * Runs the actual local entity import operation.
+   *
+   * @param \Drupal\Core\Config\ImmutableConfig $sync
+   *   The configuration object for synchronization that defines the operation
+   *   we are currently executing.
+   * @param \Drupal\Core\Entity\ContentEntityInterface $local_entity
+   *   The local entity.
+   * @param array $options
+   *   An associative array of options that determine various aspects of the
+   *   import. For supported options see
+   *   \Drupal\entity_sync\Import\ManagerInterface::importLocalEntity().
+   * @param array $context
+   *   An associative array containing of context related to the circumstances
+   *     of the operation. See
+   *     \Drupal\entity_sync\Import\ManagerInterface::importLocalEntity().
+   */
+  protected function doImportLocalEntity(
+    ImmutableConfig $sync,
+    ContentEntityInterface $local_entity,
+    array $options,
+    array $context
+  ) {
+    // Initiate the operation.
+    $this->initiate(
+      Events::LOCAL_ENTITY_INITIATE,
+      'import_entity',
+      $context,
+      $sync
+    );
+
+    // Build the entity mapping for this local entity.
+    $entity_mapping = $this->localEntityMapping($local_entity, $sync);
+    if (!$entity_mapping) {
+      return;
+    }
+
+    // Skip importing the remote entity if we are explicitly told to do so.
+    if ($entity_mapping['action'] === ManagerInterface::ACTION_SKIP) {
+      return;
+    }
+    elseif ($entity_mapping['action'] !== ManagerInterface::ACTION_IMPORT) {
+      throw new \RuntimeException(
+        sprintf(
+          'Unsupported entity mapping action "%s"',
+          $entity_mapping['action']
+        )
+      );
+    }
+
+    // Now, use the remote client to fetch the remote entity for this ID.
+    $remote_entity = $this->clientFactory
+      ->getByClientConfig($entity_mapping['client'])
+      ->importEntity($entity_mapping['entity_id']);
+
+    // Finally, update the entity.
+    $this->createOrUpdate($remote_entity, $sync);
+
+    // Terminate the operation.
+    // Add to the context the local entity that was imported.
+    $this->terminate(
+      Events::LOCAL_ENTITY_TERMINATE,
+      'import_entity',
+      $context + ['local_entity' => $local_entity],
       $sync
     );
   }
