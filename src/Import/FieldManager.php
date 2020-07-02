@@ -150,6 +150,12 @@ class FieldManager implements FieldManagerInterface {
     // developers to intentionally disable that in the synchronization
     // configuration. Until that is supported, we throw an exception.
     $field_config = $sync->get('remote_resource.changed_field');
+
+    // Don't do anything if the remote entity doesn't have a changed field.
+    if (!$field_config) {
+      return;
+    }
+
     $field_name = $field_config['name'];
     if (!isset($remote_entity->{$field_name})) {
       throw new \RuntimeException(
