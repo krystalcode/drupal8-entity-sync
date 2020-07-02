@@ -2,12 +2,20 @@
 
 namespace Drupal\entity_sync;
 
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\KeyValueStore\KeyValueFactoryInterface;
 
 /**
  * Defines the default state manager interface.
  */
 class StateManager implements StateManagerInterface {
+
+  /**
+   * The config factory.
+   *
+   * @var \Drupal\Core\Config\ConfigFactoryInterface
+   */
+  protected $configFactory;
 
   /**
    * The key value factory.
@@ -19,10 +27,16 @@ class StateManager implements StateManagerInterface {
   /**
    * Constructs a new StateManager object.
    *
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
+   *   The configuration factory.
    * @param \Drupal\Core\KeyValueStore\KeyValueFactoryInterface $key_value_factory
    *   The key value factory.
    */
-  public function __construct(KeyValueFactoryInterface $key_value_factory) {
+  public function __construct(
+    ConfigFactoryInterface $config_factory,
+    KeyValueFactoryInterface $key_value_factory
+  ) {
+    $this->configFactory = $config_factory;
     $this->keyValueFactory = $key_value_factory;
   }
 
@@ -34,6 +48,65 @@ class StateManager implements StateManagerInterface {
       $this->getCollectionName($sync_id)
     );
     return $store->get($operation, []);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function isManaged($sync_id, $operation) {
+    $sync = $this->configFactory->get('entity_sync.sync.' . $sync_id);
+    if (!$sync) {
+      throw new \InvalidArgumentException(
+        sprintf(
+          'Unknown synchronization with ID "%s"',
+          $sync_id
+        )
+      );
+    }
+
+    if ($sync->get("operations.$operation.state.manager") === 'entity_sync') {
+      return TRUE;
+    }
+
+    return FALSE;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function isLocked($sync_id, $operation) {
+    $store = $this->keyValueFactory->get(
+      $this->getCollectionName($sync_id)
+    );
+    $value = $store->get($operation, []);
+
+    return $value['locked'] ?? StateManagerInterface::UNLOCKED;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function lock($sync_id, $operation) {
+    $store = $this->keyValueFactory->get(
+      $this->getCollectionName($sync_id)
+    );
+    $value = $store->get($operation, []);
+    $value['locked'] = StateManagerInterface::LOCKED;
+
+    $store->set($operation, $value);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function unlock($sync_id, $operation) {
+    $store = $this->keyValueFactory->get(
+      $this->getCollectionName($sync_id)
+    );
+    $value = $store->get($operation, []);
+    $value['locked'] = StateManagerInterface::UNLOCKED;
+
+    $store->set($operation, $value);
   }
 
   /**

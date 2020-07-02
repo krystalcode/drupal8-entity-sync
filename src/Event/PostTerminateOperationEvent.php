@@ -6,14 +6,14 @@ use Drupal\Core\Config\ImmutableConfig;
 use Symfony\Component\EventDispatcher\Event;
 
 /**
- * Defines the operation terminate event.
+ * Defines the operation post-terminate event.
  *
- * Allows subscribers to respond after an operation has been executed.
+ * Allows subscribers to respond after an operation has been terminated.
  */
-class TerminateOperationEvent extends Event {
+class PostTerminateOperationEvent extends Event {
 
   /**
-   * The operation that was executed.
+   * The operation that was terminated.
    *
    * @var string
    */
@@ -34,24 +34,24 @@ class TerminateOperationEvent extends Event {
   protected $sync;
 
   /**
-   * Custom data related to the operation that was executed.
+   * Custom data related to the operation that was terminated.
    *
    * @var array
    */
   protected $data;
 
   /**
-   * Constructs a new TerminateOperationEvent object.
+   * Constructs a new PostTerminateOperationEvent object.
    *
    * @param string $operation
-   *   The operation that was executed.
+   *   The operation that was terminated.
    * @param array $context
    *   The context array.
    * @param \Drupal\Core\Config\ImmutableConfig $sync
    *   The configuration object for synchronization that defines the operation
    *   we are currently executing.
    * @param array $data
-   *   Custom data related to the operation that was executed.
+   *   Custom data related to the operation that was terminated.
    */
   public function __construct(
     $operation,

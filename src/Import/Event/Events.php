@@ -71,6 +71,24 @@ final class Events {
   const REMOTE_LIST_TERMINATE = 'entity_sync.import.remote_list_terminate';
 
   /**
+   * Name of the event fired after importing remote entities has terminated.
+   *
+   * @Event
+   *
+   * @see \Drupal\entity_sync\Event\PostTerminateOperationEvent
+   */
+  const REMOTE_LIST_POST_TERMINATE = 'entity_sync.import.remote_list_post_terminate';
+
+  /**
+   * Name of the event fired before importing a local entity is initiated.
+   *
+   * @Event
+   *
+   * @see \Drupal\entity_sync\Event\PreInitiateOperationEvent
+   */
+  const LOCAL_ENTITY_PRE_INITIATE = 'entity_sync.import.local_entity_pre_initiate';
+
+  /**
    * Name of the event fired when importing a local entity is initiated.
    *
    * @Event
@@ -87,5 +105,14 @@ final class Events {
    * @see \Drupal\entity_sync\Event\TerminateOperationEvent
    */
   const LOCAL_ENTITY_TERMINATE = 'entity_sync.import.local_entity_terminate';
+
+  /**
+   * Name of the event fired after importing a local entity has terminated.
+   *
+   * @Event
+   *
+   * @see \Drupal\entity_sync\Event\PostTerminateOperationEvent
+   */
+  const LOCAL_ENTITY_POST_TERMINATE = 'entity_sync.import.local_entity_post_terminate';
 
 }

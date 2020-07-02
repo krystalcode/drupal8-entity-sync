@@ -3,6 +3,7 @@
 namespace Drupal\entity_sync;
 
 use Drupal\entity_sync\Event\InitiateOperationEvent;
+use Drupal\entity_sync\Event\PostTerminateOperationEvent;
 use Drupal\entity_sync\Event\PreInitiateOperationEvent;
 use Drupal\entity_sync\Event\TerminateOperationEvent;
 use Drupal\Core\Config\ImmutableConfig;
@@ -39,6 +40,11 @@ class EntityManagerBase {
   /**
    * Dispatches an event before an operation is initiated.
    *
+   * The `PreInitiateOperationEvent` event allows subscribers to set the
+   * operation to be cancelled. This method collects any cancellations, logs
+   * their messages, and returns a boolean indicating whether the operation
+   * should be cancelled or not so that the caller can act accordingly.
+   *
    * @param string $event_name
    *   The name of the event to dispatch. It must be a name for a
    *   `PreInitiateOperationEvent` event.
@@ -52,14 +58,8 @@ class EntityManagerBase {
    * @param array $data
    *   Custom data related to the operation.
    *
-   * @return array
-   *   An array containing the following elements in the given order:
-   *   - A boolean that is TRUE if the operation should be cancelled, FALSE
-   *     otherwise.
-   *   - An array of text messages with the reason(s) that the operation was
-   *     cancelled, if applicable.
-   *
-   * @see \Drupal\entity_sync\Event\PreInitiateOperationEvent::getCancellations()
+   * @return bool
+   *   Whether the operation should be cancelled or not.
    */
   protected function preInitiate(
     $event_name,
@@ -76,7 +76,24 @@ class EntityManagerBase {
     );
     $this->eventDispatcher->dispatch($event_name, $event);
 
-    return $event->getCancellations();
+    $cancel = $messages = NULL;
+    [$cancel, $messages] = $event->getCancellations();
+    if (!$cancel) {
+      return FALSE;
+    }
+
+    foreach ($messages as $message) {
+      $this->logger->warning(
+        sprintf(
+          'The %s operation for the synchronization with ID "%s" was cancelled with message: %s',
+          $operation,
+          $sync->get('id'),
+          $message
+        )
+      );
+    }
+
+    return TRUE;
   }
 
   /**
@@ -135,6 +152,43 @@ class EntityManagerBase {
     array $data = []
   ) {
     $event = new TerminateOperationEvent(
+      $operation,
+      $context,
+      $sync,
+      $data
+    );
+    $this->eventDispatcher->dispatch($event_name, $event);
+  }
+
+  /**
+   * Dispatches an event after an operation terminated.
+   *
+   * @param string $event_name
+   *   The name of the event to dispatch. It must be a name for a
+   *   `PostTerminateOperationEvent` event.
+   * @param string $operation
+   *   The name of the operation that terminated.
+   * @param array $context
+   *   The context of the operation we are currently executing.
+   * @param \Drupal\Core\Config\ImmutableConfig $sync
+   *   The configuration object for synchronization that defines the operation
+   *   we are currently executing.
+   * @param array $data
+   *   Custom data related to the operation.
+   *
+   * @I Inform post-terminate subscribers whether the operation succeeded
+   *    type     : improvement
+   *    priority : normal
+   *    labels   : event, import, operation
+   */
+  protected function postTerminate(
+    $event_name,
+    $operation,
+    array $context,
+    ImmutableConfig $sync,
+    array $data = []
+  ) {
+    $event = new PostTerminateOperationEvent(
       $operation,
       $context,
       $sync,

@@ -149,64 +149,43 @@ class Manager extends EntityManagerBase implements ManagerInterface {
     $context = $options['context'] ?? [];
 
     // Notify subscribers that the operation is about to be initiated.
-    [$cancel, $messages] = $this->preInitiate(
+    // @I Write tests for operation cancellations
+    //    type     : task
+    //    priority : high
+    //    labels   : import, testing
+    $cancel = $this->preInitiate(
       Events::REMOTE_LIST_PRE_INITIATE,
       'import_list',
       $context,
       $sync
     );
-
     if ($cancel) {
-      foreach ($messages as $message) {
-        $this->logger->warning(
-          sprintf(
-            'The `import_list` operation for the synchronization with ID "%s" was cancelled with message: %s',
-            $sync_id,
-            $message
-          )
-        );
-      }
       return;
     }
 
-    // Initiate the operation.
-    $this->initiate(
-      Events::REMOTE_LIST_INITIATE,
-      'import_list',
-      $context,
-      $sync
-    );
-
-    // Build the filters and the options that will be passed to the client for
-    // fetching the list of entities.
-    $filters = $this->remoteListFilters($filters, $context, $sync);
-    $client_options = $options['client'] ?? [];
-
-    // Now, use the remote client to fetch the list of entities.
-    $entities = $this->clientFactory
-      ->get($sync_id)
-      ->importList($filters, $client_options);
-    if (!$entities) {
-      return;
+    // Run the operation.
+    // We do this in a `try/finally` structure so that we can still dispatch the
+    // post-terminate event. Subscribers may still need to run whether the
+    // operation was successfull or not. For example, even if a managed
+    // operation failed we unlock it so that the next one is allowed to run.
+    // At the end, the error/exception is still thrown so that the caller can
+    // handle it as required.
+    // @I Test that post-terminate event is dispatched in case of errors
+    //    type     : task
+    //    priority : normal
+    //    labels   : event, import, testing
+    try {
+      $this->doImportRemoteList($sync, $filters, $options, $context);
     }
-
-    // Go through each entity and create or update the corresponding local
-    // entity.
-    $this->doubleIteratorApply(
-      $entities,
-      [$this, 'tryCreateOrUpdate'],
-      $options['limit'] ?? NULL,
-      $sync,
-      'import_list'
-    );
-
-    // Terminate the operation.
-    $this->terminate(
-      Events::REMOTE_LIST_TERMINATE,
-      'import_list',
-      $context,
-      $sync
-    );
+    finally {
+      // Notify subscribers that the operation has terminated.
+      $this->postTerminate(
+        Events::REMOTE_LIST_POST_TERMINATE,
+        'import_list',
+        $context,
+        $sync
+      );
+    }
   }
 
   /**
@@ -246,26 +225,129 @@ class Manager extends EntityManagerBase implements ManagerInterface {
     $context = $options['context'] ?? [];
 
     // Notify subscribers that the operation is about to be initiated.
-    [$cancel, $messages] = $this->preInitiate(
+    // @I Write tests for operation cancellations
+    //    type     : task
+    //    priority : high
+    //    labels   : import, testing
+    $cancel = $this->preInitiate(
       Events::LOCAL_ENTITY_PRE_INITIATE,
       'import_entity',
       $context,
       $sync
     );
-
     if ($cancel) {
-      foreach ($messages as $message) {
-        $this->logger->warning(
-          sprintf(
-            'The `import_entity` operation for the synchronization with ID "%s" was cancelled with message: %s',
-            $sync_id,
-            $message
-          )
-        );
-      }
       return;
     }
 
+    // Run the operation.
+    // We do this in a `try/finally` structure so that we can still dispatch the
+    // post-terminate event. Subscribers may still need to run whether the
+    // operation was successfull or not. For example, even if a managed
+    // operation failed we unlock it so that the next one is allowed to run.
+    // At the end, the error/exception is still thrown so that the caller can
+    // handle it as required.
+    try {
+      $this->doImportLocalEntity($sync, $local_entity, $options, $context);
+    }
+    finally {
+      // Notify subscribers that the operation has terminated.
+      $this->postTerminate(
+        Events::LOCAL_ENTITY_POST_TERMINATE,
+        'import_entity',
+        $context,
+        $sync
+      );
+    }
+  }
+
+  /**
+   * Runs the actual remote entity import operation.
+   *
+   * @param \Drupal\Core\Config\ImmutableConfig $sync
+   *   The configuration object for synchronization that defines the operation
+   *   we are currently executing.
+   * @param array $filters
+   *   An associative array of filters that determine which entities will be
+   *   imported. For supported filters see
+   *   \Drupal\entity_sync\Import\ManagerInterface::importRemoteList().
+   * @param array $options
+   *   An associative array of options that determine various aspects of the
+   *   import. For supported options see
+   *   \Drupal\entity_sync\Import\ManagerInterface::importRemoteList().
+   * @param array $context
+   *   An associative array containing of context related to the circumstances
+   *     of the operation. See
+   *     \Drupal\entity_sync\Import\ManagerInterface::importRemoteList().
+   */
+  protected function doImportRemoteList(
+    ImmutableConfig $sync,
+    array $filters,
+    array $options,
+    array $context
+  ) {
+    // Initiate the operation.
+    $this->initiate(
+      Events::REMOTE_LIST_INITIATE,
+      'import_list',
+      $context,
+      $sync
+    );
+
+    // Build the filters and the options that will be passed to the client for
+    // fetching the list of entities.
+    $filters = $this->remoteListFilters($filters, $context, $sync);
+    $client_options = $options['client'] ?? [];
+
+    // Now, use the remote client to fetch the list of entities.
+    $entities = $this->clientFactory
+      ->get($sync->get('id'))
+      ->importList($filters, $client_options);
+    if (!$entities) {
+      return;
+    }
+
+    // Go through each entity and create or update the corresponding local
+    // entity.
+    $this->doubleIteratorApply(
+      $entities,
+      [$this, 'tryCreateOrUpdate'],
+      $options['limit'] ?? NULL,
+      $sync,
+      'import_list'
+    );
+
+    // Terminate the operation.
+    $this->terminate(
+      Events::REMOTE_LIST_TERMINATE,
+      'import_list',
+      $context,
+      $sync
+    );
+  }
+
+  /**
+   * Runs the actual local entity import operation.
+   *
+   * @param \Drupal\Core\Config\ImmutableConfig $sync
+   *   The configuration object for synchronization that defines the operation
+   *   we are currently executing.
+   * @param \Drupal\Core\Entity\ContentEntityInterface $local_entity
+   *   The local entity.
+   * @param array $options
+   *   An associative array of options that determine various aspects of the
+   *   import. For supported options see
+   *   \Drupal\entity_sync\Import\ManagerInterface::importLocalEntity().
+   * @param array $context
+   *   An associative array containing of context related to the circumstances
+   *     of the operation. See
+   *     \Drupal\entity_sync\Import\ManagerInterface::importLocalEntity().
+   */
+  protected function doImportLocalEntity(
+    ImmutableConfig $sync,
+    ContentEntityInterface $local_entity,
+    array $options,
+    array $context
+  ) {
     // Initiate the operation.
     $this->initiate(
       Events::LOCAL_ENTITY_INITIATE,
