@@ -349,10 +349,11 @@ class FieldManager implements FieldManagerInterface {
     // then invoke that.
     if (($field_info['import']['callback'] ?? FALSE) !== FALSE) {
       call_user_func(
-        $field_info['import']['callback'],
+        $field_info['import']['callback']['function_name'],
         $remote_entity,
         $local_entity,
-        $field_info
+        $field_info,
+        $field_info['import']['callback']['parameters']
       );
     }
     // Else, we assume direct copy of the remote field value into the local
