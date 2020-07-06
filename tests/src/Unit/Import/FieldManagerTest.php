@@ -1258,7 +1258,7 @@ class FieldManagerTest extends UnitTestCase {
     return $call_user_func
       ->expects($this->once())
       ->with(
-        $this->equalTo($field_info['import']['callback']),
+        $this->equalTo($field_info['import']['callback']['function_name']),
         $this->identicalTo($test_context['remote_entity']),
         // The `identicalTo` parameter matcher seems to fail when the parameters
         // are mock objects. We write a custom callback that compares the
@@ -1273,7 +1273,8 @@ class FieldManagerTest extends UnitTestCase {
             return $local_entity_hash === spl_object_hash($subject);
           }
         ),
-        $this->equalTo($field_info)
+        $this->equalTo($field_info),
+        []
       );
   }
 
