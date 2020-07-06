@@ -488,9 +488,6 @@ class EntityManagerTest extends UnitTestCase {
     $test_context['logger']
       ->warning(Argument::any())
       ->shouldBeCalledTimes(count($test_context['event_dependent_syncs']));
-    $test_context['client_factory']
-      ->get(Argument::any())
-      ->shouldNotBeCalled();
   }
 
   /**
