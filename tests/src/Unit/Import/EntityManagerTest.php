@@ -51,6 +51,7 @@ class EntityManagerTest extends UnitTestCase {
     $providers = [
       'syncCaseDataProvider',
       'cancellationDataProvider',
+      'dependentSyncsDataProvider',
       'filterDataProvider',
       'optionDataProvider',
       'eventFilterDataProvider',
@@ -78,6 +79,7 @@ class EntityManagerTest extends UnitTestCase {
   public function testImportRemoteList(
     $sync_case,
     array $event_cancellations,
+    array $event_dependent_syncs,
     array $filters,
     array $options,
     $event_filters,
@@ -97,6 +99,7 @@ class EntityManagerTest extends UnitTestCase {
 
     $event_dispatcher = $this->buildEventDispatcher(
       $event_cancellations,
+      $event_dependent_syncs,
       $event_filters,
       $event_entity_mapping
     );
@@ -129,6 +132,7 @@ class EntityManagerTest extends UnitTestCase {
       'sync' => $sync,
       'sync_case' => $sync_case,
       'event_cancellations' => $event_cancellations,
+      'event_dependent_syncs' => $event_dependent_syncs,
       'filters' => $filters,
       'options' => $options,
       'event_filters' => $event_filters,
@@ -189,6 +193,56 @@ class EntityManagerTest extends UnitTestCase {
       // Multiple event subscribers determined that the operation should be
       // cancelled.
       ['Cancellation reason', 'Another cancellation reason'],
+    ];
+  }
+
+  /**
+   * Data provider for testing dependent syncs.
+   */
+  private function dependentSyncsDataProvider() {
+    // Mock services required for instantiating the import manager.
+    $client_factory = $this->prophesize(ClientFactory::class);
+    $config_factory = $this->prophesize(ConfigFactoryInterface::class);
+    $entity_type_manager = $this->prophesize(EntityTypeManagerInterface::class);
+    $logger = $this->prophesize(LoggerChannelInterface::class);
+    $field_manager = $this->prophesize(FieldManagerInterface::class);
+    $event_dispatcher = new EventDispatcher();
+
+    // Mock the synchronization configuration.
+    $sync_case = 'operations_disabled';
+    $operation_status = $this->getFixtureDataProperty(
+      'operations.import_list.status',
+      $sync_case
+    );
+    $sync = $this->prophesizeSync($operation_status);
+    $config_factory = $this->prophesizeConfigFactory($sync_case, $sync);
+
+    // Instantiate the import manager.
+    $manager = new Manager(
+      $client_factory->reveal(),
+      $config_factory->reveal(),
+      $entity_type_manager->reveal(),
+      $event_dispatcher,
+      $field_manager->reveal(),
+      $logger->reveal()
+    );
+
+    return [
+      // No dependent syncs for this sync.
+      [
+        'import_manager' => $manager,
+        'dependent_syncs' => [],
+      ],
+      // One dependent sync should be run for this sync.
+      [
+        'import_manager' => $manager,
+        'dependent_syncs' => ['dependent_sync_1'],
+      ],
+      // Two dependent syncs should be run for this sync.
+      [
+        'import_manager' => $manager,
+        'dependent_syncs' => ['dependent_sync_1', 'dependent_sync_2'],
+      ],
     ];
   }
 
@@ -416,6 +470,7 @@ class EntityManagerTest extends UnitTestCase {
     }
 
     $this->branchCancel($test_context);
+    $this->branchDependentSyncs($test_context);
     $this->branchProceed($test_context);
   }
 
@@ -436,6 +491,27 @@ class EntityManagerTest extends UnitTestCase {
     $test_context['logger']
       ->warning(Argument::any())
       ->shouldBeCalledTimes(count($test_context['event_cancellations']));
+    $test_context['client_factory']
+      ->get(Argument::any())
+      ->shouldNotBeCalled();
+  }
+
+  /**
+   * The operation initiates dependent syncs by an event subscriber.
+   */
+  private function branchDependentSyncs(array $test_context) {
+    if (!$test_context['event_dependent_syncs']) {
+      return;
+    }
+
+    // We expect the import list operation to be called again for each
+    // dependent sync.
+    $test_context['client_factory']
+      ->get(Argument::any())
+      ->shouldBeCalledAddTimes(count($test_context['event_dependent_syncs']));
+    $test_context['logger']
+      ->warning(Argument::any())
+      ->shouldBeCalledTimes(count($test_context['event_dependent_syncs']));
     $test_context['client_factory']
       ->get(Argument::any())
       ->shouldNotBeCalled();
@@ -917,6 +993,39 @@ class EntityManagerTest extends UnitTestCase {
   }
 
   /**
+   * Builds the event subscriber for the `REMOTE_LIST_PRE_INITIATE` event.
+   */
+  private function buildDependentSyncsEventSubscriber($dependent_syncs) {
+    return new class($dependent_syncs) implements EventSubscriberInterface {
+
+      private $dependent_syncs;
+
+      private $manager;
+
+      public function __construct(array $dependent_syncs) {
+        $this->dependent_syncs = $dependent_syncs['dependent_syncs'];
+        $this->manager = $dependent_syncs['import_manager'];
+      }
+
+      public static function getSubscribedEvents() {
+        return [Events::REMOTE_LIST_PRE_INITIATE => 'callback'];
+      }
+
+      public function callback(PreInitiateOperationEvent $event) {
+        foreach ($this->dependent_syncs as $sync_id) {
+          // Run the dependent syncs.
+          $this->manager->importRemoteList(
+            $sync_id,
+            [],
+            []
+          );
+        }
+      }
+
+    };
+  }
+
+  /**
    * Builds the event subscriber for the `REMOTE_LIST_FILTERS` event.
    */
   private function buildFiltersEventSubscriber($filters) {
@@ -970,12 +1079,16 @@ class EntityManagerTest extends UnitTestCase {
    */
   private function buildEventDispatcher(
     array $event_cancellations,
+    array $event_dependent_syncs,
     array $event_filters,
     array $event_entity_mapping
   ) {
     $event_dispatcher = new EventDispatcher();
     $event_dispatcher->addSubscriber(
       $this->buildCancellationEventSubscriber($event_cancellations)
+    );
+    $event_dispatcher->addSubscriber(
+      $this->buildDependentSyncsEventSubscriber($event_dependent_syncs)
     );
     $event_dispatcher->addSubscriber(
       $this->buildFiltersEventSubscriber($event_filters)
