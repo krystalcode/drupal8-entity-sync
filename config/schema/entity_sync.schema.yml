@@ -303,8 +303,11 @@ entity_sync.field:
               type: string
               label: 'The name of the callback function'
             parameters:
-              type: mapping
+              type: sequence
               label: 'An associative array of parameters to send to the callback'
+              sequence:
+                type: string
+                label: 'Param'
     export:
       type: mapping
       label: 'The configuration for exporting an entity field'
