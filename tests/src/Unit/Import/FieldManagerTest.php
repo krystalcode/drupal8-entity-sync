@@ -205,7 +205,9 @@ class FieldManagerTest extends UnitTestCase {
           // be testing that the `call_user_func` function is called with the
           // right arguments.
           'import' => [
-            'callback' => '\Drupal\Tests\entity_sync\Unit\Import\FieldManagerTest::fieldCallback',
+            'callback' => [
+              'function_name' => '\Drupal\Tests\entity_sync\Unit\Import\FieldManagerTest::fieldCallback',
+            ],
           ],
         ],
       ],
@@ -226,7 +228,9 @@ class FieldManagerTest extends UnitTestCase {
           // right arguments.
           'import' => [
             'status' => FALSE,
-            'callback' => '\Drupal\Tests\entity_sync\Unit\Import\FieldManagerTest::fieldCallback',
+            'callback' => [
+              'function_name' => '\Drupal\Tests\entity_sync\Unit\Import\FieldManagerTest::fieldCallback',
+            ],
           ],
         ],
       ],
