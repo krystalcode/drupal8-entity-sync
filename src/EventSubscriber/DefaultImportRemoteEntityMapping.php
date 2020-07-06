@@ -59,7 +59,7 @@ class DefaultImportRemoteEntityMapping implements EventSubscriberInterface {
     $remote_id_field = $sync->get('remote_resource.id_field');
     $entity_info = $sync->get('entity');
 
-    $local_entity_ids = $this->entityTypeManager
+    $query = $this->entityTypeManager
       ->getStorage($entity_info['type_id'])
       ->getQuery()
       // @I Review whether disabling access check is always safe
@@ -74,8 +74,19 @@ class DefaultImportRemoteEntityMapping implements EventSubscriberInterface {
       ->condition(
         $entity_info['remote_id_field'],
         $remote_entity->{$remote_id_field}
-      )
-      ->execute();
+      );
+    // If the entity type has bundles, we need to provide the bundle as well to
+    // fetch the entity.
+    $entity_type = $this->entityTypeManager
+      ->getDefinition($entity_info['type_id']);
+    $is_bundleable = $entity_type->getBundleEntityType() ? TRUE : FALSE;
+    if ($is_bundleable) {
+      $query->condition(
+        $entity_type->getKey('bundle'),
+        $entity_info['bundle']
+      );
+    }
+    $local_entity_ids = $query->execute();
 
     if ($local_entity_ids) {
       $entity_mapping = $this->buildUpdateEntityMapping(
