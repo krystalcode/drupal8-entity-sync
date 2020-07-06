@@ -200,32 +200,8 @@ class EntityManagerTest extends UnitTestCase {
    * Data provider for testing dependent syncs.
    */
   private function dependentSyncsDataProvider() {
-    // Mock services required for instantiating the import manager.
-    $client_factory = $this->prophesize(ClientFactory::class);
-    $config_factory = $this->prophesize(ConfigFactoryInterface::class);
-    $entity_type_manager = $this->prophesize(EntityTypeManagerInterface::class);
-    $logger = $this->prophesize(LoggerChannelInterface::class);
-    $field_manager = $this->prophesize(FieldManagerInterface::class);
-    $event_dispatcher = new EventDispatcher();
-
-    // Mock the synchronization configuration.
-    $sync_case = 'operations_disabled';
-    $operation_status = $this->getFixtureDataProperty(
-      'operations.import_list.status',
-      $sync_case
-    );
-    $sync = $this->prophesizeSync($operation_status);
-    $config_factory = $this->prophesizeConfigFactory($sync_case, $sync);
-
-    // Instantiate the import manager.
-    $manager = new Manager(
-      $client_factory->reveal(),
-      $config_factory->reveal(),
-      $entity_type_manager->reveal(),
-      $event_dispatcher,
-      $field_manager->reveal(),
-      $logger->reveal()
-    );
+    $manager = $this->prophesize(ManagerInterface::class);
+    $manager = $manager->reveal();
 
     return [
       // No dependent syncs for this sync.
