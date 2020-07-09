@@ -1,0 +1,55 @@
+field_mapping__with_defaults:
+  id: complete_field_mapping
+  fields:
+    # Fields making use of default export status.
+    - machine_name: field_enabled_1
+      remote_name: field_enabled_1
+    - machine_name: field_enabled_2
+      remote_name: field_enabled_2
+    # Fields explicitly setting the export status.
+    - machine_name: field_enabled_3
+      remote_name: field_enabled_3
+      export:
+        status: true
+    - machine_name: field_enabled_4
+      remote_name: field_enabled_4
+      export:
+        status: true
+    - machine_name: field_disabled_1
+      remote_name: field_disabled_1
+      export:
+        status: false
+    - machine_name: field_disabled_2
+      remote_name: field_disabled_2
+      export:
+        status: false
+
+field_mapping__complete:
+  id: complete_field_mapping
+  fields:
+    # Fields making use of default export status.
+    - machine_name: field_enabled_1
+      remote_name: field_enabled_1
+      export:
+        status: true
+    - machine_name: field_enabled_2
+      remote_name: field_enabled_2
+      export:
+        status: true
+    # Fields explicitly setting the export status.
+    - machine_name: field_enabled_3
+      remote_name: field_enabled_3
+      export:
+        status: true
+    - machine_name: field_enabled_4
+      remote_name: field_enabled_4
+      export:
+        status: true
+    - machine_name: field_disabled_1
+      remote_name: field_disabled_1
+      export:
+        status: false
+    - machine_name: field_disabled_2
+      remote_name: field_disabled_2
+      export:
+        status: false

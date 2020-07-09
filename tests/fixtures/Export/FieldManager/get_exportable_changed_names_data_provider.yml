@@ -1,0 +1,275 @@
+# No field names filter, changed fields unknown, when calculated
+# no fields changed.
+no_filter__unknown__no_changed:
+  names_filter: null
+  are_changed_fields_known: FALSE
+  changed_names: []
+  # We expect no fields.
+  expected_names: []
+
+# No field names filter, changed fields unknown, when calculated
+# all fields changed.
+no_filter__unknown__all_changed:
+  names_filter: null
+  are_changed_fields_known: FALSE
+  changed_names:
+    - field_enabled_1
+    - field_enabled_2
+    - field_enabled_3
+    - field_enabled_4
+    - field_disabled_1
+    - field_disabled_2
+  # We expect only enabled fields.
+  expected_names:
+    - field_enabled_1
+    - field_enabled_2
+    - field_enabled_3
+    - field_enabled_4
+
+# No field names filter, changed fields unknown, when calculated
+# some fields changed.
+no_filter__unknown__some_changed:
+  names_filter: NULL
+  are_changed_fields_known: FALSE
+  changed_names:
+    - field_enabled_1
+    - field_enabled_2
+    - field_disabled_1
+  # We expect only changed and enabled fields.
+  expected_names:
+    - field_enabled_1
+    - field_enabled_2
+
+# No field names filter, changed fields known, no fields changed.
+no_filter__known__no_changed:
+  names_filter: null
+  are_changed_fields_known: TRUE
+  changed_names: []
+  # We expect no fields.
+  expected_names: []
+
+# No field names filter, changed fields known, all fields changed.
+no_filter__known__all_changed:
+  names_filter: null
+  are_changed_fields_known: TRUE
+  changed_names:
+    - field_enabled_1
+    - field_enabled_2
+    - field_enabled_3
+    - field_enabled_4
+    - field_disabled_1
+    - field_disabled_2
+  # We expect only enabled fields.
+  expected_names:
+    - field_enabled_1
+    - field_enabled_2
+    - field_enabled_3
+    - field_enabled_4
+
+# No field names filter, changed fields known, some fields changed.
+no_filter__known__some_changed:
+  names_filter: null
+  are_changed_fields_known: TRUE
+  changed_names:
+    - field_enabled_1
+    - field_enabled_2
+    - field_disabled_1
+  # We expect only changed and enabled fields.
+  expected_names:
+    - field_enabled_1
+    - field_enabled_2
+
+# Empty field names filter, changed fields unknown, when calculated
+# no fields changed.
+empty_filter__unknown__no_changed:
+  names_filter: []
+  are_changed_fields_known: FALSE
+  changed_names: []
+  # We expect no fields.
+  expected_names: []
+
+# Empty field names filter, changed fields unknown, when calculated
+# all fields changed.
+empty_filter__unknown__all_changed:
+  names_filter: []
+  are_changed_fields_known: FALSE
+  changed_names:
+    - field_enabled_1
+    - field_enabled_2
+    - field_enabled_3
+    - field_enabled_4
+    - field_disabled_1
+    - field_disabled_2
+  # We expect only enabled fields.
+  expected_names: []
+
+# Empty field names filter, changed fields unknown, when calculated
+# some fields changed.
+empty_filter__unknown__some_changed:
+  names_filter: []
+  are_changed_fields_known: FALSE
+  changed_names:
+    - field_enabled_1
+    - field_enabled_2
+    - field_disabled_1
+  # We expect only changed and enabled fields.
+  expected_names: []
+
+# Empty field names filter, changed fields known, no fields changed.
+empty_filter__known__no_changed:
+  names_filter: []
+  are_changed_fields_known: TRUE
+  changed_names: []
+  # We expect no fields.
+  expected_names: []
+
+# Empty field names filter, changed fields known, all fields changed.
+empty_filter__known__all_changed:
+  names_filter: []
+  are_changed_fields_known: TRUE
+  changed_names:
+    - field_enabled_1
+    - field_enabled_2
+    - field_enabled_3
+    - field_enabled_4
+    - field_disabled_1
+    - field_disabled_2
+  # We expect only enabled fields.
+  expected_names: []
+
+# Empty field names filter, changed fields known, some fields changed.
+empty_filter__known__some_changed:
+  names_filter: []
+  are_changed_fields_known: TRUE
+  changed_names:
+    - field_enabled_1
+    - field_enabled_2
+    - field_disabled_1
+  # We expect only changed and enabled fields.
+  expected_names: []
+
+# Some field names to limit to, changed fields unknown, when calculated
+# no fields changed.
+filter__unknown__no_changed:
+  names_filter:
+    - field_enabled_1
+    - field_enabled_2
+    - field_disabled_1
+  are_changed_fields_known: FALSE
+  changed_names: []
+  # We expect no fields.
+  expected_names: []
+
+# Some field names to limit to, changed fields unknown, when calculated
+# all fields changed.
+filter__unknown__all_changed:
+  names_filter:
+    - field_enabled_1
+    - field_enabled_2
+    - field_disabled_1
+  are_changed_fields_known: FALSE
+  changed_names:
+    - field_enabled_1
+    - field_enabled_2
+    - field_enabled_3
+    - field_enabled_4
+    - field_disabled_1
+    - field_disabled_2
+  # We expect only enabled and filtered fields.
+  expected_names:
+    - field_enabled_1
+    - field_enabled_2
+
+# Some field names to limit to, changed fields unknown, when calculated
+# some fields changed.
+filter__unknown__some_changed:
+  names_filter:
+    - field_enabled_1
+    - field_enabled_2
+    - field_disabled_1
+  are_changed_fields_known: FALSE
+  changed_names:
+    - field_enabled_1
+    - field_enabled_3
+    - field_disabled_2
+  # We expect only filtered, changed and enabled fields.
+  expected_names:
+    - field_enabled_1
+
+# Some field names to limit to, changed fields unknown, when calculated
+# some fields changed.
+# Case where there is no intersection between the filtered and the changed
+# fields.
+filter__unknown__some_changed_2:
+  names_filter:
+    - field_enabled_1
+    - field_enabled_2
+    - field_disabled_1
+  are_changed_fields_known: FALSE
+  changed_names:
+    - field_enabled_3
+    - field_enabled_4
+    - field_disabled_2
+  # We expect only changed, enabled and filtered fields.
+  expected_names: []
+
+# Some field names to limit to, changed fields known, no fields changed.
+filter__known__no_changed:
+  names_filter:
+    - field_enabled_1
+    - field_enabled_2
+    - field_disabled_1
+  are_changed_fields_known: TRUE
+  changed_names: []
+  # We expect no fields.
+  expected_names: []
+
+# Some field names to limit to, changed fields known, all fields changed.
+filter__known__all_changed:
+  names_filter:
+    - field_enabled_1
+    - field_enabled_2
+    - field_disabled_1
+  are_changed_fields_known: TRUE
+  changed_names:
+    - field_enabled_1
+    - field_enabled_2
+    - field_enabled_3
+    - field_enabled_4
+    - field_disabled_1
+    - field_disabled_2
+  # We expect only enabled and filtered fields.
+  expected_names:
+    - field_enabled_1
+    - field_enabled_2
+
+# Some field names to limit to, changed fields known, some fields changed.
+filter__known__some_changed:
+  names_filter:
+    - field_enabled_1
+    - field_enabled_2
+    - field_disabled_1
+  are_changed_fields_known: TRUE
+  changed_names:
+    - field_enabled_1
+    - field_enabled_3
+    - field_disabled_2
+  # We expect only filtered, changed and enabled fields.
+  expected_names:
+    - field_enabled_1
+
+# Some field names to limit to, changed fields known, some fields changed.
+# Case where there is no intersection between the filtered and the changed
+# fields.
+filter__known__some_changed_2:
+  names_filter:
+    - field_enabled_1
+    - field_enabled_2
+    - field_disabled_1
+  are_changed_fields_known: TRUE
+  changed_names:
+    - field_enabled_3
+    - field_enabled_4
+    - field_disabled_2
+  # We expect only changed, enabled and filtered fields.
+  expected_names: []

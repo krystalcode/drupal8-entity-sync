@@ -90,9 +90,11 @@ services:
     arguments:
       - '@entity_sync.client.factory'
       - '@config.factory'
+      - '@entity_sync.config_manager'
       - '@entity_type.manager'
       - '@event_dispatcher'
       - '@entity_sync.export.field_manager'
+      - '@entity_sync.state_manager'
       - '@logger.channel.entity_sync'
 
   entity_sync.export.field_manager:

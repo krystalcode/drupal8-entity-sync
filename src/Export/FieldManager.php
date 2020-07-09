@@ -94,6 +94,94 @@ class FieldManager implements FieldManagerInterface {
   }
 
   /**
+   * {@inheritdoc}
+   */
+  public function getExportableChangedNames(
+    ContentEntityInterface $changed_entity,
+    ContentEntityInterface $original_entity,
+    array $field_mapping,
+    array $names_filter = NULL,
+    array $changed_names = NULL
+  ) {
+    if ($names_filter === [] || $changed_names === []) {
+      return [];
+    }
+
+    $exportable_names = $this->getExportableNames($field_mapping);
+
+    if ($changed_names === NULL) {
+      $changed_names = $this->getChangedNames(
+        $changed_entity,
+        $original_entity,
+        $names_filter
+      );
+    }
+
+    if ($names_filter) {
+      return array_intersect(
+        $exportable_names,
+        $changed_names,
+        $names_filter
+      );
+    }
+
+    return array_intersect(
+      $exportable_names,
+      $changed_names
+    );
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getChangedNames(
+    ContentEntityInterface $changed_entity,
+    ContentEntityInterface $original_entity,
+    array $names_filter = NULL
+  ) {
+    $changed_names = [];
+
+    foreach ($changed_entity->getFields() as $field_name => $field) {
+      if ($names_filter !== NULL && !in_array($field_name, $names_filter)) {
+        continue;
+      }
+
+      $unchanged = $field->equals($original_entity->get($field_name));
+      if ($unchanged) {
+        continue;
+      }
+
+      $changed_names[] = $field_name;
+    }
+
+    return $changed_names;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getExportableNames(array $field_mapping) {
+    $exportable_names = [];
+
+    foreach ($field_mapping as $field_info) {
+      // @I Merge default export field mapping when configuration is loaded
+      //    type     : improvement
+      //    priority : normal
+      //    labels   : config, export
+      $field_info = $this->configManager->mergeExportFieldMappingDefaults(
+        $field_info
+      );
+      if (!$field_info['export']['status']) {
+        continue;
+      }
+
+      $exportable_names[] = $field_info['machine_name'];
+    }
+
+    return $exportable_names;
+  }
+
+  /**
    * Builds and returns the field mapping for the given entities.
    *
    * The field mapping defines which remote entity fields will be updated with

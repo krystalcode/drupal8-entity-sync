@@ -272,6 +272,17 @@ entity_sync.operation.export_entity:
     queue:
       type: boolean
       label: 'Whether the export will be queued or executed on-the-fly'
+    # @I Document the `export_entity` state manager behavior
+    #    type     : task
+    #    priority : normal
+    #    labels   : export, operation, documentation
+    state:
+      type: mapping
+      label: "The configuration for the operation's state"
+      mapping:
+        manager:
+          type: string
+          label: 'The manager of the operation state'
 
 # Field mapping configuration determines which entity field will be mapped with
 # which remote resource field/property and how.

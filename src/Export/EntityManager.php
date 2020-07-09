@@ -3,9 +3,11 @@
 namespace Drupal\entity_sync\Export;
 
 use Drupal\entity_sync\Client\ClientFactory;
+use Drupal\entity_sync\Config\ManagerInterface as ConfigManagerInterface;
 use Drupal\entity_sync\Export\Event\Events;
 use Drupal\entity_sync\Export\Event\LocalEntityMappingEvent;
 use Drupal\entity_sync\EntityManagerBase;
+use Drupal\entity_sync\StateManagerInterface;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\ImmutableConfig;
@@ -35,6 +37,13 @@ class EntityManager extends EntityManagerBase implements EntityManagerInterface 
   protected $configFactory;
 
   /**
+   * The Entity Sync configuration manager.
+   *
+   * @var \Drupal\entity_sync\Config\ManagerInterface
+   */
+  protected $configManager;
+
+  /**
    * The entity type manager.
    *
    * @var \Drupal\Core\Entity\EntityTypeManagerInterface
@@ -56,6 +65,13 @@ class EntityManager extends EntityManagerBase implements EntityManagerInterface 
   protected $fieldManager;
 
   /**
+   * The Entity Sync state manager.
+   *
+   * @var \Drupal\entity_sync\StateManagerInterface
+   */
+  protected $stateManager;
+
+  /**
    * The logger service.
    *
    * @var \Psr\Log\LoggerInterface
@@ -69,11 +85,15 @@ class EntityManager extends EntityManagerBase implements EntityManagerInterface 
    *   The client factory.
    * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
    *   The configuration factory.
+   * @param \Drupal\entity_sync\Config\ManagerInterface $config_manager
+   *   The Entity Sync configuration manager.
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
    *   The entity type manager.
    * @param \Symfony\Component\EventDispatcher\EventDispatcherInterface $event_dispatcher
    *   The event dispatcher.
    * @param \Drupal\entity_sync\Export\FieldManagerInterface $field_manager
+   *   The Entity Sync export field manager.
+   * @param \Drupal\entity_sync\StateManagerInterface $state_manager
    *   The Entity Sync export field manager.
    * @param \Psr\Log\LoggerInterface $logger
    *   The logger.
@@ -81,16 +101,20 @@ class EntityManager extends EntityManagerBase implements EntityManagerInterface 
   public function __construct(
     ClientFactory $client_factory,
     ConfigFactoryInterface $config_factory,
+    ConfigManagerInterface $config_manager,
     EntityTypeManagerInterface $entity_type_manager,
     EventDispatcherInterface $event_dispatcher,
     FieldManagerInterface $field_manager,
+    StateManagerInterface $state_manager,
     LoggerInterface $logger
   ) {
     $this->clientFactory = $client_factory;
     $this->configFactory = $config_factory;
+    $this->configManager = $config_manager;
     $this->entityTypeManager = $entity_type_manager;
     $this->eventDispatcher = $event_dispatcher;
     $this->fieldManager = $field_manager;
+    $this->stateManager = $state_manager;
     $this->logger = $logger;
   }
 
@@ -146,6 +170,143 @@ class EntityManager extends EntityManagerBase implements EntityManagerInterface 
       $sync,
       $data ?? []
     );
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function queueExportLocalEntityAllSyncs(
+    ContentEntityInterface $entity,
+    array $options = []
+  ) {
+    // Get all syncs that define exports for the given entity's type.
+    // @I Support caching syncs per entity type
+    //    type     : improvement
+    //    priority : normal
+    //    labels   : export, performance
+    //
+    // @I Support filtering by bundle
+    //    type     : bug
+    //    priority : high
+    //    labels   : config, export
+    //    notes    : The entity bundle is optional in the synchronization
+    //               configuration; however, if it is defined, it should be
+    //               interpreted as if the export should only proceed if the
+    //               bundle of the entity being exported is of the configured
+    //               type.
+    $syncs = $this->configManager->getSyncs([
+      'entity' => [
+        'type_id' => $entity->getEntityTypeId(),
+      ],
+      'operation' => [
+        'id' => 'export_entity',
+        'status' => TRUE,
+      ],
+    ]);
+    if (!$syncs) {
+      return;
+    }
+
+    // @I Validate the original entity passed through context
+    //    type     : bug
+    //    priority : low
+    //    labels   : export, validation
+    $context = $options['context'] ?? [];
+    $detect_changed_fields = isset($context['original_entity']) ? TRUE : FALSE;
+    $changed_field_names = [];
+
+    // Detect whether we have changed fields. If the operation is managed by
+    // Entity Sync for a given synchronization and there are not changed fields,
+    // we will be skipping the export.
+    //
+    // @I Support forcing an export even if unchanged via config export mode
+    //    type     : improvement
+    //    priority : low
+    //    labels   : config, export
+    if ($detect_changed_fields) {
+      $changed_field_names = $this->fieldManager->getChangedNames(
+        $entity,
+        $context['original_entity']
+      );
+    }
+
+    foreach ($syncs as $sync) {
+      $is_managed = $this->stateManager->isManaged(
+        $sync->get('id'),
+        'export_entity'
+      );
+
+      // Do not proceed with queueing the export if we don't have any changed
+      // fields that are also set to be exported by the current synchronization.
+      if ($is_managed && $detect_changed_fields) {
+        if (!$changed_field_names) {
+          continue;
+        }
+
+        $exportable_field_names = $this->fieldManager
+          ->getExportableChangedNames(
+            $entity,
+            $context['original_entity'],
+            $sync->get('fields'),
+            NULL,
+            $changed_field_names
+          );
+        if (!$exportable_field_names) {
+          continue;
+        }
+      }
+
+      // If we are coming from an entity update, we may be here because an
+      // entity import triggered an entity insert/update hook. In that case, we
+      // don't want to export the entity as that can cause a loop i.e. export
+      // the entity to the remote which may cause the entity to be made
+      // available in the recently modified list of entities, causing an import
+      // again which in turn will trigger a `hook_entity_update` etc.
+      //
+      // If we are here as a result of a change that happened within Drupal e.g.
+      // an entity edited via the UI, the remote changed field would not be
+      // changed. While, if we are here as a result of an import, the original
+      // remote changed field would be a timestamp earlier than the new remote
+      // changed field.
+      //
+      // We therefore check for that, and if the original remote changed field
+      // is earlier than the updated remote changed field then we do not export
+      // the entity.
+      //
+      // This will also prevent triggering another export as a result of saving
+      // the entity in order to update the remote changed field when getting
+      // the response from the create/update export operation.
+      //
+      // @I Test skipping exports that are triggered by imports
+      //    type     : task
+      //    priority : high
+      //    labels   : export, testing
+      if ($is_managed && $detect_changed_fields) {
+        $field_name = $sync->get('entity.remote_changed_field');
+
+        $original_changed = $context['original_entity']
+          ->get($field_name)
+          ->value;
+        if ($original_changed < $entity->get($field_name)->value) {
+          continue;
+        }
+      }
+
+      // Queue the export.
+      // @I Support exporting the diff between specific revisions
+      //    type     : improvement
+      //    priority : normal
+      //    labels   : export
+      //    notes    : If the entity being exported is revisioned, we can store
+      //               in the queue item the specific revisions and export the
+      //               fields changed between those revisions.
+      $queue = \Drupal::queue('entity_sync_export_local_entity');
+      $queue->createItem([
+        'sync_id' => $sync->get('id'),
+        'entity_type_id' => $entity->getEntityTypeId(),
+        'entity_id' => $entity->id(),
+      ]);
+    }
   }
 
   /**

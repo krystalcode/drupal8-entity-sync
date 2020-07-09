@@ -58,7 +58,7 @@ interface EntityManagerInterface {
    *   The local entity.
    * @param array $options
    *   An associative array of options that determine various aspects of the
-   *   export.
+   *   export. Supported options are:
    *   - context: An associative array of context related to the circumstances
    *     of the operation. It is passed to dispatched events and can help
    *     subscribers determine how to alter list filters and entity/field
@@ -70,6 +70,37 @@ interface EntityManagerInterface {
   public function exportLocalEntity(
     $sync_id,
     ContentEntityInterface $local_entity,
+    array $options = []
+  );
+
+  /**
+   * Queues a local entity export operation for the given entity.
+   *
+   * This method will detect all synchronizations that define the
+   * `export_entity` operation for the given entity type and will queue the
+   * operation for each one of them.
+   *
+   * @param \Drupal\Core\Entity\ContentEntityInterface $entity
+   *   The entity for which to queue the export.
+   * @param array $options
+   *   An associative array of options that determine various aspects of the
+   *   export. Supported options are:
+   *   - context: An associative array of context related to the circumstances
+   *     of the operation. It is passed to dispatched events and can help
+   *     subscribers determine how to alter entity/field mappings. Context items
+   *     supported by the Entity Sync module are:
+   *     - original_entity: (\Drupal\Core\Entity\ContentEntityInterface) The
+   *       original entity before the changes, if we are queueing an export
+   *       because of a local entity update. It will be used to detect which
+   *       fields have changed so that only those are sent to the remote
+   *       resource. Currently, no export will be scheduled if there are no
+   *       changed fields.
+   *     Third-party modules should be placing their custom context in a
+   *     sub-array keyed by the module name to prevent conflicts with context
+   *     items used by the Entity Sync module.
+   */
+  public function queueExportLocalEntityAllSyncs(
+    ContentEntityInterface $entity,
     array $options = []
   );
 

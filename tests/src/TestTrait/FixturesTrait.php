@@ -64,7 +64,11 @@ trait FixturesTrait {
       );
     }
 
-    $data = $this->getFixtureData($case_id, $fixture_id, $fixtures_directory);
+    $data = $this->getFixtureCaseData(
+      $case_id,
+      $fixture_id,
+      $fixtures_directory
+    );
     $parts = explode('.', $key);
 
     if (count($parts) === 1) {
@@ -75,6 +79,104 @@ trait FixturesTrait {
     $value = NestedArray::getValue($data, $parts, $key_exists);
 
     return $key_exists ? $value : NULL;
+  }
+
+  /**
+   * Loads and returns the requested fixture data for the given fixture case.
+   *
+   * Deprecated; provided for not breaking existing tests that are using it at
+   * the moment the `getFixtureCaseData` method was introduced.
+   *
+   * @param string $case_id
+   *   The ID of the fixture case from which to load the data.
+   * @param string|null $fixture_id
+   *   The ID of the fixture from which to load the case, or NULL for using the
+   *   default. The default fixture ID must be defined by implementing the
+   *   `defaultFixtureId()` method.
+   * @param string|null $fixtures_directory
+   *   The full path to the directory that contains the fixtures, without
+   *   trailing slash.
+   *
+   * @return array
+   *   The data for the requested case.
+   *
+   * @throws \InvalidArgumentException
+   *   When an empty case ID is provided.
+   * @throws \InvalidArgumentException
+   *   When no fixture ID is provided and no default is defined.
+   * @throws \RuntimeException
+   *   When the file determined to contain the fixture data does not exist.
+   * @throws \RuntimeException
+   *   When the contents of the file containing the fixture data cannot not be
+   *   loaded.
+   * @throws \RuntimeException
+   *   When the loaded fixture data does not contain the requested case ID.
+   *
+   * @I Replace `getFixtureData` with `getFixtureCaseData` in all tests
+   *    type     : task
+   *    priority : low
+   *    labels   : testing
+   */
+  protected function getFixtureData(
+    $case_id,
+    $fixture_id = NULL,
+    $fixtures_directory = NULL
+  ) {
+    return $this->getFixtureCaseData($case_id, $fixture_id, $fixtures_directory);
+  }
+
+  /**
+   * Loads and returns the requested fixture data for all fixture cases.
+   *
+   * @param string|null $fixture_id
+   *   The ID of the fixture from which to load the case, or NULL for using the
+   *   default. The default fixture ID must be defined by implementing the
+   *   `defaultFixtureId()` method.
+   * @param string|null $fixtures_directory
+   *   The full path to the directory that contains the fixtures, without
+   *   trailing slash.
+   *
+   * @return array
+   *   The data for all cases.
+   *
+   * @throws \InvalidArgumentException
+   *   When no fixture ID is provided and no default is defined.
+   * @throws \RuntimeException
+   *   When the file determined to contain the fixture data does not exist.
+   * @throws \RuntimeException
+   *   When the contents of the file containing the fixture data cannot not be
+   *   loaded.
+   */
+  protected function getFixtureAllData(
+    $fixture_id = NULL,
+    $fixtures_directory = NULL
+  ) {
+    $fixture_id = $this->getFixtureId($fixture_id);
+    $fixtures_directory = $this->getFixturesDirectory($fixtures_directory);
+    $filename = realpath($fixtures_directory . '/' . $fixture_id . '.yml');
+
+    if (!file_exists($filename)) {
+      throw new \InvalidArgumentException(
+        sprintf(
+          'The file determined to hold the fixture data "%s" does not exist. Make sure that you have correctly requested the fixture ID and fixture directory or determined the defaults, "%s" and "%s" given.',
+          $filename,
+          $fixture_id,
+          $fixtures_directory
+        )
+      );
+    }
+
+    $file_contents = file_get_contents($filename);
+    if ($file_contents === FALSE) {
+      throw \RuntimeException(
+        sprintf(
+          'The contents of the "%s" file containing the fixture data could not be loaded.',
+          $filename
+        )
+      );
+    }
+
+    return Yaml::parse($file_contents);
   }
 
   /**
@@ -102,8 +204,10 @@ trait FixturesTrait {
    * @throws \RuntimeException
    *   When the contents of the file containing the fixture data cannot not be
    *   loaded.
+   * @throws \RuntimeException
+   *   When the loaded fixture data does not contain the requested case ID.
    */
-  protected function getFixtureData(
+  protected function getFixtureCaseData(
     $case_id,
     $fixture_id = NULL,
     $fixtures_directory = NULL
@@ -114,32 +218,7 @@ trait FixturesTrait {
       );
     }
 
-    $fixture_id = $this->getFixtureId($fixture_id);
-    $fixtures_directory = $this->getFixturesDirectory($fixtures_directory);
-    $filename = realpath($fixtures_directory . '/' . $fixture_id . '.yml');
-
-    if (!file_exists($filename)) {
-      throw new \InvalidArgumentException(
-        sprintf(
-          'The file determined to hold the fixture data "%s" does not exist. Make sure that you have correctly requested the fixture ID and fixture directory or determined the defaults, "%s" and "%s" given.',
-          $filename,
-          $fixture_id,
-          $fixtures_directory
-        )
-      );
-    }
-
-    $file_contents = file_get_contents($filename);
-    if ($file_contents === FALSE) {
-      throw \RuntimeException(
-        sprintf(
-          'The contents of the "%s" file containing the fixture data could not be loaded.',
-          $filename
-        )
-      );
-    }
-
-    $data = Yaml::parse($file_contents);
+    $data = $this->getFixtureAllData($fixture_id, $fixtures_directory);
 
     if (isset($data[$case_id])) {
       return $data[$case_id];
@@ -213,7 +292,7 @@ trait FixturesTrait {
       return $this->defaultFixturesDirectory();
     }
 
-    return $this->root . '/modules/contrib/entity_sync' . '/tests/fixtures';
+    return $this->root . '/modules/contrib/entity_sync/tests/fixtures';
   }
 
 }

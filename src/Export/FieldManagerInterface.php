@@ -57,4 +57,72 @@ interface FieldManagerInterface {
     array $options = []
   );
 
+  /**
+   * Gets all exportable fields that are different between the given entities.
+   *
+   * This method calculates and returns the machine names for the fields of the
+   * given entity that fulfill the following criteria:
+   * - They are set to be exportable by the given field mapping array.
+   * - They have different value compared to the original entity.
+   * - They are in the values of the `$field_names` array, if provided.
+   *
+   * @param \Drupal\Core\Entity\ContentEntityInterface $changed_entity
+   *   The entity containing the changed field values.
+   * @param \Drupal\Core\Entity\ContentEntityInterface $original_entity
+   *   The entity containing the original field values.
+   * @param array $field_mapping
+   *   The array that defines the field mapping for the export operation.
+   * @param string[]|null $names_filter
+   *   An array containing field machine names to limit the results to. Passing
+   *   an empty array will result in no fields to be returned. To not filter by
+   *   any additional names, pass NULL.
+   * @param string[]|nul $changed_names
+   *   An array containing the machine names of the changed fields, if already
+   *   known, or NULL to calculate them.
+   *
+   * @return string[]
+   *   An array containing the machine names of the fields that have been
+   *   changed i.e. that are different between the given entities.
+   */
+  public function getExportableChangedNames(
+    ContentEntityInterface $changed_entity,
+    ContentEntityInterface $original_entity,
+    array $field_mapping,
+    array $names_filter = NULL,
+    array $changed_names = NULL
+  );
+
+  /**
+   * Gets the list of fields that are different between the given entities.
+   *
+   * @param \Drupal\Core\Entity\ContentEntityInterface $changed_entity
+   *   The entity containing the changed field values.
+   * @param \Drupal\Core\Entity\ContentEntityInterface $original_entity
+   *   The entity containing the original field values.
+   * @param string[]|null $names_filter
+   *   An array containing field machine names to limit the results to. Passing
+   *   an empty array will result in no fields to be returned. To not filter by
+   *   any additional names, pass NULL.
+   *
+   * @return string[]
+   *   An array containing the machine names of the fields that have been
+   *   changed i.e. that are different between the given entities.
+   */
+  public function getChangedNames(
+    ContentEntityInterface $changed_entity,
+    ContentEntityInterface $original_entity,
+    array $names_filter = NULL
+  );
+
+  /**
+   * Gets all fields that are set to be exportable by the given field mapping.
+   *
+   * @param array $field_mapping
+   *   The array that defines the field mapping for the export operation.
+   *
+   * @return string[]
+   *   An array containing the machine names of exportable fields.
+   */
+  public function getExportableNames(array $field_mapping);
+
 }
