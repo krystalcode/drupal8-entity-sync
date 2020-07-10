@@ -105,7 +105,7 @@ class Manager extends EntityManagerBase implements ManagerInterface {
   }
 
   /**
-   * {@inheritDoc}
+   * {@inheritdoc}
    */
   public function importRemoteList(
     $sync_id,
@@ -189,7 +189,97 @@ class Manager extends EntityManagerBase implements ManagerInterface {
   }
 
   /**
-   * {@inheritDoc}
+   * {@inheritdoc}
+   */
+  public function importRemoteEntityById(
+    $sync_id,
+    $remote_entity_id,
+    array $options = []
+  ) {
+    // Load the sync.
+    // @I Validate the sync/operation
+    //    type     : bug
+    //    priority : normal
+    //    labels   : operation, sync, validation
+    //    notes    : Review whether the validation should happen upon runtime
+    //               i.e. here, or when the configuration is created/imported.
+    // @I Validate that the provider supports the `import_entity` operation
+    //    type     : bug
+    //    priority : normal
+    //    labels   : operation, sync, validation
+    //    notes    : Review whether the validation should happen upon runtime
+    //               i.e. here, or when the configuration is created/imported.
+    $sync = $this->configFactory->get('entity_sync.sync.' . $sync_id);
+
+    // Make sure the operation is enabled and supported by the provider.
+    if (!$this->operationSupported($sync, 'import_entity')) {
+      $this->logger->error(
+        sprintf(
+          'The synchronization with ID "%s" and/or its provider do not support the `import_entity` operation.',
+          $sync_id
+        )
+      );
+      return;
+    }
+
+    $remote_entity = $this->clientFactory
+      ->get($sync->get('id'))
+      ->importEntity($remote_entity_id);
+
+    // The client should be throwing an 404 Exception if no remote entity with
+    // the given ID is found. However, let's throw an exception here to prevent
+    // errors in the case the client does not do that.
+    if (!$remote_entity) {
+      throw new EntityImportException(
+        sprintf(
+          'No remote entity with ID "%s" was found.',
+          $remote_entity_id
+        )
+      );
+    }
+
+    $this->wrapDoImportRemoteEntity($sync, $remote_entity, $options);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function importRemoteEntity(
+    $sync_id,
+    $remote_entity,
+    array $options = []
+  ) {
+    // Load the sync.
+    // @I Validate the sync/operation
+    //    type     : bug
+    //    priority : normal
+    //    labels   : operation, sync, validation
+    //    notes    : Review whether the validation should happen upon runtime
+    //               i.e. here, or when the configuration is created/imported.
+    // @I Validate that the provider supports the `import_entity` operation
+    //    type     : bug
+    //    priority : normal
+    //    labels   : operation, sync, validation
+    //    notes    : Review whether the validation should happen upon runtime
+    //               i.e. here, or when the configuration is created/imported.
+    $sync = $this->configFactory->get('entity_sync.sync.' . $sync_id);
+
+    // Make sure the operation is enabled and supported by the provider.
+    if (!$this->operationSupported($sync, 'import_entity')) {
+      $this->logger->error(
+        sprintf(
+          'The synchronization with ID "%s" and/or its provider do not support the `import_entity` operation.',
+          $sync_id
+        )
+      );
+      return;
+    }
+
+    $this->wrapDoImportRemoteEntity($sync, $remote_entity, $options);
+  }
+
+  /**
+   * {@inheritdoc}
    */
   public function importLocalEntity(
     $sync_id,
@@ -326,6 +416,107 @@ class Manager extends EntityManagerBase implements ManagerInterface {
   }
 
   /**
+   * Runs the actual remote entity import operation with its pre/post events.
+   *
+   * @param \Drupal\Core\Config\ImmutableConfig $sync
+   *   The configuration object for synchronization that defines the operation
+   *   we are currently executing.
+   * @param object $remote_entity
+   *   The remote entity.
+   * @param array $options
+   *   An associative array of options that determine various aspects of the
+   *   import. For supported options see
+   *   \Drupal\entity_sync\Import\ManagerInterface::importRemoteEntity().
+   */
+  protected function wrapDoImportRemoteEntity(
+    ImmutableConfig $sync,
+    $remote_entity,
+    array $options
+  ) {
+    $context = $options['context'] ?? [];
+    $context['remote_entity'] = $remote_entity;
+
+    // Notify subscribers that the operation is about to be initiated.
+    // @I Write tests for operation cancellations
+    //    type     : task
+    //    priority : high
+    //    labels   : import, testing
+    $cancel = $this->preInitiate(
+      Events::REMOTE_ENTITY_PRE_INITIATE,
+      'import_entity',
+      $context,
+      $sync
+    );
+    if ($cancel) {
+      return;
+    }
+
+    // Run the operation.
+    // We do this in a `try/finally` structure so that we can still dispatch the
+    // post-terminate event. Subscribers may still need to run whether the
+    // operation was successfull or not. For example, even if a managed
+    // operation failed we unlock it so that the next one is allowed to run.
+    // At the end, the error/exception is still thrown so that the caller can
+    // handle it as required.
+    try {
+      $this->doImportRemoteEntity($sync, $remote_entity, $options, $context);
+    }
+    finally {
+      // Notify subscribers that the operation has terminated.
+      $this->postTerminate(
+        Events::REMOTE_ENTITY_POST_TERMINATE,
+        'import_entity',
+        $context,
+        $sync
+      );
+    }
+  }
+
+  /**
+   * Runs the actual remote entity import operation.
+   *
+   * @param \Drupal\Core\Config\ImmutableConfig $sync
+   *   The configuration object for synchronization that defines the operation
+   *   we are currently executing.
+   * @param object $remote_entity
+   *   The remote entity.
+   * @param array $options
+   *   An associative array of options that determine various aspects of the
+   *   import. For supported options see
+   *   \Drupal\entity_sync\Import\ManagerInterface::importRemoteEntity().
+   * @param array $context
+   *   An associative array containing of context related to the circumstances
+   *     of the operation. See
+   *     \Drupal\entity_sync\Import\ManagerInterface::importRemoteEntity().
+   */
+  protected function doImportRemoteEntity(
+    ImmutableConfig $sync,
+    $remote_entity,
+    array $options,
+    array $context
+  ) {
+    // Initiate the operation.
+    $this->initiate(
+      Events::REMOTE_ENTITY_INITIATE,
+      'import_entity',
+      $context,
+      $sync
+    );
+
+    // Run the operation, create or update.
+    $this->createOrUpdate($remote_entity, $sync);
+
+    // Terminate the operation.
+    // Add to the context the local entity that was imported.
+    $this->terminate(
+      Events::REMOTE_ENTITY_TERMINATE,
+      'import_entity',
+      $context,
+      $sync
+    );
+  }
+
+  /**
    * Runs the actual local entity import operation.
    *
    * @param \Drupal\Core\Config\ImmutableConfig $sync
@@ -385,6 +576,21 @@ class Manager extends EntityManagerBase implements ManagerInterface {
 
     // Terminate the operation.
     // Add to the context the local entity that was imported.
+    //
+    // @I Pass local entity to all events via context
+    //    type     : improvement
+    //    priority : normal
+    //    labels   : event, import
+    //
+    // @I Pass remote entity to terminate events via data
+    //    type     : improvement
+    //    priority : normal
+    //    labels   : event, import
+    //
+    // @I Write tests that the entities are passed to events as required
+    //    type     : task
+    //    priority : low
+    //    labels   : event, import, testing
     $this->terminate(
       Events::LOCAL_ENTITY_TERMINATE,
       'import_entity',

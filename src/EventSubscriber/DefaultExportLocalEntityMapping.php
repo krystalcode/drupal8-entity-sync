@@ -44,7 +44,7 @@ class DefaultExportLocalEntityMapping implements EventSubscriberInterface {
       return [];
     }
 
-    // If don't we have a value it's a create, if we do it's an update.
+    // If we don't have a value it's a create, if we do it's an update.
     $id_field = $local_entity->get($id_field_name);
     if ($id_field->isEmpty()) {
       $entity_mapping = [

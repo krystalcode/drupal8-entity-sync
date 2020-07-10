@@ -55,6 +55,16 @@ class ManagedExportLocalEntityTerminate implements EventSubscriberInterface {
    *
    * @param \Drupal\entity_sync\Event\TerminateOperationEvent $event
    *   The terminate operation event.
+   *
+   * @I Do not set the sync fields if the entity was not created or updated
+   *    type     : bug
+   *    priority : high
+   *    labels   : export
+   *    notes    : In cases such as when the sync has entity creates or updates
+   *               disabled we never make a request to the remote and therefore
+   *               don't have a response available. The error thrown here in
+   *               that case might block other terminate subscribers from being
+   *               run.
    */
   public function updateLocalEntity(TerminateOperationEvent $event) {
     $data = $event->getData();
