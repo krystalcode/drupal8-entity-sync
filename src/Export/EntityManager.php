@@ -212,7 +212,12 @@ class EntityManager extends EntityManagerBase implements EntityManagerInterface 
     //    priority : low
     //    labels   : export, validation
     $context = $options['context'] ?? [];
-    $detect_changed_fields = isset($context['original_entity']) ? TRUE : FALSE;
+    // The most common case is to call this method in a insert/update hook. At
+    // that point the entity has already been saved and the entity's `isNew()`
+    // method will return `FALSE`. We therefore expect to be given the original
+    // entity and use that to detect we are responding to a local entity
+    // creation or update.
+    $is_update = isset($context['original_entity']) ? TRUE : FALSE;
     $changed_field_names = [];
 
     // Detect whether we have changed fields. If the operation is managed by
@@ -223,7 +228,7 @@ class EntityManager extends EntityManagerBase implements EntityManagerInterface 
     //    type     : improvement
     //    priority : low
     //    labels   : config, export
-    if ($detect_changed_fields) {
+    if ($is_update) {
       $changed_field_names = $this->fieldManager->getChangedNames(
         $entity,
         $context['original_entity']
@@ -238,7 +243,7 @@ class EntityManager extends EntityManagerBase implements EntityManagerInterface 
 
       // Do not proceed with queueing the export if we don't have any changed
       // fields that are also set to be exported by the current synchronization.
-      if ($is_managed && $detect_changed_fields) {
+      if ($is_managed && $is_update) {
         if (!$changed_field_names) {
           continue;
         }
@@ -257,7 +262,7 @@ class EntityManager extends EntityManagerBase implements EntityManagerInterface 
       }
 
       // If we are coming from an entity update, we may be here because an
-      // entity import triggered an entity insert/update hook. In that case, we
+      // entity import triggered an entity update hook. In that case, we
       // don't want to export the entity as that can cause a loop i.e. export
       // the entity to the remote which may cause the entity to be made
       // available in the recently modified list of entities, causing an import
@@ -277,17 +282,49 @@ class EntityManager extends EntityManagerBase implements EntityManagerInterface 
       // the entity in order to update the remote changed field when getting
       // the response from the create/update export operation.
       //
+      // It does not cover though the case that we import changes that have
+      // already been imported where the remote changed field will be the same
+      // before and after the import. That still remains to be resolved and it
+      // relies on finding a way to let the method that saves the entity provide
+      // custom data to `hook_entity_insert`.
+      // See https://www.drupal.org/project/drupal/issues/3158180
+      //
       // @I Test skipping exports that are triggered by imports
       //    type     : task
       //    priority : high
       //    labels   : export, testing
-      if ($is_managed && $detect_changed_fields) {
+      if ($is_managed && $is_update) {
         $field_name = $sync->get('entity.remote_changed_field');
 
         $original_changed = $context['original_entity']
           ->get($field_name)
           ->value;
         if ($original_changed < $entity->get($field_name)->value) {
+          continue;
+        }
+      }
+
+      // If we are coming here from an entity creation, we want to prevent
+      // exporting entities that were created as a result of an import. In those
+      // cases, the remote changed field of the new local entity will not be
+      // empty, while if the entity was created within the application it will
+      // always be empty.
+      // See entity_sync_entity_bundle_field_info_alter().
+      //
+      // @I Allow queueing exports of imported entities for different syncs
+      //    type     : bug
+      //    priority : high
+      //    labels   : export
+      //    notes    : There are legitimate cases where we still want to allow
+      //               exports of new imported entities e.g. import from one
+      //               remote resource and send to another.
+      if ($is_managed && !$is_update) {
+        $remote_changed_name = $sync->get('entity.remote_changed_field');
+        $remote_changed_field = $entity->get(
+          $sync->get('entity.remote_changed_field')
+        );
+
+        if (!$remote_changed_field->isEmpty()) {
           continue;
         }
       }

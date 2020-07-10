@@ -6,6 +6,7 @@
  */
 
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\ContentEntityInterface;
 
 /**
@@ -44,4 +45,74 @@ function entity_sync_entity_update(EntityInterface $entity) {
       $entity,
       ['context' => ['original_entity' => $entity->original]]
     );
+}
+
+/**
+ * Implements hook_entity_bundle_field_info_alter().
+ *
+ * Timestamp fields cannot have an empty value due to an issue with how the
+ * default value is set in the default field widget. However, we do need the
+ * remote changed field to be empty when an entity is created within Drupal
+ * i.e. not from an import, otherwise it will contain the wrong value which will
+ * lead to bugs. We also use the value of the remote changed field to prevent
+ * exporting imported entities that can cause a loop i.e. if an entity is new
+ * and the remote changed field has a value, it must be an imported entity.
+ *
+ * We therefore change the bundle field definitions of all fields that are set
+ * to function as remote changed fields for any of the synchronizations to use a
+ * default value callback that always sets the default value to be NULL that
+ * results the field to be empty if no value is explicitly provided when the
+ * entity is created.
+ *
+ * @I Write tests for setting remote changed fields default value callbacks
+ *    type     : task
+ *    priority : normal
+ *    labels   : testing
+ */
+function entity_sync_entity_bundle_field_info_alter(
+  &$fields,
+  EntityTypeInterface $entity_type,
+  $bundle
+) {
+  $syncs = \Drupal::service('entity_sync.config_manager')
+    ->getSyncs(['entity' => ['type_id' => $entity_type->id()]]);
+  if (!$syncs) {
+    return;
+  }
+
+  foreach ($syncs as $sync) {
+    if ($sync->get('entity.type_id') !== $entity_type->id()) {
+      continue;
+    }
+
+    $sync_bundle = $sync->get('entity.bundle');
+    if ($sync_bundle !== NULL && $sync_bundle !== $bundle) {
+      continue;
+    }
+
+    $remote_changed_field = $sync->get('entity.remote_changed_field');
+    if (!$remote_changed_field) {
+      continue;
+    }
+    if (!isset($fields[$remote_changed_field])) {
+      continue;
+    }
+    $fields[$remote_changed_field]->setDefaultValueCallback(
+      'entity_sync_field_default_value_callback__null'
+    );
+  }
+}
+
+/**
+ * Callbacks.
+ */
+
+/**
+ * Default value callback for fields that sets the value to NULL.
+ *
+ * Used for the remote changed timestamp field.
+ * See entity_sync_entity_bundle_info_alter().
+ */
+function entity_sync_field_default_value_callback__null() {
+  return NULL;
 }
