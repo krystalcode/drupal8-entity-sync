@@ -125,7 +125,7 @@ class CommandsTest extends UnitTestCase {
     $import_filters,
     $import_options
   ) {
-    $manager = $this->prophesizeImportEntityManager(
+    $manager = $this->prophesizeImportRemoteListEntityManager(
       $sync_id,
       $import_filters,
       $import_options
@@ -135,9 +135,26 @@ class CommandsTest extends UnitTestCase {
   }
 
   /**
+   * Tests that the import is called with the correct arguments.
+   *
+   * @covers ::importRemoteEntity
+   */
+  public function testImportRemoteEntity() {
+    $sync_id = 'user';
+    $remote_entity_id = 1;
+
+    $manager = $this->prophesizeImportRemoteEntityEntityManager(
+      $sync_id,
+      $remote_entity_id
+    );
+    $command = new Command($manager->reveal());
+    $command->importRemoteEntity($sync_id, $remote_entity_id);
+  }
+
+  /**
    * Prepare the import entity manager mock object with the right expectations.
    */
-  private function prophesizeImportEntityManager(
+  private function prophesizeImportRemoteListEntityManager(
     $sync_id,
     $filters,
     $options
@@ -145,6 +162,21 @@ class CommandsTest extends UnitTestCase {
     $manager = $this->prophesize(ManagerInterface::class);
     $manager
       ->importRemoteList($sync_id, $filters, $options)
+      ->shouldBeCalledOnce();
+
+    return $manager;
+  }
+
+  /**
+   * Prepare the import entity manager mock object with the right expectations.
+   */
+  private function prophesizeImportRemoteEntityEntityManager(
+    $sync_id,
+    $remote_entity_id
+  ) {
+    $manager = $this->prophesize(ManagerInterface::class);
+    $manager
+      ->importRemoteEntityById($sync_id, $remote_entity_id)
       ->shouldBeCalledOnce();
 
     return $manager;

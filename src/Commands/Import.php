@@ -7,6 +7,11 @@ use Drush\Commands\DrushCommands;
 
 /**
  * Commands related to imports.
+ *
+ * @I Provide a command for importing a local entity
+ *    type     : feature
+ *    priority : normal
+ *    labels   : drush, import
  */
 class Import extends DrushCommands {
 
@@ -107,6 +112,32 @@ class Import extends DrushCommands {
       $sync_id,
       $filters,
       $import_options
+    );
+  }
+
+  /**
+   * Imports a remote entity as defined by the given synchronization.
+   *
+   * @param string $sync_id
+   *   The ID of the synchronization for which to run the import.
+   * @param string $remote_entity_id
+   *   The ID of the remote entity to import.
+   *
+   * @usage drush entity-sync:import-remote-entity "my_sync_id" "1"
+   *   Import the remote entity with ID "1" with the settings defined in the
+   *   `import_entity` operation of the `my_sync_id` synchronization.
+   *
+   * @command entity-sync:import-remote-entity
+   *
+   * @aliases esync-ire
+   */
+  public function importRemoteEntity(
+    $sync_id,
+    $remote_entity_id
+  ) {
+    $this->manager->importRemoteEntityById(
+      $sync_id,
+      $remote_entity_id
     );
   }
 
