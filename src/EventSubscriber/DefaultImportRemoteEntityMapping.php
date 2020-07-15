@@ -81,6 +81,7 @@ class DefaultImportRemoteEntityMapping implements EventSubscriberInterface {
     // bundle; otherwise, there may be another synchronization that imports
     // remote entities into another bundle and we may pick up a local entity of
     // the wrong bundle that happens to have the same remote ID.
+    //
     // If the synchronization does not define a bundle even though the entity is
     // bundleable, we don't add the extra condition as we don't know the bundle
     // but we don't throw an exception because there can be legitimate reasons
