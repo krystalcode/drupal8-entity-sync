@@ -59,7 +59,7 @@ class DefaultImportRemoteEntityMapping implements EventSubscriberInterface {
     $remote_id_field = $sync->get('remote_resource.id_field');
     $entity_info = $sync->get('entity');
 
-    $local_entity_ids = $this->entityTypeManager
+    $query = $this->entityTypeManager
       ->getStorage($entity_info['type_id'])
       ->getQuery()
       // @I Review whether disabling access check is always safe
@@ -74,8 +74,37 @@ class DefaultImportRemoteEntityMapping implements EventSubscriberInterface {
       ->condition(
         $entity_info['remote_id_field'],
         $remote_entity->{$remote_id_field}
-      )
-      ->execute();
+      );
+
+    // If the entity type has bundles and the synchronization defines a bundle,
+    // we need to limit the result to an entity that is of the configured
+    // bundle; otherwise, there may be another synchronization that imports
+    // remote entities into another bundle and we may pick up a local entity of
+    // the wrong bundle that happens to have the same remote ID.
+    // If the synchronization does not define a bundle even though the entity is
+    // bundleable, we don't add the extra condition as we don't know the bundle
+    // but we don't throw an exception because there can be legitimate reasons
+    // for that. It's up to the developers to make sure they configure the
+    // synchronization to match their needs.
+    //
+    // @I Validation warning when bundle is missing in bundleable entity types
+    //    type     : improvement
+    //    priority : normal
+    //    labels   : config, validation
+    // @I Validation error when bundle exists on non-bundleable entity types
+    //    type     : improvement
+    //    priority : normal
+    //    labels   : config, validation
+    $entity_type = $this->entityTypeManager
+      ->getDefinition($entity_info['type_id']);
+    if ($entity_type->getBundleEntityType() && $entity_info['bundle']) {
+      $query->condition(
+        $entity_type->getKey('bundle'),
+        $entity_info['bundle']
+      );
+    }
+
+    $local_entity_ids = $query->execute();
 
     if ($local_entity_ids) {
       $entity_mapping = $this->buildUpdateEntityMapping(
