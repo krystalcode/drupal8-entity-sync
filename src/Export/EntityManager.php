@@ -293,6 +293,10 @@ class EntityManager extends EntityManagerBase implements EntityManagerInterface 
       //    type     : task
       //    priority : high
       //    labels   : export, testing
+      // @I Review the case of exports that do not have a remote changed field
+      //    type     : bug
+      //    priority : high
+      //    labels   : export
       if ($is_managed && $is_update) {
         $field_name = $sync->get('entity.remote_changed_field');
 

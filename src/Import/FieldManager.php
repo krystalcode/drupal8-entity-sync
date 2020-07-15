@@ -144,12 +144,27 @@ class FieldManager implements FieldManagerInterface {
     ContentEntityInterface $local_entity,
     ImmutableConfig $sync
   ) {
-    // By default, it is expected that the remote changed field exists because
-    // it is used for determining whether to block an automatic local entity
-    // export that may be triggered as a result of an import. We therefore want
-    // developers to intentionally disable that in the synchronization
-    // configuration. Until that is supported, we throw an exception.
+    // The changed fields may not exist when the list import is always a full
+    // import i.e. not based on fetching recently created or updated list of
+    // remote entities. We therefore simply do not anything if the changed field
+    // is not defined. If it is defined in the configuration though but it does
+    // not exist in the remote entity, we throw an exception.
+    //
+    // @I Validate that the changed field is defined wherever appropriate
+    //    type     : improvement
+    //    priority : normal
+    //    labels   : config, validation
+    //    notes    : Validate when the sync configuration is imported.
+    // @I Validate that both changed fields are defined or not
+    //    type     : improvement
+    //    priority : normal
+    //    labels   : config, validation
+    //    notes    : Validate when the sync configuration is imported.
     $field_config = $sync->get('remote_resource.changed_field');
+    if (!$field_config) {
+      return;
+    }
+
     $field_name = $field_config['name'];
     if (!isset($remote_entity->{$field_name})) {
       throw new \RuntimeException(
