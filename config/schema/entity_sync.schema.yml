@@ -307,8 +307,16 @@ entity_sync.field:
         # done. Callbacks would usually need to be defined for complex field
         # types where a direct copy is not applicable.
         callback:
-          type: string
+          type: mapping
           label: 'A custom callback used to map the remote resource field value to the entity field value'
+          mapping:
+            callable:
+              type: string
+              label: 'The callable (function or static method) to be called'
+            parameters:
+              type: mapping
+              label: 'An (optional) array of parameters that will be passed to the callback'
+
     export:
       type: mapping
       label: 'The configuration for exporting an entity field'
@@ -320,5 +328,12 @@ entity_sync.field:
         # done. Callbacks would usually need to be defined for complex field
         # types where a direct copy is not applicable.
         callback:
-          type: string
+          type: mapping
           label: 'A custom callback used to map the entity field value to the remote resource field value'
+          mapping:
+            callable:
+              type: string
+              label: 'The callable (function or static method) to be called'
+            parameters:
+              type: mapping
+              label: 'An (optional) array of parameters that will be passed to the callback'

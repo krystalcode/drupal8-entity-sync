@@ -356,12 +356,13 @@ class FieldManager implements FieldManagerInterface {
   ) {
     // If the field value should be converted and stored by a custom callback,
     // then invoke that.
-    if (($field_info['import']['callback'] ?? FALSE) !== FALSE) {
+    if ($field_info['import']['callback'] ?? []) {
       call_user_func(
-        $field_info['import']['callback'],
+        $field_info['import']['callback']['callable'],
         $remote_entity,
         $local_entity,
-        $field_info
+        $field_info,
+        $field_info['import']['callback']['parameters'] ?? []
       );
     }
     // Else, we assume direct copy of the remote field value into the local

@@ -162,7 +162,7 @@ class Manager implements ManagerInterface {
     return [
       'export' => [
         'status' => TRUE,
-        'callback' => FALSE,
+        'callback' => [],
       ],
     ];
   }
@@ -174,7 +174,7 @@ class Manager implements ManagerInterface {
     return [
       'import' => [
         'status' => TRUE,
-        'callback' => FALSE,
+        'callback' => [],
       ],
     ];
   }

@@ -216,7 +216,9 @@ class FieldManagerTest extends UnitTestCase {
           // be testing that the `call_user_func` function is called with the
           // right arguments.
           'export' => [
-            'callback' => '\Drupal\Tests\entity_sync\Unit\Export\FieldManagerTest::fieldCallback',
+            'callback' => [
+              'callable' => '\Drupal\Tests\entity_sync\Unit\Export\FieldManagerTest::fieldCallback',
+            ],
           ],
           'test' => [
             'expected_value' => 'John Doe',
@@ -268,7 +270,9 @@ class FieldManagerTest extends UnitTestCase {
           // right arguments.
           'export' => [
             'status' => FALSE,
-            'callback' => '\Drupal\Tests\entity_sync\Unit\Export\FieldManagerTest::fieldCallback',
+            'callback' => [
+              'callable' => '\Drupal\Tests\entity_sync\Unit\Export\FieldManagerTest::fieldCallback',
+            ],
           ],
         ],
       ],
@@ -412,7 +416,7 @@ class FieldManagerTest extends UnitTestCase {
       ->get($field_info['machine_name'])
       ->shouldNotBeCalled();
 
-    if (($field_info['export']['callback'] ?? FALSE) === FALSE) {
+    if (($field_info['export']['callback'] ?? []) === []) {
       return;
     }
 
@@ -423,10 +427,11 @@ class FieldManagerTest extends UnitTestCase {
     $call_user_func
       ->expects($this->never())
       ->with(
-        $this->equalTo($field_info['export']['callback']),
+        $this->equalTo($field_info['export']['callback']['callable']),
         $this->any(),
         $this->any(),
-        $this->equalTo($field_info)
+        $this->equalTo($field_info),
+        []
       );
   }
 
@@ -440,7 +445,7 @@ class FieldManagerTest extends UnitTestCase {
     if (($field_info['export']['status'] ?? TRUE) !== TRUE) {
       return;
     }
-    if (($field_info['export']['callback'] ?? FALSE) === FALSE) {
+    if (($field_info['export']['callback'] ?? []) === []) {
       return;
     }
 
@@ -500,7 +505,7 @@ class FieldManagerTest extends UnitTestCase {
     if (($field_info['export']['status'] ?? TRUE) !== TRUE) {
       return;
     }
-    if (($field_info['export']['callback'] ?? FALSE) !== FALSE) {
+    if ($field_info['export']['callback'] ?? []) {
       return;
     }
 
@@ -821,7 +826,7 @@ class FieldManagerTest extends UnitTestCase {
       [
         'export' => [
           'status' => TRUE,
-          'callback' => FALSE,
+          'callback' => [],
         ],
       ],
       $field_info
@@ -860,14 +865,14 @@ class FieldManagerTest extends UnitTestCase {
       $field_info['export']['status'] = TRUE;
     }
     if (!isset($field_info['export']['callback'])) {
-      $field_info['export']['callback'] = FALSE;
+      $field_info['export']['callback'] = [];
     }
 
     $local_entity = $test_context['local_entity'];
     return $call_user_func
       ->expects($this->once())
       ->with(
-        $this->equalTo($field_info['export']['callback']),
+        $this->equalTo($field_info['export']['callback']['callable']),
         // The `identicalTo` parameter matcher seems to fail when the parameters
         // are mock objects. We write a custom callback that compares the
         // objects' hashes.
@@ -882,7 +887,12 @@ class FieldManagerTest extends UnitTestCase {
           }
         ),
         $this->equalTo($test_context['remote_entity_id']),
-        $this->equalTo($field_info)
+        $this->equalTo($field_info),
+        // @I Test passing custom parameters to the callback
+        //    type     : task
+        //    priority : normal
+        //    labels   : export, testing
+        []
       )
       ->will($this->returnValue($expected_value));
   }

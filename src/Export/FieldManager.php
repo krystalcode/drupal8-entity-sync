@@ -310,12 +310,13 @@ class FieldManager implements FieldManagerInterface {
   ) {
     // If the field value should be converted and exported by a custom callback,
     // then invoke that.
-    if (($field_info['export']['callback'] ?? FALSE) !== FALSE) {
+    if ($field_info['export']['callback'] ?? []) {
       return call_user_func(
-        $field_info['export']['callback'],
+        $field_info['export']['callback']['callable'],
         $local_entity,
         $remote_entity_id,
-        $field_info
+        $field_info,
+        $field_info['export']['callback']['parameters'] ?? []
       );
     }
     // Else, we assume direct copy of the remote field value into the local
