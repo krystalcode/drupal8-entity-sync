@@ -75,22 +75,22 @@ function entity_sync_entity_bundle_field_info_alter(
   $bundle
 ) {
   $syncs = \Drupal::service('entity_sync.config_manager')
-    ->getSyncs(['entity' => ['type_id' => $entity_type->id()]]);
+    ->getSyncs(['local_entity' => ['type_id' => $entity_type->id()]]);
   if (!$syncs) {
     return;
   }
 
   foreach ($syncs as $sync) {
-    if ($sync->get('entity.type_id') !== $entity_type->id()) {
+    if ($sync->get('local_entity.type_id') !== $entity_type->id()) {
       continue;
     }
 
-    $sync_bundle = $sync->get('entity.bundle');
+    $sync_bundle = $sync->get('local_entity.bundle');
     if ($sync_bundle !== NULL && $sync_bundle !== $bundle) {
       continue;
     }
 
-    $remote_changed_field = $sync->get('entity.remote_changed_field');
+    $remote_changed_field = $sync->get('local_entity.remote_changed_field');
     if (!$remote_changed_field) {
       continue;
     }

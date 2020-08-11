@@ -77,7 +77,7 @@ class FieldManagerGetNamesTest extends UnitTestCase {
 
     // Mock the synchronization configuration.
     $field_mapping = $this->getFixtureDataProperty(
-      'fields',
+      'field_mapping',
       'field_mapping__with_defaults',
       'get_names_syncs'
     );
@@ -128,12 +128,12 @@ class FieldManagerGetNamesTest extends UnitTestCase {
     }
 
     $field_mapping = $this->getFixtureDataProperty(
-      'fields',
+      'field_mapping',
       'field_mapping__with_defaults',
       'get_names_syncs'
     );
     $complete_field_mapping = $this->getFixtureDataProperty(
-      'fields',
+      'field_mapping',
       'field_mapping__complete',
       'get_names_syncs'
     );

@@ -840,11 +840,11 @@ class FieldManagerTest extends UnitTestCase {
     }
 
     $local_id_field = $this->getFixtureDataProperty(
-      'entity.remote_id_field',
+      'local_entity.remote_id_field',
       $test_context['sync_case']
     );
     $test_context['sync']
-      ->get('entity.remote_id_field')
+      ->get('local_entity.remote_id_field')
       ->willReturn($local_id_field)
       ->shouldBeCalledTimes(1);
 
@@ -991,11 +991,11 @@ class FieldManagerTest extends UnitTestCase {
     $remote_changed_field
   ) {
     $local_changed_field = $this->getFixtureDataProperty(
-      'entity.remote_changed_field',
+      'local_entity.remote_changed_field',
       $test_context['sync_case']
     );
     $test_context['sync']
-      ->get('entity.remote_changed_field')
+      ->get('local_entity.remote_changed_field')
       ->willReturn($local_changed_field)
       ->shouldBeCalledTimes(1);
 
@@ -1127,14 +1127,14 @@ class FieldManagerTest extends UnitTestCase {
     switch ($field) {
       case 'remote_id':
         $field_config_keys = [
-          'entity.remote_id_field',
+          'local_entity.remote_id_field',
           'remote_resource.id_field',
         ];
         break;
 
       case 'remote_changed':
         $field_config_keys = [
-          'entity.remote_changed_field',
+          'local_entity.remote_changed_field',
           'remote_resource.changed_field.name',
         ];
         break;
@@ -1159,7 +1159,7 @@ class FieldManagerTest extends UnitTestCase {
    */
   private function expectSyncFieldValueNotToBeSet(array $test_context, $field) {
     $field_name = $this->getFixtureDataProperty(
-      'entity.' . $field . '_field',
+      'local_entity.' . $field . '_field',
       $test_context['sync_case']
     );
 

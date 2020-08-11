@@ -5,20 +5,29 @@
 #    type     : bug
 #    priority : normal
 #    labels   : config, sync
-# @I Consider defining an EntitySync configuration entity type
-#    type     : improvement
+# @I Use the synchronization as a config entity in the code
+#    type     : task
 #    priority : normal
 #    labels   : config, sync
+#    notes    : Synchronizations are now configuration entities but the code
+#               still uses them as config objects. Review and use the entities
+#               where it makes sense.
 entity_sync.sync.*:
-  type: config_object
+  type: config_entity
   label: 'Entity sync configuration'
   mapping:
     id:
       type: string
-      label: 'The identifier for the synchronization'
-    entity:
+      label: 'The identifier of the synchronization'
+    label:
+      type: string
+      label: 'The label of the synchronization'
+    description:
+      type: string
+      label: 'The description of the synchronization'
+    local_entity:
       type: mapping
-      label: 'Details about the entity being synced'
+      label: 'Details about the local entities being synced'
       mapping:
         type_id:
           type: string
@@ -79,7 +88,7 @@ entity_sync.sync.*:
       sequence:
         type: entity_sync.operation.[%key]
         label: 'The configuration for the synchronization operation'
-    fields:
+    field_mapping:
       type: sequence
       label: 'The fields that will be synced for the entity'
       sequence:

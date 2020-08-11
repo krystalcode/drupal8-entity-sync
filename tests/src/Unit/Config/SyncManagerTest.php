@@ -47,7 +47,7 @@ class SyncManagerTest extends UnitTestCase {
       ],
       // Filter by entity type ID only.
       [
-        ['entity' => ['type_id' => 'user']],
+        ['local_entity' => ['type_id' => 'user']],
         [
           'user__operation_enabled',
           'user__operation_disabled',
@@ -90,7 +90,7 @@ class SyncManagerTest extends UnitTestCase {
       // Filter by entity type ID, operation ID and status.
       [
         [
-          'entity' => ['type_id' => 'user'],
+          'local_entity' => ['type_id' => 'user'],
           'operation' => [
             'id' => 'import_list',
             'status' => TRUE,

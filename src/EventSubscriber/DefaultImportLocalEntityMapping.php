@@ -37,7 +37,7 @@ class DefaultImportLocalEntityMapping implements EventSubscriberInterface {
     $local_entity = $event->getLocalEntity();
 
     // Check if the field exists and has a value.
-    $id_field_name = $sync->get('entity.remote_id_field');
+    $id_field_name = $sync->get('local_entity.remote_id_field');
     if (!$local_entity->hasField($id_field_name)) {
       return [];
     }

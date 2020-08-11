@@ -1,7 +1,7 @@
 # Same entity type but different operation definitions.
 user__operation_enabled:
   id: user__operation_enabled
-  entity:
+  local_entity:
     type_id: user
   operations:
     import_list:
@@ -9,7 +9,7 @@ user__operation_enabled:
 
 user__operation_disabled:
   id: user__operation_disabled
-  entity:
+  local_entity:
     type_id: user
   operations:
     import_list:
@@ -17,13 +17,13 @@ user__operation_disabled:
 
 user__operation_undefined:
   id: user__operation_undefined
-  entity:
+  local_entity:
     type_id: user
 
 # Different entity type so that we can test filtering by entity type ID.
 node__operation_enabled:
   id: node__operation_enabled
-  entity:
+  local_entity:
     type_id: node
   operations:
     import_list:

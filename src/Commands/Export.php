@@ -74,7 +74,7 @@ class Export extends DrushCommands {
    */
   public function exportLocalEntity($sync_id, $entity_id) {
     $sync = $this->configFactory->get('entity_sync.sync.' . $sync_id);
-    $entity_type_id = $sync->get('entity.type_id');
+    $entity_type_id = $sync->get('local_entity.type_id');
 
     $entity = $this->entityTypeManager
       ->getStorage($entity_type_id)

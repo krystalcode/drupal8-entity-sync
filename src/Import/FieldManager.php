@@ -125,7 +125,7 @@ class FieldManager implements FieldManagerInterface {
       );
     }
 
-    $local_id_field = $sync->get('entity.remote_id_field');
+    $local_id_field = $sync->get('local_entity.remote_id_field');
     if (!$force && !$local_entity->get($local_id_field)->isEmpty()) {
       return;
     }
@@ -207,7 +207,7 @@ class FieldManager implements FieldManagerInterface {
     }
 
     $local_entity->set(
-      $sync->get('entity.remote_changed_field'),
+      $sync->get('local_entity.remote_changed_field'),
       $field_value
     );
   }
@@ -495,12 +495,12 @@ class FieldManager implements FieldManagerInterface {
     $field_info = [];
     switch ($sync_field) {
       case 'remote_id':
-        $field_info['machine_name'] = $sync->get('entity.remote_id_field');
+        $field_info['machine_name'] = $sync->get('local_entity.remote_id_field');
         $field_info['remote_name'] = $sync->get('remote_resource.id_field');
         break;
 
       case 'remote_changed':
-        $field_info['machine_name'] = $sync->get('entity.remote_changed_field');
+        $field_info['machine_name'] = $sync->get('local_entity.remote_changed_field');
         $field_info['remote_name'] = $sync->get('remote_resource.changed_field.name');
         break;
 

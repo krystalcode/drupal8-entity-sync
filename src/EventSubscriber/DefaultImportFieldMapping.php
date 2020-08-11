@@ -32,7 +32,7 @@ class DefaultImportFieldMapping implements EventSubscriberInterface {
    *   The field mapping event.
    */
   public function buildFieldMapping(FieldMappingEvent $event) {
-    $field_mapping = $event->getSync()->get('fields');
+    $field_mapping = $event->getSync()->get('field_mapping');
     if (!$field_mapping) {
       $field_mapping = [];
     }

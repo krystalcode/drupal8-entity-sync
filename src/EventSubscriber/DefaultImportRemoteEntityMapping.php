@@ -57,10 +57,10 @@ class DefaultImportRemoteEntityMapping implements EventSubscriberInterface {
     $sync = $event->getSync();
     $remote_entity = $event->getRemoteEntity();
     $remote_id_field = $sync->get('remote_resource.id_field');
-    $entity_info = $sync->get('entity');
+    $entity_settings = $sync->get('local_entity');
 
     $query = $this->entityTypeManager
-      ->getStorage($entity_info['type_id'])
+      ->getStorage($entity_settings['type_id'])
       ->getQuery()
       // @I Review whether disabling access check is always safe
       //    type     : bug
@@ -72,7 +72,7 @@ class DefaultImportRemoteEntityMapping implements EventSubscriberInterface {
       //    labels   : security
       ->accessCheck(FALSE)
       ->condition(
-        $entity_info['remote_id_field'],
+        $entity_settings['remote_id_field'],
         $remote_entity->{$remote_id_field}
       );
 
@@ -97,11 +97,11 @@ class DefaultImportRemoteEntityMapping implements EventSubscriberInterface {
     //    priority : normal
     //    labels   : config, validation
     $entity_type = $this->entityTypeManager
-      ->getDefinition($entity_info['type_id']);
-    if ($entity_type->getBundleEntityType() && $entity_info['bundle']) {
+      ->getDefinition($entity_settings['type_id']);
+    if ($entity_type->getBundleEntityType() && $entity_settings['bundle']) {
       $query->condition(
         $entity_type->getKey('bundle'),
-        $entity_info['bundle']
+        $entity_settings['bundle']
       );
     }
 
@@ -109,12 +109,12 @@ class DefaultImportRemoteEntityMapping implements EventSubscriberInterface {
 
     if ($local_entity_ids) {
       $entity_mapping = $this->buildUpdateEntityMapping(
-        $entity_info,
+        $entity_settings,
         current($local_entity_ids)
       );
     }
     else {
-      $entity_mapping = $this->buildCreateEntityMapping($entity_info);
+      $entity_mapping = $this->buildCreateEntityMapping($entity_settings);
     }
 
     $event->setEntityMapping($entity_mapping);
@@ -123,20 +123,20 @@ class DefaultImportRemoteEntityMapping implements EventSubscriberInterface {
   /**
    * Builds the entity mapping for the create action.
    *
-   * @param array $entity_info
-   *   The entity information part of the synchronization object.
+   * @param array $entity_settings
+   *   The entity settings part of the synchronization object.
    *
    * @return array
    *   The entity mapping.
    */
-  protected function buildCreateEntityMapping(array $entity_info) {
+  protected function buildCreateEntityMapping(array $entity_settings) {
     $entity_mapping = [
       'action' => ManagerInterface::ACTION_CREATE,
-      'entity_type_id' => $entity_info['type_id'],
+      'entity_type_id' => $entity_settings['type_id'],
     ];
 
-    if (isset($entity_info['bundle'])) {
-      $entity_mapping['entity_bundle'] = $entity_info['bundle'];
+    if (isset($entity_settings['bundle'])) {
+      $entity_mapping['entity_bundle'] = $entity_settings['bundle'];
     }
 
     return $entity_mapping;
@@ -145,8 +145,8 @@ class DefaultImportRemoteEntityMapping implements EventSubscriberInterface {
   /**
    * Builds the entity mapping for the update action.
    *
-   * @param array $entity_info
-   *   The entity information part of the synchronization object.
+   * @param array $entity_settings
+   *   The entity settings part of the synchronization object.
    * @param string|int $entity_id
    *   The ID of the local entity that was found to be associated with the given
    *   remote entity.
@@ -154,15 +154,18 @@ class DefaultImportRemoteEntityMapping implements EventSubscriberInterface {
    * @return array
    *   The entity mapping.
    */
-  protected function buildUpdateEntityMapping(array $entity_info, $entity_id) {
+  protected function buildUpdateEntityMapping(
+    array $entity_settings,
+    $entity_id
+  ) {
     $entity_mapping = [
       'action' => ManagerInterface::ACTION_UPDATE,
-      'entity_type_id' => $entity_info['type_id'],
+      'entity_type_id' => $entity_settings['type_id'],
       'id' => $entity_id,
     ];
 
-    if (isset($entity_info['bundle'])) {
-      $entity_mapping['entity_bundle'] = $entity_info['bundle'];
+    if (isset($entity_settings['bundle'])) {
+      $entity_mapping['entity_bundle'] = $entity_settings['bundle'];
     }
 
     return $entity_mapping;

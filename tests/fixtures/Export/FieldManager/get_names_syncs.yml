@@ -1,6 +1,6 @@
 field_mapping__with_defaults:
   id: complete_field_mapping
-  fields:
+  field_mapping:
     # Fields making use of default export status.
     - machine_name: field_enabled_1
       remote_name: field_enabled_1
@@ -26,7 +26,7 @@ field_mapping__with_defaults:
 
 field_mapping__complete:
   id: complete_field_mapping
-  fields:
+  field_mapping:
     # Fields making use of default export status.
     - machine_name: field_enabled_1
       remote_name: field_enabled_1
