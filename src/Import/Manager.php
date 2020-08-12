@@ -400,9 +400,10 @@ class Manager extends EntityManagerBase implements ManagerInterface {
     // entity.
     $this->doubleIteratorApply(
       $entities,
-      [$this, 'tryCreateOrUpdate'],
+      [$this, 'tryWrapDoImportRemoteEntity'],
       $options['limit'] ?? NULL,
       $sync,
+      ['parent_operation' => 'import_remote_list'] + $options,
       'import_list'
     );
 
@@ -572,7 +573,11 @@ class Manager extends EntityManagerBase implements ManagerInterface {
       ->importEntity($entity_mapping['entity_id']);
 
     // Finally, update the entity.
-    $this->createOrUpdate($remote_entity, $sync);
+    $this->wrapDoImportRemoteEntity(
+      $sync,
+      $remote_entity,
+      ['parent_operation' => 'import_local_entity'] + $options
+    );
 
     // Terminate the operation.
     // Add to the context the local entity that was imported.
@@ -613,13 +618,14 @@ class Manager extends EntityManagerBase implements ManagerInterface {
    * @param string $operation
    *   The operation that is doing the import; used for logging purposes.
    */
-  protected function tryCreateOrUpdate(
+  protected function tryWrapDoImportRemoteEntity(
     $remote_entity,
     ImmutableConfig $sync,
+    array $options,
     $operation
   ) {
     try {
-      $this->createOrUpdate($remote_entity, $sync);
+      $this->wrapDoImportRemoteEntity($sync, $remote_entity, $options);
     }
     catch (\Exception $e) {
       $id_field = $sync->get('remote_resource.id_field');
