@@ -37,4 +37,13 @@ class Manager implements ManagerInterface {
     );
   }
 
+  /**
+   * {@inheritdoc}
+   */
+  public function getSyncOperationsForRoute() {
+    return [
+      'import_list' => 'Drupal\entity_sync\Form\ImportListBase',
+    ];
+  }
+
 }
