@@ -97,11 +97,6 @@ class ExportLocalEntity extends QueueWorkerBase implements
    *   When no entity was found for the given data.
    *
    * @see \Drupal\entity_sync\Export\EntityManager::exportLocalEntity()
-   *
-   * @I Write tests for the export local entity queue worker
-   *    type     : task
-   *    priority : normal
-   *    labels   : export, testing, queue
    */
   public function processItem($data) {
     $this->validateData($data);
