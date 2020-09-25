@@ -73,8 +73,8 @@ class Manager implements ManagerInterface {
       []
     );
 
-    // Filter out any synchronization that do not match the entity type ID
-    // filter, if given.
+    // Filter out any synchronization that do not match the entity type ID and
+    // bundle filters, if given.
     $syncs = array_filter(
       $syncs,
       function ($sync) use ($filters) {
@@ -82,7 +82,15 @@ class Manager implements ManagerInterface {
           return TRUE;
         }
 
+        if (!$filters['local_entity']['bundle']) {
+          return TRUE;
+        }
+
         if ($sync->get('local_entity.type_id') !== $filters['local_entity']['type_id']) {
+          return FALSE;
+        }
+
+        if ($sync->get('local_entity.bundle') !== $filters['local_entity']['bundle']) {
           return FALSE;
         }
 
