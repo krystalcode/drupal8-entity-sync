@@ -197,7 +197,10 @@ class EntityManager extends EntityManagerBase implements EntityManagerInterface 
     $syncs = $this->configManager->getSyncs([
       'local_entity' => [
         'type_id' => $entity->getEntityTypeId(),
-        'bundle' => $entity->bundle(),
+        'bundle' => [
+          'id' => $entity->bundle(),
+          'optional' => TRUE,
+        ],
       ],
       'operation' => [
         'id' => 'export_entity',
