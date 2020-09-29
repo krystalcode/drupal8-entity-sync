@@ -97,8 +97,10 @@ class Manager implements ManagerInterface {
           return FALSE;
         }
 
-        if ($filters['local_entity']['bundle']['id']
-          && $sync->get('local_entity.bundle') !== $filters['local_entity']['bundle']['id']) {
+        if (
+          ($filters['local_entity']['bundle']['id'] && $sync->get('local_entity.bundle'))
+          && ($sync->get('local_entity.bundle') !== $filters['local_entity']['bundle']['id'])
+        ) {
           return FALSE;
         }
 
