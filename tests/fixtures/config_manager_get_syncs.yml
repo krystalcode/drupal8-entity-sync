@@ -25,6 +25,7 @@ node__operation_enabled:
   id: node__operation_enabled
   local_entity:
     type_id: node
+    bundle: page
   operations:
     import_list:
       status: TRUE
