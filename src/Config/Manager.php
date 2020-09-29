@@ -48,7 +48,13 @@ class Manager implements ManagerInterface {
   public function getSyncs(array $filters = []) {
     $filters = NestedArray::mergeDeep(
       [
-        'local_entity' => ['type_id' => NULL],
+        'local_entity' => [
+          'type_id' => NULL,
+          'bundle' => [
+            'id' => NULL,
+            'optional' => FALSE,
+          ],
+        ],
         'operation' => [
           'id' => NULL,
           'status' => NULL,
@@ -73,8 +79,8 @@ class Manager implements ManagerInterface {
       []
     );
 
-    // Filter out any synchronization that do not match the entity type ID
-    // filter, if given.
+    // Filter out any synchronization that do not match the entity type ID and
+    // bundle filters, if given.
     $syncs = array_filter(
       $syncs,
       function ($sync) use ($filters) {
@@ -83,6 +89,18 @@ class Manager implements ManagerInterface {
         }
 
         if ($sync->get('local_entity.type_id') !== $filters['local_entity']['type_id']) {
+          return FALSE;
+        }
+
+        if (!$filters['local_entity']['bundle']['optional']
+          && !$filters['local_entity']['bundle']['id']) {
+          return FALSE;
+        }
+
+        if (
+          ($filters['local_entity']['bundle']['id'] && $sync->get('local_entity.bundle'))
+          && ($sync->get('local_entity.bundle') !== $filters['local_entity']['bundle']['id'])
+        ) {
           return FALSE;
         }
 

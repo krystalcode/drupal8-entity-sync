@@ -35,9 +35,15 @@ class SyncManagerTest extends UnitTestCase {
    */
   public function dataProvider() {
     return [
-      // No filters.
+      // No filters and bundle is optional.
       [
-        [],
+        [
+          'local_entity' => [
+            'bundle' => [
+              'optional' => TRUE,
+            ],
+          ],
+        ],
         [
           'user__operation_enabled',
           'user__operation_disabled',
@@ -45,27 +51,61 @@ class SyncManagerTest extends UnitTestCase {
           'node__operation_enabled',
         ],
       ],
-      // Filter by entity type ID only.
+      // Filter by entity type ID only and bundle is optional.
       [
-        ['local_entity' => ['type_id' => 'user']],
+        [
+          'local_entity' => [
+            'type_id' => 'user',
+            'bundle' => [
+              'optional' => TRUE,
+            ],
+          ],
+        ],
         [
           'user__operation_enabled',
           'user__operation_disabled',
           'user__operation_undefined',
         ],
       ],
-      // Filter by operation ID only.
+      // Filter by entity type ID and bundle.
       [
-        ['operation' => ['id' => 'import_list']],
+        [
+          'local_entity' => [
+            'type_id' => 'node',
+            'bundle' => [
+              'id' => 'page',
+              'optional' => TRUE,
+            ],
+          ],
+        ],
+        [
+          'node__operation_enabled',
+        ],
+      ],
+      // Filter by operation ID only and bundle is optional.
+      [
+        [
+          'local_entity' => [
+            'bundle' => [
+              'optional' => TRUE,
+            ],
+          ],
+          'operation' => ['id' => 'import_list'],
+        ],
         [
           'user__operation_enabled',
           'user__operation_disabled',
           'node__operation_enabled',
         ],
       ],
-      // Filter by operation ID and status.
+      // Filter by operation ID and status and bundle is optional.
       [
         [
+          'local_entity' => [
+            'bundle' => [
+              'optional' => TRUE,
+            ],
+          ],
           'operation' => [
             'id' => 'import_list',
             'status' => TRUE,
@@ -78,6 +118,11 @@ class SyncManagerTest extends UnitTestCase {
       ],
       [
         [
+          'local_entity' => [
+            'bundle' => [
+              'optional' => TRUE,
+            ],
+          ],
           'operation' => [
             'id' => 'import_list',
             'status' => FALSE,
@@ -87,10 +132,16 @@ class SyncManagerTest extends UnitTestCase {
           'user__operation_disabled',
         ],
       ],
-      // Filter by entity type ID, operation ID and status.
+      // Filter by entity type ID, bundle, operation ID and status and bundle is
+      // optional.
       [
         [
-          'local_entity' => ['type_id' => 'user'],
+          'local_entity' => [
+            'type_id' => 'user',
+            'bundle' => [
+              'optional' => TRUE,
+            ],
+          ],
           'operation' => [
             'id' => 'import_list',
             'status' => TRUE,
