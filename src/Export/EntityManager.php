@@ -326,7 +326,7 @@ class EntityManager extends EntityManagerBase implements EntityManagerInterface 
       //    notes    : There are legitimate cases where we still want to allow
       //               exports of new imported entities e.g. import from one
       //               remote resource and send to another.
-      $sync_supports_imports = $sync->get('operations.import_list.status') || $sync->get('operations.import_list.status');
+      $sync_supports_imports = $sync->get('operations.import_list.status') || $sync->get('operations.import_entity.status');
       if ($is_managed && $sync_supports_imports && !$is_update) {
         $remote_changed_name = $sync->get('local_entity.remote_changed_field');
         $remote_changed_field = $entity->get(
