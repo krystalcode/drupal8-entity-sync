@@ -312,11 +312,11 @@ class EntityManager extends EntityManagerBase implements EntityManagerInterface 
         }
       }
 
-      // If we are coming here from an entity creation, we want to prevent
-      // exporting entities that were created as a result of an import. In those
-      // cases, the remote changed field of the new local entity will not be
-      // empty, while if the entity was created within the application it will
-      // always be empty.
+      // If the sync supports imports and exports we are coming here from an
+      // entity creation, we want to prevent exporting entities that were
+      // created as a result of an import. In those cases, the remote changed
+      // field of the new local entity will not be empty, while if the entity
+      // was created within the application it will always be empty.
       // See entity_sync_entity_bundle_field_info_alter().
       //
       // @I Allow queueing exports of imported entities for different syncs
@@ -326,7 +326,8 @@ class EntityManager extends EntityManagerBase implements EntityManagerInterface 
       //    notes    : There are legitimate cases where we still want to allow
       //               exports of new imported entities e.g. import from one
       //               remote resource and send to another.
-      if ($is_managed && !$is_update) {
+      $sync_supports_imports = $sync->get('operations.import_list.status') || $sync->get('operations.import_list.status');
+      if ($is_managed && $sync_supports_imports && !$is_update) {
         $remote_changed_name = $sync->get('local_entity.remote_changed_field');
         $remote_changed_field = $entity->get(
           $sync->get('local_entity.remote_changed_field')
