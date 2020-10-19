@@ -304,7 +304,7 @@ class EntityManager extends EntityManagerBase implements EntityManagerInterface 
       $remote_changed_name = $sync->get('local_entity.remote_changed_field');
       if ($remote_changed_name && $is_managed && $is_update) {
         $original_changed = $context['original_entity']
-          ->get($field_name)
+          ->get($remote_changed_name)
           ->value;
         if ($original_changed < $entity->get($remote_changed_name)->value) {
           continue;
@@ -327,9 +327,7 @@ class EntityManager extends EntityManagerBase implements EntityManagerInterface 
       //               remote resource and send to another.
       $sync_supports_imports = $sync->get('operations.import_list.status') || $sync->get('operations.import_entity.status');
       if ($is_managed && $sync_supports_imports && !$is_update) {
-        $remote_changed_field = $entity->get(
-          $sync->get('local_entity.remote_changed_field')
-        );
+        $remote_changed_field = $entity->get($remote_changed_name);
 
         if (!$remote_changed_field->isEmpty()) {
           continue;
