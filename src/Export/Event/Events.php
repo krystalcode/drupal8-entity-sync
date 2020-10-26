@@ -26,6 +26,15 @@ final class Events {
   const FIELD_MAPPING = 'entity_sync.export.field_mapping';
 
   /**
+   * Name of the event fired before exporting a local entity.
+   *
+   * @Event
+   *
+   * @see \Drupal\entity_sync\Event\PreInitiateOperationEvent
+   */
+  const LOCAL_ENTITY_PRE_INITIATE = 'entity_sync.export.local_entity_pre_initiate';
+
+  /**
    * Name of the event fired after exporting a local entity has finished.
    *
    * @Event
