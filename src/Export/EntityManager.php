@@ -157,6 +157,22 @@ class EntityManager extends EntityManagerBase implements EntityManagerInterface 
     }
 
     $context = $options['context'] ?? [];
+    $context['local_entity'] = $local_entity;
+
+    // Notify subscribers that the operation is about to be initiated.
+    // @I Write tests for operation cancellations
+    //    type     : task
+    //    priority : high
+    //    labels   : export, testing
+    $cancel = $this->preInitiate(
+      Events::LOCAL_ENTITY_PRE_INITIATE,
+      'export_entity',
+      $context,
+      $sync
+    );
+    if ($cancel) {
+      return;
+    }
 
     // Export the entity.
     $data = $this->createOrUpdate($local_entity, $sync);
